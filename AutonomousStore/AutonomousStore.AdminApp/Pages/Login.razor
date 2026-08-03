@@ -1,0 +1,63 @@
+﻿@page "/login"
+@inject IAdminAuthApiService AuthApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h1 class="auth-title">Painel Administrativo</h1>
+        <p class="auth-subtitle">Acesso restrito à equipe da SmartGo Store.</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="HandleLogin">
+            <div class="form-group">
+                <label>E-mail</label>
+                <InputText @bind-Value="_model.Email" type="email" />
+            </div>
+
+            <div class="form-group">
+                <label>Senha</label>
+                <InputText @bind-Value="_model.Password" type="password" />
+            </div>
+
+            <button type="submit" class="btn-primary" disabled="@_isLoading">
+                @(_isLoading ? "Entrando..." : "Entrar")
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private readonly LoginModel _model = new();
+    private bool _isLoading;
+    private string? _errorMessage;
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, response, error) = await AuthApi.LoginAsync(_model.Email, _model.Password);
+
+        _isLoading = false;
+
+        if (!success || response is null)
+        {
+            _errorMessage = error;
+            return;
+        }
+
+        AppState.Login(response.Token, response.Name, response.Email);
+        Nav.NavigateTo("/");
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

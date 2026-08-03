@@ -1,0 +1,73 @@
+﻿@page "/completar-cadastro-google"
+@inject IAuthApiService AuthApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Só mais um passo</h1>
+
+@if (AppState.PendingGoogleSignup is null)
+{
+    <p>Nenhum login do Google em andamento.</p>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/login")'>Voltar para o login</button>
+}
+else
+{
+    <p>Olá, @AppState.PendingGoogleSignup.Name! Precisamos só do seu CPF e telefone pra terminar o cadastro.</p>
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">@_errorMessage</div>
+    }
+
+    <div class="card">
+        <EditForm Model="_request" OnValidSubmit="HandleSubmit">
+            <div class="form-group">
+                <label>CPF</label>
+                <InputText @bind-Value="_request.Cpf" placeholder="000.000.000-00" />
+            </div>
+            <div class="form-group">
+                <label>Telefone</label>
+                <InputText @bind-Value="_request.PhoneNumber" />
+            </div>
+            <button class="btn-primary" type="submit" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Salvando..." : "Concluir cadastro")
+            </button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private CompleteFormModel _request = new();
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        var pending = AppState.PendingGoogleSignup;
+        if (pending is null)
+            return;
+
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var (success, result, error) = await AuthApi.CompleteGoogleRegistrationAsync(
+            new CompleteGoogleRegistrationRequest(pending.Name, pending.Email, _request.PhoneNumber, _request.Cpf, pending.GoogleId));
+
+        _isSubmitting = false;
+
+        if (!success || result is null)
+        {
+            _errorMessage = error ?? "Não foi possível concluir o cadastro.";
+            return;
+        }
+
+        AppState.SetAuth(result.Token, result.Customer.Id, result.Customer.Name);
+        Nav.NavigateTo("/");
+    }
+
+    private class CompleteFormModel
+    {
+        public string Cpf { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+    }
+}

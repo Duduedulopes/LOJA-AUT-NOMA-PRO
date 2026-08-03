@@ -1,0 +1,69 @@
+﻿@inject IChatApiService ChatApi
+
+<button class="chat-toggle-button" @onclick="ToggleOpen" title="Falar com o assistente">
+    @(_isOpen ? "✕" : "💬")
+</button>
+
+@if (_isOpen)
+{
+    <div class="chat-panel">
+        <div class="chat-panel-header">
+            <span>Assistente SmartGo</span>
+        </div>
+
+        <div class="chat-messages" @ref="_messagesRef">
+            @foreach (var message in _messages)
+            {
+                <div class="chat-message @(message.Role == "user" ? "chat-message-user" : "chat-message-bot")">
+                    @message.Text
+                </div>
+            }
+            @if (_isSending)
+            {
+                <div class="chat-message chat-message-bot chat-message-typing">Digitando...</div>
+            }
+        </div>
+
+        <div class="chat-input-row">
+            <input @bind="_input" @bind:event="oninput" @onkeydown="HandleKeyDown" placeholder="Digite sua dúvida..." disabled="@_isSending" />
+            <button @onclick="SendMessage" disabled="@(_isSending || string.IsNullOrWhiteSpace(_input))">➤</button>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _isOpen;
+    private bool _isSending;
+    private string _input = "";
+    private ElementReference _messagesRef;
+    private readonly List<ChatMessageDto> _messages = new()
+    {
+        new ChatMessageDto("model", "Olá! Sou o assistente da SmartGo Store 🤖 Posso ajudar com dúvidas sobre como a loja funciona, cadastro e pagamento. Como posso ajudar?")
+    };
+
+    private void ToggleOpen() => _isOpen = !_isOpen;
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_input) && !_isSending)
+            await SendMessage();
+    }
+
+    private async Task SendMessage()
+    {
+        var text = _input.Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        _messages.Add(new ChatMessageDto("user", text));
+        _input = "";
+        _isSending = true;
+        StateHasChanged();
+
+        var reply = await ChatApi.SendAsync(_messages);
+
+        _messages.Add(new ChatMessageDto("model", reply));
+        _isSending = false;
+        StateHasChanged();
+    }
+}

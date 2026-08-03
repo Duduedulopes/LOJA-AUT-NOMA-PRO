@@ -1,0 +1,40 @@
+﻿@page "/"
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h1 class="auth-title">Ferramentas administrativas</h1>
+        <p class="auth-subtitle">Olá, @AppState.AdminName — painel interno da SmartGo Store.</p>
+
+        <button class="btn-primary" @onclick='() => Nav.NavigateTo("/produtos")'>
+            📦 Produtos e estoque
+        </button>
+
+        <button class="btn-primary" style="margin-top:0.75rem;" @onclick='() => Nav.NavigateTo("/monitor-prateleira")'>
+            🎥 Monitor da prateleira
+        </button>
+
+        <button class="btn-primary" style="margin-top:0.75rem;" @onclick='() => Nav.NavigateTo("/vendas")'>
+            🧾 Histórico de vendas
+        </button>
+
+        <button class="btn-primary" style="background:#e0e0e0; color:#333; margin-top:0.75rem;" @onclick="Logout">
+            Sair
+        </button>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!AppState.IsAuthenticated)
+            Nav.NavigateTo("/login");
+    }
+
+    private void Logout()
+    {
+        AppState.Logout();
+        Nav.NavigateTo("/login");
+    }
+}

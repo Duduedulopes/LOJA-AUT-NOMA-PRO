@@ -1,0 +1,139 @@
+@page "/"
+@inject AppState AppState
+@inject ISessionApiService SessionApi
+@inject NavigationManager Nav
+
+@if (!AppState.IsAuthenticated)
+{
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-icon"><svg width="46" height="58" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--cyan); filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.6));"><path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><circle cx="12" cy="-1" r="1" fill="currentColor" /><circle cx="9" cy="21" r="1.1" fill="currentColor" /><circle cx="20" cy="21" r="1.1" fill="currentColor" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg></div>
+            <h1 class="auth-title">Bem-vindo(a)</h1>
+            <p class="auth-subtitle">Entre ou cadastre-se para começar a comprar na loja autônoma.</p>
+            <button class="btn-primary" @onclick="GoToLogin">Entrar</button>
+            <p class="auth-footer-link">
+                Ainda não tem cadastro? <a href="/cadastro">Criar cadastro</a>
+            </p>
+            <p class="auth-footer-link">
+                <a href="/como-funciona">Como funciona a loja?</a>
+            </p>
+            <p class="auth-footer-link">
+                <a href="/catalogo">Ver catálogo de produtos</a>
+            </p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="dashboard">
+        <div class="dashboard-avatar">@GetInitial()</div>
+        <h1 class="dashboard-greeting">Olá, @AppState.CurrentCustomerName!</h1>
+
+        @if (_isLoadingStatus)
+        {
+            <p class="hint">Verificando sua sessão...</p>
+        }
+        else if (_activeSession is not null && _activeSession.Status == SessionStatus.AguardandoEntrada)
+        {
+            <div class="status-banner status-active">
+                <span class="status-text"><span class="live-dot"></span>Seu QR code está esperando a entrada na loja.</span>
+                <button class="btn-primary btn-small" style="width:auto;" @onclick='() => Nav.NavigateTo("/abrir-loja")'>Continuar</button>
+            </div>
+        }
+        else if (_activeSession is not null && _activeSession.Status == SessionStatus.Aberta)
+        {
+            <div class="status-banner status-active">
+                <span class="status-text"><span class="live-dot"></span>Você está na loja agora — R$ @_activeSession.Total.ToString("0.00") no carrinho.</span>
+                <button class="btn-primary btn-small" style="width:auto;" @onclick='() => Nav.NavigateTo("/carrinho")'>Ver carrinho</button>
+            </div>
+        }
+        else if (_activeSession is not null && _activeSession.Status == SessionStatus.AguardandoPagamento)
+        {
+            <div class="status-banner status-active">
+                <span class="status-text"><span class="live-dot"></span>Compra fechada — falta confirmar o pagamento.</span>
+                <button class="btn-primary btn-small" style="width:auto;" @onclick='() => Nav.NavigateTo("/checkout")'>Pagar agora</button>
+            </div>
+        }
+        else
+        {
+            <div class="status-pill">
+                <span>🟢 Loja: <strong>Online</strong></span>
+                <span class="status-pill-divider">|</span>
+                <span>Carrinho: R$ 0,00</span>
+            </div>
+        }
+
+        <div class="dashboard-panels">
+            <div class="dashboard-panel">
+                <h2 class="dashboard-panel-heading">🚪 Abrir a Loja</h2>
+                <div class="dashboard-panel-actions">
+                    <button class="btn-primary" @onclick="GoToOpenStore">Gerar QR code de entrada</button>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <h2 class="dashboard-panel-heading">🛒 Ações do Carrinho</h2>
+                <div class="dashboard-panel-actions">
+                    <button class="btn-primary btn-outline" @onclick="GoToLiveCart">
+                        Ver Carrinho @((_activeSession is not null && _activeSession.Status == SessionStatus.Aberta) ? $"(R$ {_activeSession.Total:0.00})" : "")
+                    </button>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <h2 class="dashboard-panel-heading">📦 Acesso Rápido</h2>
+                <div class="dashboard-panel-actions">
+                    <button class="btn-primary btn-outline" @onclick="GoToCatalog">Catálogo</button>
+                    <button class="btn-primary btn-outline" @onclick="GoToHowItWorks">Como Funciona</button>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <h2 class="dashboard-panel-heading">👤 Gestão de Conta</h2>
+                <div class="dashboard-panel-actions">
+                    <button class="btn-primary btn-outline" @onclick="GoToPurchases">Minhas Compras &amp; Histórico</button>
+                    <button class="btn-primary btn-outline" @onclick="GoToProfile">Perfil &amp; Pagamentos</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-primary btn-logout" @onclick="Logout">🚪 Sair</button>
+    </div>
+}
+
+@code {
+    private SessionDto? _activeSession;
+    private bool _isLoadingStatus = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated || AppState.CurrentCustomerId is null)
+        {
+            _isLoadingStatus = false;
+            return;
+        }
+
+        _activeSession = await SessionApi.GetActiveAsync(AppState.CurrentCustomerId.Value);
+        _isLoadingStatus = false;
+    }
+
+    private void GoToLogin() => Nav.NavigateTo("/login");
+    private void GoToOpenStore() => Nav.NavigateTo("/abrir-loja");
+    private void GoToLiveCart() => Nav.NavigateTo("/carrinho");
+    private void GoToCatalog() => Nav.NavigateTo("/catalogo");
+    private void GoToPurchases() => Nav.NavigateTo("/minhas-compras");
+    private void GoToProfile() => Nav.NavigateTo("/perfil");
+    private void GoToHowItWorks() => Nav.NavigateTo("/como-funciona");
+
+    private void Logout()
+    {
+        AppState.Logout();
+        Nav.NavigateTo("/");
+    }
+
+    private string GetInitial()
+    {
+        var name = AppState.CurrentCustomerName;
+        return string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
+    }
+}

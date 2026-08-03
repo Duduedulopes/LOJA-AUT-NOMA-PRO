@@ -1,0 +1,65 @@
+@page "/como-funciona"
+@inject NavigationManager Nav
+
+<div class="auth-wrapper">
+    <div class="auth-card" style="max-width: 600px; text-align:left;">
+        <div class="auth-icon" style="text-align:center;">🛒</div>
+        <h1 class="auth-title" style="text-align:center;">Como funciona a SmartGo Store</h1>
+        <p class="auth-subtitle" style="text-align:center;">
+            Uma loja autônoma: entra, pega o que quiser, e sai. Sem fila, sem caixa, sem operador — o sistema cuida do resto.
+        </p>
+
+        <div class="step-item">
+            <div class="step-number">1</div>
+            <div>
+                <p class="step-title">Entrada sem atrito</p>
+                <p class="step-text">
+                    Um sensor detecta sua presença na porta e libera o acesso a partir do QR Code
+                    gerado no seu app. Não precisa de chave, cartão nem senha na entrada.
+                </p>
+            </div>
+        </div>
+
+        <div class="step-item">
+            <div class="step-number">2</div>
+            <div>
+                <p class="step-title">Compra autônoma</p>
+                <p class="step-text">
+                    Cada produto tem uma tag RFID. Ao colocar itens no cesto, eles são identificados
+                    automaticamente e somados ao seu carrinho virtual — sem precisar escanear nada.
+                </p>
+            </div>
+        </div>
+
+        <div class="step-item">
+            <div class="step-number">3</div>
+            <div>
+                <p class="step-title">Pagamento transparente</p>
+                <p class="step-text">
+                    Ao fechar a compra, o total já aparece calculado no app. Você confirma na hora
+                    via Pix ou com um cartão salvo no seu perfil — em poucos toques, sem fila no caixa.
+                </p>
+            </div>
+        </div>
+
+        <div class="info-highlight">
+            <strong style="color:var(--cyan);">Segurança em duas camadas.</strong>
+            Além da leitura RFID, câmeras nas prateleiras confirmam de forma independente cada produto
+            retirado ou devolvido. Na saída, o sistema nunca tranca fisicamente a porta — se algo não
+            bater, ele apenas dispara um alerta, preservando sua segurança em caso de emergência.
+        </div>
+
+        <div class="info-highlight">
+            <strong style="color:var(--cyan);">Funciona 24 horas.</strong>
+            Sem operador de caixa, a loja fica disponível de madrugada, feriados e fins de semana —
+            ideal para aquela compra rápida fora do horário comercial.
+        </div>
+
+        <button class="btn-primary" style="margin-top:1.5rem;" @onclick='() => Nav.NavigateTo("/cadastro")'>
+            Criar minha conta
+        </button>
+        <button class="btn-primary" style="background:transparent; border:1px solid var(--cyan); color:var(--cyan); box-shadow:none; margin-top:0.75rem;" @onclick='() => Nav.NavigateTo("/")'>
+            Voltar
+        </button>
+    </div>
+</div>

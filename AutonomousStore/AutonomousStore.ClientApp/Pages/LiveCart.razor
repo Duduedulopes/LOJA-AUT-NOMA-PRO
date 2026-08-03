@@ -1,0 +1,121 @@
+@page "/carrinho"
+@implements IDisposable
+@inject ISessionApiService SessionApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Meu carrinho</h1>
+
+@if (!AppState.IsAuthenticated)
+{
+    <p>Você precisa entrar primeiro.</p>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/login")'>Entrar</button>
+}
+else if (AppState.CurrentSessionId is null)
+{
+    <div class="card">
+        <p>Nenhuma sessão de compra em andamento.</p>
+        <button class="btn-primary" @onclick='() => Nav.NavigateTo("/abrir-loja")'>Abrir a loja</button>
+    </div>
+}
+else if (_isLoading)
+{
+    <p class="hint">Carregando carrinho...</p>
+}
+else if (_session is null)
+{
+    <div class="card">
+        <p>Não foi possível carregar sua sessão agora.</p>
+        <button class="btn-primary" @onclick='() => Nav.NavigateTo("/")'>Voltar ao início</button>
+    </div>
+}
+else if (_session.Status == SessionStatus.AguardandoEntrada)
+{
+    <div class="card">
+        <p>Sua entrada ainda não foi confirmada na porta da loja.</p>
+        <button class="btn-primary" @onclick='() => Nav.NavigateTo("/abrir-loja")'>Ver QR code</button>
+    </div>
+}
+else
+{
+    <div class="card">
+        <p class="hint"><span class="live-dot"></span>Atualizando ao vivo conforme os produtos são lidos.</p>
+
+        @if (_session.Items.Count == 0)
+        {
+            <p class="hint" style="margin-top:1rem;">Nenhum item lido ainda. Coloque produtos no cesto pra vê-los aqui.</p>
+        }
+        else
+        {
+            <div style="margin-top:0.75rem;">
+                @foreach (var item in _session.Items)
+                {
+                    <div class="item-row">
+                        <span class="item-name">@item.ProductName <span class="item-qty">x@item.Quantity</span></span>
+                        <span class="item-price">R$ @item.Subtotal.ToString("0.00")</span>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="total-value">R$ @_session.Total.ToString("0.00")</div>
+
+        @if (_session.Status == SessionStatus.Aberta)
+        {
+            <button class="btn-primary" @onclick='() => Nav.NavigateTo("/checkout")' disabled="@(_session.Items.Count == 0)">
+                Já terminei — fechar compra
+            </button>
+            @if (_session.Items.Count == 0)
+            {
+                <p class="hint" style="text-align:center;">Adicione ao menos 1 item antes de fechar a compra.</p>
+            }
+        }
+        else if (_session.Status == SessionStatus.AguardandoPagamento)
+        {
+            <p class="hint" style="text-align:center;">Compra fechada — falta confirmar o pagamento.</p>
+            <button class="btn-primary" @onclick='() => Nav.NavigateTo("/checkout")'>Ir para pagamento</button>
+        }
+        else if (_session.Status == SessionStatus.Concluida)
+        {
+            <p class="hint" style="text-align:center;">✅ Compra já concluída.</p>
+            <button class="btn-primary" @onclick='() => Nav.NavigateTo("/")'>Voltar ao início</button>
+        }
+    </div>
+}
+
+@code {
+    private SessionDto? _session;
+    private bool _isLoading = true;
+    private System.Threading.Timer? _pollTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated || AppState.CurrentSessionId is null)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        await RefreshAsync();
+        _isLoading = false;
+
+        _pollTimer = new System.Threading.Timer(async _ =>
+        {
+            await RefreshAsync();
+            await InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (AppState.CurrentSessionId is null)
+            return;
+
+        var updated = await SessionApi.GetByIdAsync(AppState.CurrentSessionId.Value);
+
+        if (updated is not null)
+            _session = updated;
+    }
+
+    public void Dispose() => _pollTimer?.Dispose();
+}

@@ -1,0 +1,141 @@
+﻿@page "/cadastro"
+@inject IAuthApiService AuthApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-icon"><svg width="46" height="58" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--cyan); filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.6));"><path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><circle cx="12" cy="-1" r="1" fill="currentColor" /><circle cx="9" cy="21" r="1.1" fill="currentColor" /><circle cx="20" cy="21" r="1.1" fill="currentColor" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg></div>
+        <h1 class="auth-title">Criar cadastro</h1>
+        <p class="auth-subtitle">Sua experiência de compra inteligente começa aqui.</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        <EditForm Model="_request" OnValidSubmit="HandleSubmit">
+            <div class="form-group">
+                <label>Nome</label>
+                <InputText @bind-Value="_request.Name" />
+            </div>
+            <div class="form-group">
+                <label>E-mail</label>
+                <InputText @bind-Value="_request.Email" type="email" />
+            </div>
+            <div class="form-group">
+                <label>CPF</label>
+                <InputText @bind-Value="_request.Cpf" placeholder="000.000.000-00" />
+            </div>
+            <div class="form-group">
+                <label>Telefone</label>
+                <InputText @bind-Value="_request.PhoneNumber" />
+            </div>
+
+            <div class="form-group">
+                <label>Senha</label>
+                <div class="password-field">
+                    <InputText @bind-Value="_request.Password" type="@(_showPassword ? "text" : "password")" />
+                    <button type="button" class="toggle-password" @onclick="() => _showPassword = !_showPassword">
+                        @(_showPassword ? "🙈" : "👁")
+                    </button>
+                </div>
+                <p class="password-hint">Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial.</p>
+            </div>
+
+            <div class="form-group">
+                <label>Confirmar senha</label>
+                <div class="password-field">
+                    <InputText @bind-Value="_request.ConfirmPassword" type="@(_showConfirmPassword ? "text" : "password")" />
+                    <button type="button" class="toggle-password" @onclick="() => _showConfirmPassword = !_showConfirmPassword">
+                        @(_showConfirmPassword ? "🙈" : "👁")
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group checkbox-group">
+                <label>
+                    <InputCheckbox @bind-Value="_request.AcceptedTerms" />
+                    Li e aceito os <a href="/termos-de-uso" target="_blank">termos de uso</a>
+                </label>
+            </div>
+
+            <button class="btn-primary" type="submit" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Enviando..." : "Criar cadastro")
+            </button>
+        </EditForm>
+
+        <p class="auth-footer-link">
+            Já tem cadastro? <a href="/login">Entrar</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private CustomerFormModel _request = new();
+    private bool _isSubmitting;
+    private bool _showPassword;
+    private bool _showConfirmPassword;
+    private string? _errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        _errorMessage = ValidateBeforeSubmit();
+        if (_errorMessage is not null)
+            return;
+
+        _isSubmitting = true;
+
+        var (success, result, error) = await AuthApi.RegisterAsync(
+            new RegisterRequest(_request.Name, _request.Email, _request.PhoneNumber, _request.Cpf, _request.Password));
+
+        _isSubmitting = false;
+
+        if (!success || result is null)
+        {
+            _errorMessage = error ?? "Não foi possível concluir o cadastro.";
+            return;
+        }
+
+        AppState.SetAuth(result.Token, result.Customer.Id, result.Customer.Name);
+
+        // Forma de pagamento não é obrigatória aqui — o cliente pode cadastrar depois,
+        // inclusive direto na hora de pagar (e só é pedida se ele escolher cartão, não Pix).
+        Nav.NavigateTo("/");
+    }
+
+    private string? ValidateBeforeSubmit()
+    {
+        if (!_request.AcceptedTerms)
+            return "Você precisa aceitar os termos de uso para continuar.";
+
+        if (_request.Password != _request.ConfirmPassword)
+            return "As senhas não coincidem.";
+
+        if (!IsPasswordStrong(_request.Password))
+            return "A senha precisa ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial.";
+
+        return null;
+    }
+
+    private static bool IsPasswordStrong(string password)
+    {
+        if (password.Length < 8) return false;
+        if (!password.Any(char.IsUpper)) return false;
+        if (!password.Any(char.IsLower)) return false;
+        if (!password.Any(char.IsDigit)) return false;
+        if (password.All(char.IsLetterOrDigit)) return false;
+        return true;
+    }
+
+    private class CustomerFormModel
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Cpf { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+        public bool AcceptedTerms { get; set; }
+    }
+}

@@ -1,0 +1,108 @@
+## ---------------------------------------------------------------
+## SEGREDOS — nunca comitar
+## ---------------------------------------------------------------
+
+# Configuração local da API com valores reais
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+
+# Credenciais do firmware (Wi-Fi e IP da máquina)
+firmware/**/Segredos.cs
+
+# Variáveis de ambiente
+.env
+*.env
+
+# Certificados e chaves
+*.pfx
+*.p12
+*.key
+*.pem
+
+## ---------------------------------------------------------------
+## .NET
+## ---------------------------------------------------------------
+
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+build/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# Cache do Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.slnLaunch.user
+
+# Restauração de pacotes
+packages/
+!packages/build/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Resultados de teste e cobertura
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+
+# Publicação
+publish/
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.pubxml.user
+PublishScripts/
+
+## ---------------------------------------------------------------
+## Blazor WebAssembly
+## ---------------------------------------------------------------
+
+wwwroot/_framework/
+*.br
+*.gz
+
+## ---------------------------------------------------------------
+## Banco de dados local
+## ---------------------------------------------------------------
+
+*.mdf
+*.ldf
+*.ndf
+*.db-shm
+*.db-wal
+
+## ---------------------------------------------------------------
+## Sistema operacional e editores
+## ---------------------------------------------------------------
+
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+.DS_Store
+.idea/
+.vscode/
+!.vscode/extensions.json
+
+# Arquivos temporários do Office
+~$*

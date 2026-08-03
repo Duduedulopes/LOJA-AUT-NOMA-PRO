@@ -1,0 +1,78 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37411.7
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.Domain", "AutonomousStore.Domain\AutonomousStore.Domain.csproj", "{53D77A19-140F-448F-BA8B-9392236B08F3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.Application", "AutonomousStore.Application\AutonomousStore.Application.csproj", "{8B00D901-E280-4A9C-83D9-A4284E16BE8A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.Infrastructure", "AutonomousStore.Infrastructure\AutonomousStore.Infrastructure.csproj", "{0DC5643E-8BB2-42F9-A794-407F5BC19AEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.WebApi", "AutonomousStore.WebApi\AutonomousStore.WebApi.csproj", "{82B76BEC-3644-40CB-85E4-2E08414348F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.Hardware", "AutonomousStore.Hardware\AutonomousStore.Hardware.csproj", "{A1143AFF-1235-4955-85D1-062F6482C992}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.EdgeDesktop", "AutonomousStore.EdgeDesktop\AutonomousStore.EdgeDesktop.csproj", "{A2869CD4-D6A3-4D16-824D-2C25177A07CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.Domain.Tests", "AutonomousStore.Domain.Tests\AutonomousStore.Domain.Tests.csproj", "{BDFE6CD8-013A-4822-8734-33CFFC50466E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.Application.Tests", "AutonomousStore.Application.Tests\AutonomousStore.Application.Tests.csproj", "{75DE6A9F-9B1F-4212-920C-967235ABB973}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.ClientApp", "AutonomousStore.ClientApp\AutonomousStore.ClientApp.csproj", "{65F170F0-36CC-401D-9AFA-EAE8B4EBB83C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutonomousStore.AdminApp", "AutonomousStore.AdminApp\AutonomousStore.AdminApp.csproj", "{681FA0D8-67C5-4087-A996-04087D30ADD5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{53D77A19-140F-448F-BA8B-9392236B08F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53D77A19-140F-448F-BA8B-9392236B08F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53D77A19-140F-448F-BA8B-9392236B08F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53D77A19-140F-448F-BA8B-9392236B08F3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B00D901-E280-4A9C-83D9-A4284E16BE8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B00D901-E280-4A9C-83D9-A4284E16BE8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B00D901-E280-4A9C-83D9-A4284E16BE8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B00D901-E280-4A9C-83D9-A4284E16BE8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DC5643E-8BB2-42F9-A794-407F5BC19AEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DC5643E-8BB2-42F9-A794-407F5BC19AEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DC5643E-8BB2-42F9-A794-407F5BC19AEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DC5643E-8BB2-42F9-A794-407F5BC19AEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82B76BEC-3644-40CB-85E4-2E08414348F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82B76BEC-3644-40CB-85E4-2E08414348F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82B76BEC-3644-40CB-85E4-2E08414348F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82B76BEC-3644-40CB-85E4-2E08414348F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1143AFF-1235-4955-85D1-062F6482C992}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1143AFF-1235-4955-85D1-062F6482C992}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1143AFF-1235-4955-85D1-062F6482C992}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1143AFF-1235-4955-85D1-062F6482C992}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2869CD4-D6A3-4D16-824D-2C25177A07CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2869CD4-D6A3-4D16-824D-2C25177A07CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2869CD4-D6A3-4D16-824D-2C25177A07CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2869CD4-D6A3-4D16-824D-2C25177A07CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDFE6CD8-013A-4822-8734-33CFFC50466E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDFE6CD8-013A-4822-8734-33CFFC50466E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDFE6CD8-013A-4822-8734-33CFFC50466E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDFE6CD8-013A-4822-8734-33CFFC50466E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{75DE6A9F-9B1F-4212-920C-967235ABB973}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{75DE6A9F-9B1F-4212-920C-967235ABB973}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{75DE6A9F-9B1F-4212-920C-967235ABB973}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{75DE6A9F-9B1F-4212-920C-967235ABB973}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65F170F0-36CC-401D-9AFA-EAE8B4EBB83C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65F170F0-36CC-401D-9AFA-EAE8B4EBB83C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65F170F0-36CC-401D-9AFA-EAE8B4EBB83C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65F170F0-36CC-401D-9AFA-EAE8B4EBB83C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{681FA0D8-67C5-4087-A996-04087D30ADD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{681FA0D8-67C5-4087-A996-04087D30ADD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{681FA0D8-67C5-4087-A996-04087D30ADD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{681FA0D8-67C5-4087-A996-04087D30ADD5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B6C4D676-C756-4506-9928-8A95B1FBC262}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,235 @@
+﻿@page "/checkout"
+@inject ISessionApiService SessionApi
+@inject ICustomerApiService CustomerApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Fechar compra</h1>
+
+@if (AppState.CurrentSessionId is null)
+{
+    <p>Nenhuma sessão de compra em andamento.</p>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/abrir-loja")'>Voltar</button>
+}
+else if (_isPaid)
+{
+    <div class="card">
+        <p>✅ Pagamento confirmado! Obrigado pela compra.</p>
+        <button class="btn-primary" @onclick="FinishAndReset">Concluir</button>
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">@_errorMessage</div>
+    }
+
+    @if (_session is null)
+    {
+        <div class="card">
+            <p>Confirme para fechar sua sessão de compra e ver o total.</p>
+            <button class="btn-primary" @onclick="DoCheckout" disabled="@_isLoading">
+                @(_isLoading ? "Fechando..." : "Fechar compra")
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <h3>Itens</h3>
+            @foreach (var item in _session.Items)
+            {
+                <p>@item.Quantity x @item.ProductName — R$ @item.Subtotal.ToString("0.00")</p>
+            }
+            <div class="total-value">R$ @_session.Total.ToString("0.00")</div>
+
+            @if (!_isAddingPaymentMethod && _paymentMethods.Count > 0)
+            {
+                <div class="form-group">
+                    <label>Forma de pagamento</label>
+                    <InputSelect @bind-Value="_selectedPaymentMethodId" @bind-Value:after="OnSelectedMethodChanged">
+                        @foreach (var method in _paymentMethods)
+                        {
+                            <option value="@method.Id">@method.Provider (@method.Type) •••• @method.LastFourDigits</option>
+                        }
+                        <option value="@Guid.Empty">+ Usar outra forma de pagamento</option>
+                    </InputSelect>
+                </div>
+
+                <button class="btn-primary" @onclick="ConfirmPayment" disabled="@_isLoading">
+                    @(_isLoading ? "Confirmando..." : "Confirmar pagamento")
+                </button>
+            }
+            else
+            {
+                <h3>Forma de pagamento</h3>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <InputSelect @bind-Value="_newMethod.Type">
+                        <option value="@PaymentMethodType.Pix">Pix</option>
+                        <option value="@PaymentMethodType.CartaoCredito">Cartão de crédito</option>
+                        <option value="@PaymentMethodType.CartaoDebito">Cartão de débito</option>
+                    </InputSelect>
+                </div>
+
+                @if (_newMethod.Type == PaymentMethodType.Pix)
+                {
+                    <div class="form-group">
+                        <label>Chave Pix</label>
+                        <InputText @bind-Value="_newMethod.PixKey" placeholder="CPF, e-mail, telefone ou chave aleatória" />
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group">
+                        <label>Provedor</label>
+                        <InputText @bind-Value="_newMethod.Provider" placeholder="Ex: Stripe, MercadoPago" />
+                    </div>
+                    <div class="form-group">
+                        <label>Token do provedor (simulado)</label>
+                        <InputText @bind-Value="_newMethod.ProviderToken" placeholder="tok_simulado_123" />
+                    </div>
+                    <div class="form-group">
+                        <label>Últimos 4 dígitos</label>
+                        <InputText @bind-Value="_newMethod.LastFourDigits" maxlength="4" />
+                    </div>
+                }
+
+                <button class="btn-primary" @onclick="AddPaymentMethodAndPay" disabled="@_isLoading">
+                    @(_isLoading ? "Salvando..." : "Usar esta forma e confirmar pagamento")
+                </button>
+            }
+        </div>
+    }
+}
+
+@code {
+    private SessionDto? _session;
+    private List<PaymentMethodDto> _paymentMethods = new();
+    private Guid _selectedPaymentMethodId;
+    private bool _isAddingPaymentMethod;
+    private bool _isLoading;
+    private bool _isPaid;
+    private string? _errorMessage;
+    private NewPaymentMethodModel _newMethod = new();
+
+    private async Task DoCheckout()
+    {
+        if (AppState.CurrentSessionId is null)
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, session, error) = await SessionApi.CheckoutAsync(AppState.CurrentSessionId.Value);
+
+        if (!success || session is null)
+        {
+            _isLoading = false;
+            _errorMessage = error ?? "Não foi possível fechar a compra.";
+            return;
+        }
+
+        _session = session;
+        await ReloadPaymentMethods();
+
+        _isLoading = false;
+    }
+
+    private async Task ReloadPaymentMethods()
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        var customer = await CustomerApi.GetByIdAsync(AppState.CurrentCustomerId.Value);
+        _paymentMethods = customer?.PaymentMethods ?? new();
+
+        if (_paymentMethods.Count == 0)
+        {
+            _isAddingPaymentMethod = true;
+            return;
+        }
+
+        var defaultMethod = _paymentMethods.FirstOrDefault(p => p.IsDefault) ?? _paymentMethods.FirstOrDefault();
+        if (defaultMethod is not null)
+            _selectedPaymentMethodId = defaultMethod.Id;
+    }
+
+    private void OnSelectedMethodChanged()
+    {
+        if (_selectedPaymentMethodId == Guid.Empty)
+            _isAddingPaymentMethod = true;
+    }
+
+    private async Task AddPaymentMethodAndPay()
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        var isPix = _newMethod.Type == PaymentMethodType.Pix;
+
+        var request = isPix
+            ? new AddPaymentMethodRequest(PaymentMethodType.Pix, "Pix", _newMethod.PixKey, "")
+            : new AddPaymentMethodRequest(_newMethod.Type, _newMethod.Provider, _newMethod.ProviderToken, _newMethod.LastFourDigits);
+
+        var (success, customer, error) = await CustomerApi.AddPaymentMethodAsync(AppState.CurrentCustomerId.Value, request);
+
+        if (!success || customer is null)
+        {
+            _isLoading = false;
+            _errorMessage = error ?? "Não foi possível salvar a forma de pagamento.";
+            return;
+        }
+
+        _paymentMethods = customer.PaymentMethods;
+        var justAdded = _paymentMethods.LastOrDefault();
+        if (justAdded is not null)
+            _selectedPaymentMethodId = justAdded.Id;
+
+        _isAddingPaymentMethod = false;
+        _isLoading = false;
+
+        await ConfirmPayment();
+    }
+
+    private async Task ConfirmPayment()
+    {
+        if (AppState.CurrentSessionId is null || _selectedPaymentMethodId == Guid.Empty)
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, session, error) = await SessionApi.ConfirmPaymentAsync(AppState.CurrentSessionId.Value, _selectedPaymentMethodId);
+
+        _isLoading = false;
+
+        if (!success || session is null)
+        {
+            _errorMessage = error ?? "Não foi possível confirmar o pagamento.";
+            return;
+        }
+
+        _session = session;
+        _isPaid = true;
+    }
+
+    private void FinishAndReset()
+    {
+        AppState.CurrentSessionId = null;
+        Nav.NavigateTo("/");
+    }
+
+    private class NewPaymentMethodModel
+    {
+        public PaymentMethodType Type { get; set; } = PaymentMethodType.Pix;
+        public string PixKey { get; set; } = "";
+        public string Provider { get; set; } = "";
+        public string ProviderToken { get; set; } = "";
+        public string LastFourDigits { get; set; } = "";
+    }
+}

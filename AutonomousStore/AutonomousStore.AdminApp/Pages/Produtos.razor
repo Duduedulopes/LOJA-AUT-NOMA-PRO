@@ -1,0 +1,340 @@
+@page "/produtos"
+@inject IProductApiService ProductApi
+@inject ICatalogApiService CatalogApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Produtos e estoque</h1>
+<p class="hint">Cadastre produtos, ajuste preços e reponha estoque. A baixa de estoque na venda é automática.</p>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="error-message">@_errorMessage</div>
+}
+
+@if (!string.IsNullOrEmpty(_successMessage))
+{
+    <div class="notification-pill pill-ok" style="margin-bottom:1rem;">
+        <span class="pill-dot"></span> @_successMessage
+    </div>
+}
+
+<div class="card">
+    <h3 class="category-heading">Cadastrar novo produto</h3>
+
+    <EditForm Model="_newProduct" OnValidSubmit="CreateProductAsync">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nome</label>
+                <InputText @bind-Value="_newProduct.Name" />
+            </div>
+            <div class="form-group">
+                <label>Código de barras</label>
+                <InputText @bind-Value="_newProduct.Barcode" />
+            </div>
+            <div class="form-group">
+                <label>Preço (R$)</label>
+                <InputNumber @bind-Value="_newProduct.Price" step="0.01" />
+            </div>
+            <div class="form-group">
+                <label>Estoque inicial</label>
+                <InputNumber @bind-Value="_newProduct.StockQuantity" />
+            </div>
+            <div class="form-group">
+                <label>Empresa (opcional)</label>
+                <select @bind="_newProduct.CompanyId" class="form-control">
+                    <option value="">— sem empresa —</option>
+                    @foreach (var company in _companies)
+                    {
+                        <option value="@company.Id">@company.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Categoria (opcional)</label>
+                <select @bind="_newProduct.CategoryId" class="form-control">
+                    <option value="">— sem categoria —</option>
+                    @foreach (var category in _categoriesForSelectedCompany)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Descrição (opcional)</label>
+            <InputText @bind-Value="_newProduct.Description" />
+        </div>
+        <button class="btn-primary" type="submit" disabled="@_isSubmitting" style="width:auto; padding:0.7rem 1.5rem;">
+            @(_isSubmitting ? "Salvando..." : "Cadastrar produto")
+        </button>
+    </EditForm>
+</div>
+
+<div class="card">
+    <h3 class="category-heading">Produtos cadastrados (@_products.Count)</h3>
+
+    @if (_isLoading)
+    {
+        <p class="hint">Carregando produtos...</p>
+    }
+    else if (_products.Count == 0)
+    {
+        <p class="hint">Nenhum produto cadastrado ainda. Use o formulário acima.</p>
+    }
+    else
+    {
+        <div class="data-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Preço</th>
+                        <th>Estoque</th>
+                        <th>Repor estoque</th>
+                        <th>Estoque mínimo</th>
+                        <th>Tag RFID (chip)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in _products)
+                    {
+                        var state = _rowState[product.Id];
+                        <tr>
+                            <td>
+                                @product.Name
+                                <div class="hint">@product.Barcode</div>
+                            </td>
+                            <td>
+                                <div class="inline-form">
+                                    <input type="number" step="0.01" @bind="state.Price" />
+                                    <button class="btn-primary btn-small btn-outline" @onclick="() => UpdatePriceAsync(product, state)">Salvar</button>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge @StockBadgeClass(product)">
+                                    @product.StockQuantity un.
+                                    @(product.IsLowStock ? " · baixo" : "")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="inline-form">
+                                    <input type="number" min="1" @bind="state.RestockQuantity" />
+                                    <button class="btn-primary btn-small btn-outline" @onclick="() => RestockAsync(product, state)">Repor</button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="inline-form">
+                                    <input type="number" min="0" @bind="state.MinimumThreshold" />
+                                    <button class="btn-primary btn-small btn-ghost" @onclick="() => SetThresholdAsync(product, state)">Definir</button>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="inline-form">
+                                    <input type="text" placeholder="ex: A1B2C3D4" @bind="state.RfidTag" />
+                                    <button class="btn-primary btn-small btn-outline" @onclick="() => AssignRfidTagAsync(product, state)">Salvar</button>
+                                </div>
+                                <div class="hint">
+                                    @(string.IsNullOrWhiteSpace(product.RfidTag) ? "sem chip vinculado" : $"vinculado: {product.RfidTag}")
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ProductDto> _products = new();
+    private List<CompanyDto> _companies = new();
+    private List<CategoryDto> _categories = new();
+    private Dictionary<Guid, RowState> _rowState = new();
+    private NewProductModel _newProduct = new();
+    private bool _isLoading = true;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private IEnumerable<CategoryDto> _categoriesForSelectedCompany =>
+        string.IsNullOrEmpty(_newProduct.CompanyId)
+            ? Enumerable.Empty<CategoryDto>()
+            : _categories.Where(c => c.CompanyId == Guid.Parse(_newProduct.CompanyId));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await LoadAllAsync();
+    }
+
+    private async Task LoadAllAsync()
+    {
+        _isLoading = true;
+        _products = (await ProductApi.GetAllAsync()).OrderBy(p => p.Name).ToList();
+        _companies = await CatalogApi.GetCompaniesAsync();
+        _categories = await CatalogApi.GetCategoriesAsync();
+
+        _rowState = _products.ToDictionary(p => p.Id, p => new RowState
+        {
+            Price = p.Price,
+            RestockQuantity = 1,
+            MinimumThreshold = p.MinimumStockThreshold,
+            RfidTag = p.RfidTag
+        });
+
+        _isLoading = false;
+    }
+
+    private async Task CreateProductAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        var request = new CreateProductRequest(
+            _newProduct.Name,
+            _newProduct.Barcode,
+            _newProduct.Price,
+            string.IsNullOrEmpty(_newProduct.CompanyId) ? null : Guid.Parse(_newProduct.CompanyId),
+            string.IsNullOrEmpty(_newProduct.CategoryId) ? null : Guid.Parse(_newProduct.CategoryId),
+            string.IsNullOrWhiteSpace(_newProduct.Description) ? null : _newProduct.Description,
+            null,
+            _newProduct.StockQuantity);
+
+        var (success, _, error) = await ProductApi.CreateAsync(request);
+
+        _isSubmitting = false;
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível cadastrar o produto.";
+            return;
+        }
+
+        _successMessage = $"Produto \"{_newProduct.Name}\" cadastrado.";
+        _newProduct = new NewProductModel();
+        await LoadAllAsync();
+    }
+
+    private async Task UpdatePriceAsync(ProductDto product, RowState state)
+    {
+        _errorMessage = null;
+        var (success, error) = await ProductApi.UpdatePriceAsync(product.Id, state.Price);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível atualizar o preço.";
+            return;
+        }
+
+        _successMessage = $"Preço de \"{product.Name}\" atualizado.";
+        await LoadAllAsync();
+    }
+
+    private async Task RestockAsync(ProductDto product, RowState state)
+    {
+        _errorMessage = null;
+
+        if (state.RestockQuantity <= 0)
+        {
+            _errorMessage = "Informe uma quantidade maior que zero pra repor.";
+            return;
+        }
+
+        var (success, error) = await ProductApi.RestockAsync(product.Id, state.RestockQuantity);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível repor o estoque.";
+            return;
+        }
+
+        _successMessage = $"+{state.RestockQuantity} unidade(s) em \"{product.Name}\".";
+        await LoadAllAsync();
+    }
+
+    private async Task SetThresholdAsync(ProductDto product, RowState state)
+    {
+        _errorMessage = null;
+        var (success, error) = await ProductApi.SetStockThresholdAsync(product.Id, state.MinimumThreshold);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível definir o limite mínimo.";
+            return;
+        }
+
+        _successMessage = $"Limite mínimo de \"{product.Name}\" definido.";
+        await LoadAllAsync();
+    }
+
+    /// <summary>
+    /// Vincula ao produto o UID lido do chip pelo RC522. Deixar o campo vazio desvincula a tag,
+    /// que é o que se faz quando o chip é reaproveitado em outro produto.
+    /// </summary>
+    private async Task AssignRfidTagAsync(ProductDto product, RowState state)
+    {
+        _errorMessage = null;
+
+        var tag = string.IsNullOrWhiteSpace(state.RfidTag) ? null : state.RfidTag.Trim().ToUpperInvariant();
+
+        // Duas etiquetas no mesmo UID fariam a leitora cobrar o produto errado — barra antes de salvar.
+        var conflict = _products.FirstOrDefault(p =>
+            p.Id != product.Id
+            && tag is not null
+            && string.Equals(p.RfidTag, tag, StringComparison.OrdinalIgnoreCase));
+
+        if (conflict is not null)
+        {
+            _errorMessage = $"Esse chip já está vinculado a \"{conflict.Name}\". Desvincule lá primeiro.";
+            return;
+        }
+
+        var (success, error) = await ProductApi.AssignRfidTagAsync(product.Id, tag);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível vincular o chip.";
+            return;
+        }
+
+        _successMessage = tag is null
+            ? $"Chip desvinculado de \"{product.Name}\"."
+            : $"Chip {tag} vinculado a \"{product.Name}\".";
+
+        await LoadAllAsync();
+    }
+
+    private static string StockBadgeClass(ProductDto product)
+    {
+        if (product.StockQuantity == 0)
+            return "badge-out";
+
+        return product.IsLowStock ? "badge-low" : "badge-ok";
+    }
+
+    private class NewProductModel
+    {
+        public string Name { get; set; } = "";
+        public string Barcode { get; set; } = "";
+        public decimal Price { get; set; }
+        public int StockQuantity { get; set; }
+        public string? Description { get; set; }
+        public string CompanyId { get; set; } = "";
+        public string CategoryId { get; set; } = "";
+    }
+
+    private class RowState
+    {
+        public decimal Price { get; set; }
+        public int RestockQuantity { get; set; } = 1;
+        public int? MinimumThreshold { get; set; }
+        public string? RfidTag { get; set; }
+    }
+}

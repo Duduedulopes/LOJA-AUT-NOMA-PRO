@@ -1,0 +1,90 @@
+﻿@page "/forma-pagamento"
+@inject ICustomerApiService CustomerApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Forma de pagamento</h1>
+
+@if (AppState.CurrentCustomerId is null)
+{
+    <p>Você precisa se cadastrar primeiro.</p>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/cadastro")'>Ir para o cadastro</button>
+}
+else
+{
+    <p class="hint">
+        Simplificação para o protótipo: em um app real, esses dados nunca passam pelo seu backend —
+        um SDK do gateway de pagamento (ex: Stripe, Mercado Pago) coleta o cartão direto no app e
+        devolve só um <em>token</em> seguro, que é o que salvamos aqui.
+    </p>
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">@_errorMessage</div>
+    }
+
+    <div class="card">
+        <EditForm Model="_request" OnValidSubmit="HandleSubmit">
+            <div class="form-group">
+                <label>Tipo</label>
+                <InputSelect @bind-Value="_request.Type">
+                    <option value="@PaymentMethodType.CartaoCredito">Cartão de crédito</option>
+                    <option value="@PaymentMethodType.CartaoDebito">Cartão de débito</option>
+                    <option value="@PaymentMethodType.Pix">Pix</option>
+                </InputSelect>
+            </div>
+            <div class="form-group">
+                <label>Provedor</label>
+                <InputText @bind-Value="_request.Provider" placeholder="Ex: Stripe, MercadoPago" />
+            </div>
+            <div class="form-group">
+                <label>Token do provedor (simulado)</label>
+                <InputText @bind-Value="_request.ProviderToken" placeholder="tok_simulado_123" />
+            </div>
+            <div class="form-group">
+                <label>Últimos 4 dígitos</label>
+                <InputText @bind-Value="_request.LastFourDigits" maxlength="4" />
+            </div>
+            <button class="btn-primary" type="submit" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Salvando..." : "Salvar e continuar")
+            </button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private PaymentFormModel _request = new();
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var (success, _, error) = await CustomerApi.AddPaymentMethodAsync(
+            AppState.CurrentCustomerId.Value,
+            new AddPaymentMethodRequest(_request.Type, _request.Provider, _request.ProviderToken, _request.LastFourDigits));
+
+        _isSubmitting = false;
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível salvar a forma de pagamento.";
+            return;
+        }
+
+        Nav.NavigateTo("/abrir-loja");
+    }
+
+    private class PaymentFormModel
+    {
+        public PaymentMethodType Type { get; set; } = PaymentMethodType.CartaoCredito;
+        public string Provider { get; set; } = "";
+        public string ProviderToken { get; set; } = "";
+        public string LastFourDigits { get; set; } = "";
+    }
+}

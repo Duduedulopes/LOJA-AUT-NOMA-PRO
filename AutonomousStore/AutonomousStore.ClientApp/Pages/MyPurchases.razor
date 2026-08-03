@@ -1,0 +1,66 @@
+@page "/minhas-compras"
+@inject ISessionApiService SessionApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Minhas compras</h1>
+
+@if (!AppState.IsAuthenticated)
+{
+    <p>Você precisa entrar primeiro.</p>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/login")'>Entrar</button>
+}
+else if (_isLoading)
+{
+    <p class="hint">Carregando histórico...</p>
+}
+else if (_purchases.Count == 0)
+{
+    <div class="card">
+        <p>Você ainda não concluiu nenhuma compra.</p>
+        <button class="btn-primary" @onclick='() => Nav.NavigateTo("/abrir-loja")'>Abrir a loja</button>
+    </div>
+}
+else
+{
+    <p class="hint" style="text-align:center; margin-bottom:1rem;">
+        @_purchases.Count compra(s) · total gasto
+        <strong style="color:var(--cyan);">R$ @_purchases.Sum(p => p.Total).ToString("0.00")</strong>
+    </p>
+
+    @foreach (var purchase in _purchases)
+    {
+        <div class="card">
+            <p class="hint">
+                @(purchase.PaymentConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy 'às' HH:mm") ?? "—")
+            </p>
+
+            @foreach (var item in purchase.Items)
+            {
+                <div class="item-row">
+                    <span class="item-name">@item.ProductName <span class="item-qty">x@item.Quantity</span></span>
+                    <span class="item-price">R$ @item.Subtotal.ToString("0.00")</span>
+                </div>
+            }
+
+            <div class="total-value" style="font-size:1.4rem;">R$ @purchase.Total.ToString("0.00")</div>
+        </div>
+    }
+}
+
+@code {
+    private List<SessionDto> _purchases = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated || AppState.CurrentCustomerId is null)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        _purchases = await SessionApi.GetHistoryAsync(AppState.CurrentCustomerId.Value);
+        _isLoading = false;
+    }
+}

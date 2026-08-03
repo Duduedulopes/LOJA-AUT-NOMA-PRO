@@ -1,0 +1,39 @@
+﻿@inherits LayoutComponentBase
+@inject AppState AppState
+
+<div class="page">
+    <main>
+        <div class="top-row px-4">
+            <span class="app-title">
+                <svg class="brand-icon" width="24" height="32" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    <path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                    <circle cx="12" cy="-1" r="1.1" fill="currentColor" />
+                    <circle cx="9" cy="21" r="1.2" fill="currentColor" />
+                    <circle cx="20" cy="21" r="1.2" fill="currentColor" />
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+                          stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                </svg>
+                SmartGo Store — Painel Administrativo
+            </span>
+
+            @if (AppState.IsAuthenticated)
+            {
+                <nav class="admin-nav">
+                    <NavLink href="/" Match="NavLinkMatch.All">Início</NavLink>
+                    <NavLink href="/produtos">Produtos</NavLink>
+                    <NavLink href="/monitor-prateleira">Monitor da prateleira</NavLink>
+                    <NavLink href="/vendas">Histórico de vendas</NavLink>
+                </nav>
+            }
+        </div>
+
+        <article class="content px-4">
+            @if (AppState.IsAuthenticated)
+            {
+                <NotificationBar />
+            }
+            @Body
+        </article>
+    </main>
+</div>

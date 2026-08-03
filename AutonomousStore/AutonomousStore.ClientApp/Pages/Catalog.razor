@@ -1,0 +1,149 @@
+﻿@page "/catalogo"
+@inject ICatalogApiService CatalogApi
+@inject NavigationManager Nav
+
+<h1>Catálogo</h1>
+
+@if (_isLoading)
+{
+    <p class="hint">Carregando estrutura do catálogo...</p>
+}
+else if (_companies.Count == 0)
+{
+    <div class="card empty-state">
+        <p>Nenhuma empresa cadastrada ainda.</p>
+        <p class="hint">
+            O catálogo é montado por <strong>Empresa → Categoria → Produto</strong>.
+            Cadastre pelo Swagger da API (<code>POST /api/companies</code>, depois
+            <code>/api/categories</code> e <code>/api/products</code>) pra ver essa
+            estrutura aparecer aqui.
+        </p>
+    </div>
+}
+else
+{
+    @foreach (var company in _companies)
+    {
+        var companyCategories = _categories.Where(c => c.CompanyId == company.Id).OrderBy(c => c.DisplayOrder).ToList();
+        var companyProducts = _products.Where(p => p.CompanyId == company.Id).ToList();
+        var uncategorized = companyProducts.Where(p => p.CategoryId is null).ToList();
+
+        <div class="card company-block">
+            <h2 class="company-heading">@company.Name</h2>
+            @if (!string.IsNullOrWhiteSpace(company.Description))
+            {
+                <p class="hint">@company.Description</p>
+            }
+
+            @if (companyCategories.Count == 0 && companyProducts.Count == 0)
+            {
+                <p class="hint">Nenhuma categoria ou produto vinculado a essa empresa ainda.</p>
+            }
+
+            @foreach (var category in companyCategories)
+            {
+                var categoryProducts = companyProducts.Where(p => p.CategoryId == category.Id).ToList();
+
+                <h3 class="category-heading">@category.Name</h3>
+
+                @if (categoryProducts.Count == 0)
+                {
+                    <p class="hint">Nenhum produto nessa categoria ainda.</p>
+                }
+                else
+                {
+                    <div class="catalog-grid">
+                        @foreach (var product in categoryProducts)
+                        {
+                            <div class="product-card">
+                                @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                                {
+                                    <img src="@product.ImageUrl" alt="@product.Name" class="product-image" />
+                                }
+                                else
+                                {
+                                    <div class="product-image product-image-placeholder">📦</div>
+                                }
+                                <p class="product-name">@product.Name</p>
+                                @if (!string.IsNullOrWhiteSpace(product.Description))
+                                {
+                                    <p class="product-description">@product.Description</p>
+                                }
+                                <p class="product-price">R$ @product.Price.ToString("0.00")</p>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            @if (uncategorized.Count > 0)
+            {
+                <h3 class="category-heading">Sem categoria</h3>
+                <div class="catalog-grid">
+                    @foreach (var product in uncategorized)
+                    {
+                        <div class="product-card">
+                            @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                            {
+                                <img src="@product.ImageUrl" alt="@product.Name" class="product-image" />
+                            }
+                            else
+                            {
+                                <div class="product-image product-image-placeholder">📦</div>
+                            }
+                            <p class="product-name">@product.Name</p>
+                            @if (!string.IsNullOrWhiteSpace(product.Description))
+                            {
+                                <p class="product-description">@product.Description</p>
+                            }
+                            <p class="product-price">R$ @product.Price.ToString("0.00")</p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (_products.Any(p => p.CompanyId is null))
+    {
+        <div class="card company-block">
+            <h2 class="company-heading">Produtos sem empresa vinculada</h2>
+            <div class="catalog-grid">
+                @foreach (var product in _products.Where(p => p.CompanyId is null))
+                {
+                    <div class="product-card">
+                        @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                        {
+                            <img src="@product.ImageUrl" alt="@product.Name" class="product-image" />
+                        }
+                        else
+                        {
+                            <div class="product-image product-image-placeholder">📦</div>
+                        }
+                        <p class="product-name">@product.Name</p>
+                        @if (!string.IsNullOrWhiteSpace(product.Description))
+                        {
+                            <p class="product-description">@product.Description</p>
+                        }
+                        <p class="product-price">R$ @product.Price.ToString("0.00")</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<CompanyDto> _companies = new();
+    private List<CategoryDto> _categories = new();
+    private List<ProductDto> _products = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _companies = await CatalogApi.GetCompaniesAsync();
+        _categories = await CatalogApi.GetCategoriesAsync();
+        _products = await CatalogApi.GetProductsAsync();
+        _isLoading = false;
+    }
+}

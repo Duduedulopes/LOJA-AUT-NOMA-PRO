@@ -1,0 +1,118 @@
+﻿@page "/login"
+@inject IAuthApiService AuthApi
+@inject AppState AppState
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-icon"><svg width="46" height="58" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--cyan); filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.6));"><path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><circle cx="12" cy="-1" r="1" fill="currentColor" /><circle cx="9" cy="21" r="1.1" fill="currentColor" /><circle cx="20" cy="21" r="1.1" fill="currentColor" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg></div>
+        <h1 class="auth-title">Bem-vindo(a) à SmartGo Store</h1>
+        <p class="auth-subtitle">Faça login ou crie sua conta gratuitamente para gerar seu código de acesso à loja.</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        <EditForm Model="_request" OnValidSubmit="HandleLogin">
+            <div class="form-group">
+                <label>E-mail</label>
+                <InputText @bind-Value="_request.Email" type="email" />
+            </div>
+            <div class="form-group">
+                <label>Senha</label>
+                <div class="password-field">
+                    <InputText @bind-Value="_request.Password" type="@(_showPassword ? "text" : "password")" />
+                    <button type="button" class="toggle-password" @onclick="() => _showPassword = !_showPassword">
+                        @(_showPassword ? "🙈" : "👁")
+                    </button>
+                </div>
+            </div>
+            <button class="btn-primary" type="submit" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Entrando..." : "Entrar na sua conta")
+            </button>
+        </EditForm>
+
+        <p class="auth-footer-link">
+            <a href="/esqueci-senha">Esqueci minha senha</a>
+        </p>
+
+        <p class="auth-divider">ou</p>
+
+        <div id="google-signin-button" style="display:flex; justify-content:center;"></div>
+
+        <p class="auth-footer-link">
+            Ainda não tem cadastro? <a href="/cadastro">Criar cadastro</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private LoginFormModel _request = new();
+    private bool _isSubmitting;
+    private bool _showPassword;
+    private string? _errorMessage;
+    private DotNetObjectReference<Login>? _dotNetRef;
+
+    // Mesmo Client ID configurado no Google Cloud Console.
+    private const string GoogleClientId = "1068269830913-mmi34146f6r4hm8lj6e7pf4t4hf74iln.apps.googleusercontent.com";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("initGoogleSignIn", _dotNetRef, GoogleClientId, "google-signin-button");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var (success, result, error) = await AuthApi.LoginAsync(_request.Email, _request.Password);
+
+        _isSubmitting = false;
+
+        if (!success || result is null)
+        {
+            _errorMessage = error ?? "Não foi possível entrar.";
+            return;
+        }
+
+        AppState.SetAuth(result.Token, result.Customer.Id, result.Customer.Name);
+        Nav.NavigateTo("/");
+    }
+
+    /// <summary>Chamado pelo JavaScript (google-auth-interop.js) quando o Google devolve o id_token.</summary>
+    [JSInvokable]
+    public async Task OnGoogleCredential(string idToken)
+    {
+        var (success, result, needsCpf, pending, error) = await AuthApi.GoogleLoginAsync(idToken);
+
+        if (success && result is not null)
+        {
+            AppState.SetAuth(result.Token, result.Customer.Id, result.Customer.Name);
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        if (needsCpf && pending is not null)
+        {
+            AppState.PendingGoogleSignup = pending;
+            Nav.NavigateTo("/completar-cadastro-google");
+            return;
+        }
+
+        _errorMessage = error ?? "Não foi possível entrar com o Google.";
+        StateHasChanged();
+    }
+
+    private class LoginFormModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

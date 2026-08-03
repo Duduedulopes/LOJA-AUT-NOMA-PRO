@@ -1,0 +1,20 @@
+{
+  "name": "SmartGo Store",
+  "short_name": "SmartGo Store",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1b1f27",
+  "theme_color": "#1b1f27",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

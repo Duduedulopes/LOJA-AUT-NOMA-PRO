@@ -1,0 +1,359 @@
+@page "/perfil"
+@inject ICustomerApiService CustomerApi
+@inject IAuthApiService AuthApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Meu perfil</h1>
+
+@if (!AppState.IsAuthenticated)
+{
+    <p>Você precisa entrar primeiro.</p>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/login")'>Entrar</button>
+}
+else if (_isLoading)
+{
+    <p class="hint">Carregando perfil...</p>
+}
+else if (_customer is null)
+{
+    <div class="card">
+        <p>Não foi possível carregar seu perfil agora.</p>
+    </div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">@_errorMessage</div>
+    }
+
+    <div class="card">
+        <h3 class="category-heading">Dados da conta</h3>
+
+        @if (!string.IsNullOrEmpty(_profileSuccessMessage))
+        {
+            <p class="hint" style="color:#86efc7;">@_profileSuccessMessage</p>
+        }
+
+        <EditForm Model="_profileModel" OnValidSubmit="SaveProfileAsync">
+            <div class="form-group">
+                <label>Nome</label>
+                <InputText @bind-Value="_profileModel.Name" />
+            </div>
+            <div class="form-group">
+                <label>Telefone</label>
+                <InputText @bind-Value="_profileModel.PhoneNumber" />
+            </div>
+            <div class="form-group">
+                <label>E-mail</label>
+                <InputText @bind-Value="_profileModel.Email" />
+            </div>
+
+            <button class="btn-primary" type="submit" disabled="@_isSavingProfile" style="width:auto; padding:0.7rem 1.5rem;">
+                @(_isSavingProfile ? "Salvando..." : "Salvar dados")
+            </button>
+        </EditForm>
+    </div>
+
+    <div class="card">
+        <h3 class="category-heading">@(_customer.HasPassword ? "Alterar senha" : "Criar senha")</h3>
+        <p class="hint" style="margin-bottom:0.75rem;">
+            @(_customer.HasPassword
+                ? "Por segurança, a troca de senha é feita por e-mail: enviamos um link de confirmação pro seu e-mail cadastrado."
+                : "Sua conta usa apenas login com Google. Se também quiser entrar com e-mail e senha, enviamos um link pra você criar uma.")
+        </p>
+
+        @if (!string.IsNullOrEmpty(_passwordSuccessMessage))
+        {
+            <p class="hint" style="color:#86efc7;">@_passwordSuccessMessage</p>
+        }
+        @if (!string.IsNullOrEmpty(_passwordErrorMessage))
+        {
+            <div class="error-message">@_passwordErrorMessage</div>
+        }
+
+        <button class="btn-primary" style="width:auto; padding:0.7rem 1.5rem;" disabled="@_isSendingResetEmail" @onclick="SendPasswordResetEmailAsync">
+            @(_isSendingResetEmail ? "Enviando..." : (_customer.HasPassword ? "📧 Enviar e-mail para trocar senha" : "📧 Enviar e-mail para criar senha"))
+        </button>
+    </div>
+
+    <div class="card">
+        <h3 class="category-heading">Formas de pagamento</h3>
+
+        @if (_customer.PaymentMethods.Count == 0)
+        {
+            <p class="hint">Nenhuma forma de pagamento cadastrada ainda.</p>
+        }
+        else
+        {
+            @foreach (var method in _customer.PaymentMethods)
+            {
+                <div class="payment-method-card @(method.IsDefault ? "is-default" : "")">
+                    <div>
+                        <p style="margin:0; font-weight:600;">
+                            @method.Provider (@method.Type) •••• @method.LastFourDigits
+                        </p>
+                        @if (method.IsDefault)
+                        {
+                            <span class="badge badge-ok">Padrão</span>
+                        }
+                    </div>
+                    <div style="display:flex; gap:0.5rem;">
+                        @if (!method.IsDefault)
+                        {
+                            <button class="btn-primary btn-small" style="background:transparent; border:1px solid var(--cyan); color:var(--cyan); box-shadow:none;" @onclick="() => SetDefaultAsync(method.Id)">
+                                Tornar padrão
+                            </button>
+                        }
+                        <button class="btn-primary btn-small" style="background:transparent; border:1px solid var(--danger); color:var(--danger); box-shadow:none;" @onclick="() => RemoveAsync(method.Id)">
+                            Remover
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+
+        @if (!_isAddingMethod)
+        {
+            <button class="btn-primary" style="margin-top:0.75rem;" @onclick="() => _isAddingMethod = true">
+                + Adicionar forma de pagamento
+            </button>
+        }
+        else
+        {
+            <EditForm Model="_newMethod" OnValidSubmit="AddPaymentMethodAsync" style="margin-top:1rem;">
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <InputSelect @bind-Value="_newMethod.Type">
+                        <option value="@PaymentMethodType.Pix">Pix</option>
+                        <option value="@PaymentMethodType.CartaoCredito">Cartão de crédito</option>
+                        <option value="@PaymentMethodType.CartaoDebito">Cartão de débito</option>
+                    </InputSelect>
+                </div>
+
+                @if (_newMethod.Type == PaymentMethodType.Pix)
+                {
+                    <div class="form-group">
+                        <label>Chave Pix</label>
+                        <InputText @bind-Value="_newMethod.PixKey" placeholder="CPF, e-mail, telefone ou chave aleatória" />
+                    </div>
+                }
+                else
+                {
+                    <div class="form-group">
+                        <label>Provedor</label>
+                        <InputText @bind-Value="_newMethod.Provider" placeholder="Ex: Stripe, MercadoPago" />
+                    </div>
+                    <div class="form-group">
+                        <label>Token do provedor (simulado)</label>
+                        <InputText @bind-Value="_newMethod.ProviderToken" placeholder="tok_simulado_123" />
+                    </div>
+                    <div class="form-group">
+                        <label>Últimos 4 dígitos</label>
+                        <InputText @bind-Value="_newMethod.LastFourDigits" maxlength="4" />
+                    </div>
+                }
+
+                <button class="btn-primary" type="submit" disabled="@_isSubmitting" style="width:auto; padding:0.7rem 1.5rem;">
+                    @(_isSubmitting ? "Salvando..." : "Salvar")
+                </button>
+                <button class="btn-primary" type="button" style="background:transparent; border:1px solid var(--panel-border); color:var(--text-muted); box-shadow:none; width:auto; padding:0.7rem 1.5rem;" @onclick="() => _isAddingMethod = false">
+                    Cancelar
+                </button>
+            </EditForm>
+        }
+    </div>
+}
+
+@code {
+    private CustomerDto? _customer;
+    private bool _isLoading = true;
+    private bool _isAddingMethod;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+    private NewPaymentMethodModel _newMethod = new();
+
+    private ProfileFormModel _profileModel = new();
+    private bool _isSavingProfile;
+    private string? _profileSuccessMessage;
+
+    private bool _isSendingResetEmail;
+    private string? _passwordSuccessMessage;
+    private string? _passwordErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated || AppState.CurrentCustomerId is null)
+        {
+            _isLoading = false;
+            return;
+        }
+
+        await ReloadAsync();
+        _isLoading = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        _customer = await CustomerApi.GetByIdAsync(AppState.CurrentCustomerId.Value);
+
+        if (_customer is not null)
+        {
+            _profileModel = new ProfileFormModel
+            {
+                Name = _customer.Name,
+                PhoneNumber = _customer.PhoneNumber,
+                Email = _customer.Email
+            };
+        }
+    }
+
+    private async Task SaveProfileAsync()
+    {
+        if (AppState.CurrentCustomerId is null || _customer is null)
+            return;
+
+        _isSavingProfile = true;
+        _errorMessage = null;
+        _profileSuccessMessage = null;
+
+        var customerId = AppState.CurrentCustomerId.Value;
+
+        var (success, _, error) = await CustomerApi.UpdateProfileAsync(
+            customerId,
+            new UpdateProfileRequest(_profileModel.Name, _profileModel.PhoneNumber));
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível salvar os dados.";
+            _isSavingProfile = false;
+            return;
+        }
+
+        if (!string.Equals(_profileModel.Email, _customer.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            var (emailSuccess, _, emailError) = await CustomerApi.ChangeEmailAsync(
+                customerId,
+                new ChangeEmailRequest(_profileModel.Email));
+
+            if (!emailSuccess)
+            {
+                _errorMessage = emailError ?? "Os dados foram salvos, mas o e-mail não pôde ser trocado.";
+                _isSavingProfile = false;
+                await ReloadAsync();
+                return;
+            }
+        }
+
+        AppState.UpdateCustomerName(_profileModel.Name);
+        _profileSuccessMessage = "Dados atualizados com sucesso.";
+        _isSavingProfile = false;
+        await ReloadAsync();
+    }
+
+    private async Task SendPasswordResetEmailAsync()
+    {
+        if (_customer is null)
+            return;
+
+        _isSendingResetEmail = true;
+        _passwordErrorMessage = null;
+        _passwordSuccessMessage = null;
+
+        var (success, error) = await AuthApi.ForgotPasswordAsync(_customer.Email);
+
+        _isSendingResetEmail = false;
+
+        if (!success)
+        {
+            _passwordErrorMessage = error ?? "Não foi possível enviar o e-mail agora. Tente de novo em instantes.";
+            return;
+        }
+
+        _passwordSuccessMessage = $"Enviamos um e-mail pra {_customer.Email} com o link de confirmação.";
+    }
+
+    private async Task AddPaymentMethodAsync()
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var isPix = _newMethod.Type == PaymentMethodType.Pix;
+
+        var request = isPix
+            ? new AddPaymentMethodRequest(PaymentMethodType.Pix, "Pix", _newMethod.PixKey, "")
+            : new AddPaymentMethodRequest(_newMethod.Type, _newMethod.Provider, _newMethod.ProviderToken, _newMethod.LastFourDigits);
+
+        var (success, _, error) = await CustomerApi.AddPaymentMethodAsync(AppState.CurrentCustomerId.Value, request);
+
+        _isSubmitting = false;
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível salvar a forma de pagamento.";
+            return;
+        }
+
+        _newMethod = new NewPaymentMethodModel();
+        _isAddingMethod = false;
+        await ReloadAsync();
+    }
+
+    private async Task SetDefaultAsync(Guid paymentMethodId)
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        _errorMessage = null;
+        var (success, error) = await CustomerApi.SetDefaultPaymentMethodAsync(AppState.CurrentCustomerId.Value, paymentMethodId);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível definir como padrão.";
+            return;
+        }
+
+        await ReloadAsync();
+    }
+
+    private async Task RemoveAsync(Guid paymentMethodId)
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        _errorMessage = null;
+        var (success, error) = await CustomerApi.RemovePaymentMethodAsync(AppState.CurrentCustomerId.Value, paymentMethodId);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível remover essa forma de pagamento.";
+            return;
+        }
+
+        await ReloadAsync();
+    }
+
+    private class NewPaymentMethodModel
+    {
+        public PaymentMethodType Type { get; set; } = PaymentMethodType.Pix;
+        public string PixKey { get; set; } = "";
+        public string Provider { get; set; } = "";
+        public string ProviderToken { get; set; } = "";
+        public string LastFourDigits { get; set; } = "";
+    }
+
+    private class ProfileFormModel
+    {
+        public string Name { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string Email { get; set; } = "";
+    }
+
+}

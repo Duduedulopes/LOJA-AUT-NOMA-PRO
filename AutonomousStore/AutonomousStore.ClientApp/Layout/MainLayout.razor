@@ -1,0 +1,118 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppState AppState
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="page">
+    <main>
+        <div class="top-row px-4">
+            <div class="top-row-left">
+                @if (_showBackButton)
+                {
+                    <button class="back-button" @onclick="GoBack" title="Voltar">←</button>
+                }
+                <span class="app-title">
+                    <svg class="brand-icon" width="24" height="32" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        <path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                        <circle cx="12" cy="-1" r="1.1" fill="currentColor" />
+                        <circle cx="9" cy="21" r="1.2" fill="currentColor" />
+                        <circle cx="20" cy="21" r="1.2" fill="currentColor" />
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
+                              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    </svg>
+                    SmartGo Store
+                </span>
+            </div>
+
+            @if (AppState.IsAuthenticated)
+            {
+                <div class="profile-menu">
+                    <button class="profile-chip" @onclick="ToggleMenu">
+                        <span class="profile-avatar">@GetInitial()</span>
+                        <span class="profile-name">@AppState.CurrentCustomerName</span>
+                        <span class="profile-caret">@(_isMenuOpen ? "▲" : "▼")</span>
+                    </button>
+
+                    @if (_isMenuOpen)
+                    {
+                        <div class="profile-dropdown">
+                            <a class="profile-dropdown-item" @onclick='() => GoTo("/")'>🏠 Início</a>
+                            <a class="profile-dropdown-item" @onclick='() => GoTo("/perfil")'>👤 Meu perfil</a>
+                            <a class="profile-dropdown-item" @onclick='() => GoTo("/minhas-compras")'>🧾 Minhas compras</a>
+                            <a class="profile-dropdown-item profile-dropdown-danger" @onclick="LogoutAndClose">🚪 Sair</a>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <article class="content px-4 @(_isHomePage ? "content-wide" : "")">
+            @Body
+        </article>
+    </main>
+
+    <ChatWidget />
+</div>
+
+@code {
+    private bool _isMenuOpen;
+    private bool _showBackButton;
+    private bool _isHomePage;
+
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += HandleAppStateChanged;
+        Nav.LocationChanged += HandleLocationChanged;
+        UpdateRouteState(Nav.Uri);
+    }
+
+    private void HandleAppStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateRouteState(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateRouteState(string uri)
+    {
+        var path = Nav.ToBaseRelativePath(uri).Split('?')[0].TrimEnd('/');
+        _showBackButton = path.Length > 0;
+        _isHomePage = path.Length == 0;
+    }
+
+    private async Task GoBack()
+    {
+        _isMenuOpen = false;
+        await JS.InvokeVoidAsync("history.back");
+    }
+
+    private void ToggleMenu() => _isMenuOpen = !_isMenuOpen;
+
+    private void GoTo(string url)
+    {
+        _isMenuOpen = false;
+        Nav.NavigateTo(url);
+    }
+
+    private void LogoutAndClose()
+    {
+        _isMenuOpen = false;
+        AppState.Logout();
+        Nav.NavigateTo("/");
+    }
+
+    private string GetInitial()
+    {
+        var name = AppState.CurrentCustomerName;
+        return string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= HandleAppStateChanged;
+        Nav.LocationChanged -= HandleLocationChanged;
+    }
+}

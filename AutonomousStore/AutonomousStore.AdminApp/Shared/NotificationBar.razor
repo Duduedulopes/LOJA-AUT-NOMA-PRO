@@ -1,0 +1,89 @@
+@implements IAsyncDisposable
+@inject IProductApiService ProductApi
+@inject ISessionApiService SessionApi
+@inject NavigationManager Nav
+
+@if (_ready)
+{
+    <div class="notification-bar">
+        <a href="/produtos" class="notification-pill @(_lowStockCount > 0 ? "pill-warning" : "pill-ok")">
+            <span class="pill-dot"></span>
+            @(_lowStockCount > 0 ? $"{_lowStockCount} produto(s) com estoque baixo" : "Estoque em dia")
+        </a>
+
+        <a href="/monitor-prateleira" class="notification-pill @(_hasOpenSession ? "pill-ok" : "")">
+            <span class="pill-dot"></span>
+            @(_hasOpenSession ? "Sessão aberta — cliente comprando" : "Nenhuma sessão aberta agora")
+        </a>
+
+        @if (_pendingEntryCount > 0)
+        {
+            <a href="/monitor-prateleira" class="notification-pill pill-warning">
+                <span class="pill-dot"></span>
+                @_pendingEntryCount cliente(s) aguardando entrada
+            </a>
+        }
+    </div>
+}
+
+@code {
+    private bool _ready;
+    private int _lowStockCount;
+    private bool _hasOpenSession;
+    private int _pendingEntryCount;
+    private PeriodicTimer? _timer;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RefreshAsync();
+        _ready = true;
+
+        _cts = new CancellationTokenSource();
+        _timer = new PeriodicTimer(TimeSpan.FromSeconds(20));
+        _ = PollLoopAsync(_cts.Token);
+    }
+
+    private async Task PollLoopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (_timer is not null && await _timer.WaitForNextTickAsync(cancellationToken))
+            {
+                await RefreshAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Componente foi descartado (navegou pra fora) — encerra o loop silenciosamente.
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            var lowStock = await ProductApi.GetLowStockAsync();
+            _lowStockCount = lowStock.Count;
+
+            var currentSession = await SessionApi.GetCurrentOpenAsync();
+            _hasOpenSession = currentSession is not null;
+
+            var pending = await SessionApi.GetPendingEntryAsync();
+            _pendingEntryCount = pending.Count;
+        }
+        catch
+        {
+            // Se a API cair momentaneamente, a barra só mantém os últimos valores conhecidos.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _cts?.Cancel();
+        _timer?.Dispose();
+        _cts?.Dispose();
+        await Task.CompletedTask;
+    }
+}

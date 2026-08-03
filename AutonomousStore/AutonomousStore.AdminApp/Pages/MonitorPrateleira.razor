@@ -1,0 +1,199 @@
+﻿@page "/monitor-prateleira"
+@implements IAsyncDisposable
+@inject ISessionApiService SessionApi
+@inject IVisionApiService VisionApi
+@inject IProductApiService ProductApi
+@inject IJSRuntime JS
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Monitor da prateleira</h1>
+<p class="hint">Configure quais produtos essa câmera vigia, e aponte a webcam pra simular retirar/devolver.</p>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="error-message">@_errorMessage</div>
+}
+
+@if (_pendingEntrySessions.Count > 0)
+{
+    <div class="card">
+        <h3 class="category-heading">Clientes aguardando entrada</h3>
+        @foreach (var session in _pendingEntrySessions)
+        {
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                <span class="hint">Sessão @session.Id.ToString()[..8]... — QR expira às @session.QrCodeExpiresAt.ToLocalTime().ToString("HH:mm:ss")</span>
+                <button class="btn-primary" style="width:auto; padding:0.5rem 1rem;" @onclick="() => ConfirmEntry(session.QrCodeToken)">
+                    Confirmar entrada
+                </button>
+            </div>
+        }
+    </div>
+}
+
+<div class="card">
+    <h3 class="category-heading">Produtos monitorados nesta prateleira</h3>
+
+    @if (_products.Count == 0)
+    {
+        <p class="hint">Nenhum produto cadastrado no catálogo ainda.</p>
+    }
+    else
+    {
+        @foreach (var product in _products)
+        {
+            <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; font-weight:normal; text-transform:none; color:var(--text-primary);">
+                <input type="checkbox"
+                       checked="@_selectedProductIds.Contains(product.Id)"
+                       @onchange="e => ToggleProduct(product.Id, (bool)e.Value!)"
+                       style="width:auto; accent-color:var(--cyan);" />
+                @product.Name — R$ @product.Price.ToString("0.00")
+            </label>
+        }
+    }
+</div>
+
+<div class="card">
+    <video id="shelf-video" autoplay playsinline muted class="shelf-video"></video>
+    <canvas id="shelf-canvas" class="shelf-canvas-hidden"></canvas>
+
+    @if (!_isMonitoring)
+    {
+        <button class="btn-primary" @onclick="StartMonitoring" disabled="@(_selectedProductIds.Count == 0)">
+            Iniciar monitoramento
+        </button>
+        @if (_selectedProductIds.Count == 0)
+        {
+            <p class="hint" style="text-align:center;">Selecione ao menos 1 produto acima primeiro.</p>
+        }
+    }
+    else
+    {
+        <button class="btn-primary" style="background:#e0e0e0; color:#333; box-shadow:none;" @onclick="StopMonitoring">Parar monitoramento</button>
+        <p class="hint" style="text-align:center; margin-top:0.5rem;">🟢 Observando a prateleira...</p>
+    }
+
+    @if (!string.IsNullOrEmpty(_lastEventMessage))
+    {
+        <p class="hint" style="text-align:center;">Último evento: @_lastEventMessage</p>
+    }
+</div>
+
+<div class="card">
+    <h3 class="category-heading">Sessão aberta no momento</h3>
+    @if (_currentSession is null)
+    {
+        <p class="hint">Nenhuma sessão aberta agora.</p>
+    }
+    else
+    {
+        @if (_currentSession.Items.Count == 0)
+        {
+            <p class="hint">Nenhum item ainda.</p>
+        }
+        else
+        {
+            @foreach (var item in _currentSession.Items)
+            {
+                <p>@item.Quantity x @item.ProductName — R$ @item.Subtotal.ToString("0.00")</p>
+            }
+        }
+        <div class="total-value">R$ @_currentSession.Total.ToString("0.00")</div>
+    }
+    <button class="btn-primary" style="background:transparent; border:1px solid var(--cyan); color:var(--cyan); box-shadow:none;" @onclick="RefreshAll">
+        Atualizar
+    </button>
+</div>
+
+@code {
+    private List<ProductDto> _products = new();
+    private HashSet<Guid> _selectedProductIds = new();
+    private List<SessionDto> _pendingEntrySessions = new();
+    private SessionDto? _currentSession;
+    private bool _isMonitoring;
+    private string? _lastEventMessage;
+    private string? _errorMessage;
+    private DotNetObjectReference<MonitorPrateleira>? _dotNetRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await RefreshAll();
+    }
+
+    private async Task RefreshAll()
+    {
+        _products = await ProductApi.GetAllAsync();
+        _pendingEntrySessions = await SessionApi.GetPendingEntryAsync();
+        _currentSession = await SessionApi.GetCurrentOpenAsync();
+    }
+
+    private void ToggleProduct(Guid productId, bool isChecked)
+    {
+        if (isChecked)
+            _selectedProductIds.Add(productId);
+        else
+            _selectedProductIds.Remove(productId);
+    }
+
+    private async Task ConfirmEntry(string qrCodeToken)
+    {
+        var (success, error) = await SessionApi.ConfirmEntryAsync(qrCodeToken);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível confirmar a entrada.";
+            return;
+        }
+
+        _errorMessage = null;
+        await RefreshAll();
+    }
+
+    private async Task StartMonitoring()
+    {
+        _dotNetRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("shelfMonitor.start", "shelf-video", "shelf-canvas", _dotNetRef, 2500);
+        _isMonitoring = true;
+    }
+
+    private async Task StopMonitoring()
+    {
+        await JS.InvokeVoidAsync("shelfMonitor.stop");
+        _isMonitoring = false;
+    }
+
+    [JSInvokable]
+    public async Task OnShelfChangeDetected(string beforeImageBase64, string afterImageBase64)
+    {
+        var result = await VisionApi.DetectShelfChangeAsync(_selectedProductIds.ToList(), beforeImageBase64, afterImageBase64);
+
+        if (result is null)
+        {
+            _lastEventMessage = "Não consegui analisar a imagem agora.";
+        }
+        else
+        {
+            _lastEventMessage = result.Message;
+
+            if (result.Action is "retirado" or "devolvido")
+                _currentSession = await SessionApi.GetCurrentOpenAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_isMonitoring)
+        {
+            try { await JS.InvokeVoidAsync("shelfMonitor.stop"); } catch { }
+        }
+        _dotNetRef?.Dispose();
+    }
+}

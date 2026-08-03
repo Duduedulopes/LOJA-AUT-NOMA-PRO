@@ -1,0 +1,93 @@
+@page "/vendas"
+@inject ISessionApiService SessionApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Histórico de vendas</h1>
+<p class="hint">Sessões de compra concluídas (pagamento confirmado), mais recentes primeiro.</p>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="error-message">@_errorMessage</div>
+}
+
+<div class="card">
+    @if (_isLoading)
+    {
+        <p class="hint">Carregando histórico...</p>
+    }
+    else if (_sales.Count == 0)
+    {
+        <p class="hint">Nenhuma venda concluída ainda.</p>
+    }
+    else
+    {
+        <p class="hint">
+            @_sales.Count venda(s) · total acumulado
+            <strong style="color:var(--cyan);">R$ @_sales.Sum(s => s.Total).ToString("0.00")</strong>
+        </p>
+
+        @foreach (var sale in _sales)
+        {
+            <div class="card" style="margin-top:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                    <span class="hint">
+                        Venda em @(sale.PaymentConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")
+                        — sessão @sale.Id.ToString()[..8]...
+                    </span>
+                    <span class="total-value" style="font-size:1.3rem; margin:0;">R$ @sale.Total.ToString("0.00")</span>
+                </div>
+
+                <div class="data-table-wrapper" style="margin-top:0.75rem;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Qtd.</th>
+                                <th>Preço unit.</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in sale.Items)
+                            {
+                                <tr>
+                                    <td>@item.ProductName</td>
+                                    <td>@item.Quantity</td>
+                                    <td>R$ @item.UnitPrice.ToString("0.00")</td>
+                                    <td>R$ @item.Subtotal.ToString("0.00")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<SessionDto> _sales = new();
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            _sales = await SessionApi.GetHistoryAsync();
+        }
+        catch
+        {
+            _errorMessage = "Não foi possível carregar o histórico de vendas agora.";
+        }
+
+        _isLoading = false;
+    }
+}

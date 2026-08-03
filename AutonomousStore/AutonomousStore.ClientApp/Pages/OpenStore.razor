@@ -1,0 +1,322 @@
+﻿@page "/abrir-loja"
+@implements IDisposable
+@inject ISessionApiService SessionApi
+@inject AppState AppState
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+
+<h1>Abrir a loja</h1>
+
+@if (AppState.CurrentCustomerId is null)
+{
+    <p>Você precisa se cadastrar primeiro.</p>
+    <button class="btn-primary" @onclick='() => Nav.NavigateTo("/cadastro")'>Ir para o cadastro</button>
+}
+else if (!_hasCheckedActiveSession)
+{
+    <div class="card">
+        <p class="hint" style="text-align:center;"><span class="live-dot"></span>Verificando sua sessão...</p>
+    </div>
+}
+else if (_session is null)
+{
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">@_errorMessage</div>
+    }
+    <div class="card">
+        <p>Toque no botão abaixo para gerar o QR code e abrir a porta da loja.</p>
+        <button class="btn-primary" @onclick="CreateSession" disabled="@_isLoading">
+            @(_isLoading ? "Gerando..." : "Gerar QR code")
+        </button>
+    </div>
+}
+else
+{
+    <div class="card">
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        @if (_session.Status == SessionStatus.Aberta)
+        {
+            <p>🟢 Entrada confirmada — você já está dentro da loja!</p>
+            <p class="hint">Escaneie os produtos no cesto normalmente. Quando terminar, toque no botão abaixo.</p>
+            <button class="btn-primary" @onclick="GoToCheckout">Já terminei — ver total</button>
+            <p class="auth-footer-link" style="margin-top:1rem;">
+                <a style="cursor:pointer;" @onclick="CancelSessionAsync">Não era eu / sair sem comprar</a>
+            </p>
+        }
+        else if (_session.Status == SessionStatus.AguardandoPagamento)
+        {
+            <p>🧾 Sua compra já foi fechada — falta só confirmar o pagamento.</p>
+            <button class="btn-primary" @onclick="GoToCheckout">Ir para pagamento</button>
+        }
+        else if (_isExpired)
+        {
+            <p>⏱️ Esse QR code expirou por segurança.</p>
+            <button class="btn-primary" @onclick="RegenerateQrCode" disabled="@_isLoading">
+                @(_isLoading ? "Gerando..." : "Gerar novo QR code")
+            </button>
+        }
+        else
+        {
+            <p>Aproxime este QR code da leitora na porta da loja:</p>
+            <div id="qrcode-container"></div>
+            <p class="hint">Expira em: <strong>@FormatCountdown()</strong></p>
+            <p class="hint">Aguardando a leitora confirmar sua entrada...</p>
+            <p class="auth-footer-link" style="margin-top:1rem;">
+                <a style="cursor:pointer;" @onclick="CancelSessionAsync">Cancelar e gerar outro QR code</a>
+            </p>
+        }
+    </div>
+}
+
+@code {
+    private SessionDto? _session;
+    private bool _isLoading;
+    private bool _isExpired;
+    private string? _errorMessage;
+    private System.Threading.Timer? _countdownTimer;
+    private System.Threading.Timer? _statusPollTimer;
+    private TimeSpan _remaining;
+    private string? _lastRenderedToken;
+
+    private SessionDto? _pendingActiveSession;
+    private bool _hasCheckedActiveSession;
+    private bool _hasAppliedInitialState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        // Só busca os dados aqui — NÃO aplica ainda (isso fica pro OnAfterRenderAsync, ver comentário lá).
+        _pendingActiveSession = await SessionApi.GetActiveAsync(AppState.CurrentCustomerId.Value);
+        _hasCheckedActiveSession = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Se já existir uma sessão em andamento (ex: QR pendente de leitura, gerado antes), reexibimos
+        // o estado dela automaticamente. Se NÃO existir nenhuma, não geramos nada sozinhos — o cliente
+        // precisa tocar em "Gerar QR code" de propósito (é uma ação física de abrir a porta da loja).
+        //
+        // Importante: só aplicamos a sessão (o que desenha o QR via JS interop) depois de pelo menos
+        // um render — se chamado ainda dentro do OnInitializedAsync, o <div id="qrcode-container">
+        // ainda não existe no DOM e o JS interop falha silenciosamente (QR nunca aparece). Por isso
+        // checamos a cada render (não só no primeiro) até a checagem da sessão ativa ter terminado.
+        if (_hasAppliedInitialState || !_hasCheckedActiveSession || AppState.CurrentCustomerId is null)
+            return;
+
+        _hasAppliedInitialState = true;
+
+        if (_pendingActiveSession is not null)
+        {
+            await ApplyNewSession(_pendingActiveSession);
+        }
+    }
+
+    private async Task CreateSession()
+    {
+        if (AppState.CurrentCustomerId is null)
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var (success, session, error) = await SessionApi.CreateAsync(AppState.CurrentCustomerId.Value);
+
+            if (!success || session is null)
+            {
+                var existing = await SessionApi.GetActiveAsync(AppState.CurrentCustomerId.Value);
+
+                if (existing is not null)
+                {
+                    await ApplyNewSession(existing);
+                    return;
+                }
+
+                _errorMessage = error ?? "Não foi possível gerar o QR code.";
+                return;
+            }
+
+            await ApplyNewSession(session);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erro inesperado: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Cancela a sessão atual e já gera uma nova em seguida — usado quando o cliente quer desistir
+    /// (ou quando sobrou uma sessão travada de um teste anterior) sem ficar preso sem conseguir um QR novo.
+    /// </summary>
+    private async Task CancelSessionAsync()
+    {
+        if (_session is null)
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, error) = await SessionApi.CancelAsync(_session.Id);
+
+        if (!success)
+        {
+            _errorMessage = error ?? "Não foi possível cancelar essa sessão.";
+            _isLoading = false;
+            return;
+        }
+
+        _countdownTimer?.Dispose();
+        _statusPollTimer?.Dispose();
+        _session = null;
+        _lastRenderedToken = null;
+        _isExpired = false;
+        AppState.SetSession(null);
+
+        await CreateSession();
+    }
+
+    private async Task RegenerateQrCode()
+    {
+        if (_session is null)
+            return;
+
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            var (success, session, error) = await SessionApi.RegenerateQrCodeAsync(_session.Id);
+
+            if (!success || session is null)
+            {
+                _errorMessage = error ?? "Não foi possível gerar um novo QR code.";
+                return;
+            }
+
+            await ApplyNewSession(session);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Erro inesperado: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ApplyNewSession(SessionDto session)
+    {
+        _session = session;
+        AppState.SetSession(session.Id);
+        _isExpired = false;
+        StateHasChanged();
+
+        if (session.Status == SessionStatus.AguardandoEntrada)
+        {
+            StartCountdown();
+            StartStatusPolling();
+
+            // Só precisa (re)desenhar o QR code se o token mudou (evita redesenhar a cada poll).
+            if (session.QrCodeToken != _lastRenderedToken)
+            {
+                _lastRenderedToken = session.QrCodeToken;
+                await Task.Yield();
+                await JS.InvokeVoidAsync("renderQrCode", "qrcode-container", session.QrCodeToken);
+            }
+        }
+        else
+        {
+            // Entrada já confirmada (ou além disso) — não precisa mais de QR nem de contagem.
+            _countdownTimer?.Dispose();
+            _statusPollTimer?.Dispose();
+        }
+    }
+
+    private void StartCountdown()
+    {
+        _countdownTimer?.Dispose();
+
+        if (_session is null)
+            return;
+
+        UpdateRemaining();
+
+        _countdownTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                UpdateRemaining();
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    /// <summary>
+    /// Enquanto aguarda a leitora da porta confirmar a entrada, verifica periodicamente se o
+    /// status mudou — assim a tela reage sozinha (sem precisar recarregar) no instante em que
+    /// a entrada é confirmada, evitando o QR "ficar expirado" numa sessão que já avançou.
+    /// </summary>
+    private void StartStatusPolling()
+    {
+        _statusPollTimer?.Dispose();
+
+        if (_session is null)
+            return;
+
+        _statusPollTimer = new System.Threading.Timer(async _ =>
+        {
+            if (_session is null)
+                return;
+
+            var updated = await SessionApi.GetByIdAsync(_session.Id);
+
+            if (updated is not null && updated.Status != _session.Status)
+            {
+                await InvokeAsync(() => ApplyNewSession(updated));
+            }
+        }, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+    }
+
+    private void UpdateRemaining()
+    {
+        if (_session is null)
+            return;
+
+        _remaining = _session.QrCodeExpiresAt - DateTime.UtcNow;
+
+        if (_remaining <= TimeSpan.Zero)
+        {
+            _remaining = TimeSpan.Zero;
+            _isExpired = true;
+            _countdownTimer?.Dispose();
+        }
+    }
+
+    private string FormatCountdown()
+    {
+        var minutes = Math.Max(0, (int)_remaining.TotalMinutes);
+        var seconds = Math.Max(0, _remaining.Seconds);
+        return $"{minutes:00}:{seconds:00}";
+    }
+
+    private void GoToCheckout() => Nav.NavigateTo("/checkout");
+
+    public void Dispose()
+    {
+        _countdownTimer?.Dispose();
+        _statusPollTimer?.Dispose();
+    }
+}
