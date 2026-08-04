@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#08121C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/icon-admin-192.png">
+<title>Smart Store — Admin</title>
+<style>
+  :root{
+    --bg:#08121C; --bg2:#0B1826; --panel:#0E2030; --panel2:#12293B;
+    --linha:#1B3C52; --linha2:#245A76;
+    --ciano:#35C8E8; --ciano-forte:#5FE3FF; --ciano-fraco:#1E7E99;
+    --txt:#DCE9F0; --dim:#7E9BAD; --dim2:#5B7B8E;
+    --ok:#3ED6A0; --alerta:#F0A93C; --erro:#F06A6A;
+    --topo: env(safe-area-inset-top, 0px);
+    --base: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--txt);
+    display:flex;flex-direction:column;align-items:center;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:
+      linear-gradient(var(--linha) 1px, transparent 1px),
+      linear-gradient(90deg, var(--linha) 1px, transparent 1px),
+      var(--bg);
+    background-size:44px 44px, 44px 44px, auto;
+  }
+  .app{
+    width:100%;max-width:560px;height:100%;
+    display:flex;flex-direction:column;position:relative;
+    background:rgba(8,18,28,.55);
+  }
+  @media(min-width:600px){
+    .app{border-left:1px solid var(--linha);border-right:1px solid var(--linha)}
+  }
+
+  header{
+    padding:calc(12px + var(--topo)) 16px 12px;
+    background:rgba(11,24,38,.94);border-bottom:1px solid var(--linha2);
+    display:flex;align-items:center;gap:11px;flex-shrink:0;
+  }
+  .marca{width:34px;height:34px;border-radius:9px;border:1px solid var(--ciano-fraco);background:rgba(53,200,232,.10);display:flex;align-items:center;justify-content:center;color:var(--ciano);flex-shrink:0}
+  header h1{font-size:12.5px;font-weight:700;color:var(--ciano-forte);letter-spacing:2.2px;text-transform:uppercase}
+  header p{font-size:11px;color:var(--dim2)}
+  header a{margin-left:auto;color:var(--ciano);font-size:11.5px;text-decoration:none;border:1px solid var(--linha2);background:rgba(53,200,232,.08);padding:7px 12px;border-radius:6px;white-space:nowrap}
+
+  .abas{display:flex;background:rgba(11,24,38,.9);border-bottom:1px solid var(--linha2);flex-shrink:0}
+  .aba{flex:1;padding:13px 6px;border:0;background:transparent;font-family:inherit;font-size:11px;font-weight:700;color:var(--dim2);border-bottom:2px solid transparent;letter-spacing:1.1px;text-transform:uppercase}
+  .aba.on{color:var(--ciano-forte);border-bottom-color:var(--ciano)}
+
+  main{flex:1;overflow-y:auto;padding:14px 14px calc(96px + var(--base));-webkit-overflow-scrolling:touch}
+  main::-webkit-scrollbar{width:5px}
+  main::-webkit-scrollbar-thumb{background:var(--linha2);border-radius:3px}
+  .tela{display:none}
+  .tela.on{display:block}
+
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+  .kpi{background:var(--panel);border:1px solid var(--linha2);border-radius:9px;padding:11px 10px}
+  .kpi b{display:block;font-size:21px;line-height:1.2;color:var(--ciano-forte)}
+  .kpi span{font-size:9px;color:var(--dim2);text-transform:uppercase;letter-spacing:1px}
+  .kpi.alerta b{color:var(--erro)}
+
+  .busca{width:100%;padding:12px 14px;border:1px solid var(--linha2);border-radius:8px;font-size:16px;font-family:inherit;background:var(--bg2);margin-bottom:11px;color:var(--txt)}
+  .busca::placeholder{color:var(--dim2)}
+  .busca:focus{outline:0;border-color:var(--ciano)}
+
+  .item{background:var(--panel);border:1px solid var(--linha2);border-radius:9px;padding:11px 13px;margin-bottom:8px;display:flex;gap:11px;align-items:center}
+  .item .info{flex:1;min-width:0}
+  .item h4{font-size:13.5px;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item p{font-size:11px;color:var(--dim2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item .preco{font-size:14px;font-weight:700;text-align:right;flex-shrink:0;color:var(--ciano-forte)}
+  .item .preco small{display:block;font-size:9.5px;font-weight:600;margin-top:3px;letter-spacing:.5px;text-transform:uppercase}
+  .ok{color:var(--ok)} .no{color:var(--erro)} .pr{color:var(--alerta)}
+
+  .perg{background:var(--panel);border:1px solid var(--linha2);border-left:3px solid var(--ok);border-radius:8px;padding:11px 13px;margin-bottom:8px}
+  .perg.falhou{border-left-color:var(--erro)}
+  .perg q{font-size:13.5px;display:block;margin-bottom:5px;font-style:normal}
+  .perg em{font-size:10.5px;color:var(--dim2);font-style:normal;letter-spacing:.3px}
+
+  .vazio{text-align:center;color:var(--dim2);font-size:13px;padding:44px 20px;line-height:1.7}
+
+  label{display:block;font-size:10px;font-weight:700;color:var(--dim2);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;margin-top:14px}
+  input,select{width:100%;padding:12px 13px;border:1px solid var(--linha2);border-radius:8px;font-size:16px;font-family:inherit;background:var(--bg2);color:var(--txt)}
+  input::placeholder{color:var(--dim2)}
+  input:focus,select:focus{outline:0;border-color:var(--ciano)}
+  select option{background:var(--bg2);color:var(--txt)}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+  .bt{width:100%;padding:14px;border:1px solid var(--ciano-fraco);border-radius:9px;background:rgba(53,200,232,.16);color:var(--ciano-forte);font-size:14.5px;font-weight:700;font-family:inherit;margin-top:16px;letter-spacing:.3px}
+  .bt.sec{background:var(--panel);color:var(--txt);border-color:var(--linha2)}
+  .bt.perigo{background:rgba(240,106,106,.14);border-color:rgba(240,106,106,.4);color:var(--erro)}
+  .bt.mini{padding:11px;font-size:13px;margin-top:9px}
+
+  .fab{position:absolute;right:16px;bottom:calc(18px + var(--base));width:56px;height:56px;border-radius:50%;background:rgba(53,200,232,.2);border:1px solid var(--ciano);color:var(--ciano-forte);font-size:28px;line-height:1;z-index:15}
+
+  .modal{position:fixed;inset:0;background:rgba(3,9,15,.78);display:none;align-items:flex-end;z-index:30}
+  .modal.on{display:flex}
+  .folha{background:var(--bg2);max-width:560px;margin:0 auto;border-top:1px solid var(--ciano-fraco);width:100%;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:18px 16px calc(24px + var(--base));position:relative}
+  .folha h3{font-size:14px;color:var(--ciano-forte);letter-spacing:1.2px;text-transform:uppercase}
+  .folha .sub{font-size:11.5px;color:var(--dim2);margin-top:4px}
+  .fechar{position:absolute;right:14px;top:12px;background:transparent;border:0;font-size:20px;color:var(--dim2);padding:6px}
+
+  .aviso{background:rgba(240,169,60,.08);border:1px solid rgba(240,169,60,.3);color:#E8C48A;border-radius:8px;padding:11px 13px;font-size:11.5px;line-height:1.6;margin-top:14px}
+  .dica{background:rgba(53,200,232,.06);border:1px solid var(--linha2);color:var(--dim);border-radius:8px;padding:11px 13px;font-size:11.5px;line-height:1.6;margin-top:10px}
+  .dica code{color:var(--ciano);font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<header>
+  <div class="marca">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l1.5-5h15L21 9"/><path d="M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9 13h6"/>
+    </svg>
+  </div>
+  <div>
+    <h1>Smart Store</h1>
+    <p>Painel do administrador</p>
+  </div>
+  <a href="../">Ver app ↗</a>
+</header>
+
+<div class="abas">
+  <button class="aba on" data-tela="produtos">Produtos</button>
+  <button class="aba" data-tela="perguntas">Perguntas</button>
+  <button class="aba" data-tela="ajustes">Ajustes</button>
+</div>
+
+<main>
+
+  <section class="tela on" id="t-produtos">
+    <div class="kpis">
+      <div class="kpi"><b id="k1">0</b><span>produtos</span></div>
+      <div class="kpi alerta"><b id="k2">0</b><span>esgotados</span></div>
+      <div class="kpi"><b id="k3">0</b><span>promoções</span></div>
+    </div>
+    <input class="busca" id="busca" placeholder="Buscar produto..." autocomplete="off">
+    <div id="lista"></div>
+  </section>
+
+  <section class="tela" id="t-perguntas">
+    <div class="kpis">
+      <div class="kpi"><b id="p1">0</b><span>perguntas</span></div>
+      <div class="kpi alerta"><b id="p2">0</b><span>sem resposta</span></div>
+      <div class="kpi"><b id="p3">—</b><span>atendidas</span></div>
+    </div>
+    <div id="listaPerg"></div>
+    <button class="bt sec mini" id="limparPerg">Limpar histórico</button>
+  </section>
+
+  <section class="tela" id="t-ajustes">
+
+    <label for="sgUrl">Endpoint do assistente SmartGO</label>
+    <input id="sgUrl" placeholder="https://sua-api/smartgo/chat" autocomplete="off">
+    <label for="sgToken">Token (opcional)</label>
+    <input id="sgToken" type="password" placeholder="enviado como Bearer" autocomplete="off">
+    <button class="bt" id="salvarSg">Conectar SmartGO</button>
+    <div class="dica">
+      Quando o catálogo não souber responder, a pergunta vai para o SmartGO.<br>
+      Envio: <code>{ mensagem, historico, origem }</code><br>
+      Resposta aceita: <code>resposta</code>, <code>mensagem</code>, <code>reply</code>,
+      formato OpenAI ou texto puro.
+    </div>
+
+    <label for="orKey" style="margin-top:24px">Chave OpenRouter (alternativa ao SmartGO)</label>
+    <input id="orKey" type="password" placeholder="sk-or-v1-..." autocomplete="off">
+    <label for="orModelo">Modelo</label>
+    <select id="orModelo">
+      <option value="auto">Automático — tenta a lista inteira</option>
+      <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek Chat v3</option>
+      <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B</option>
+      <option value="qwen/qwen-2.5-72b-instruct:free">Qwen 2.5 72B</option>
+      <option value="google/gemma-3-27b-it:free">Gemma 3 27B</option>
+      <option value="mistralai/mistral-small-3.2-24b-instruct:free">Mistral Small 3.2</option>
+    </select>
+    <button class="bt sec" id="salvarCfg">Salvar LLM</button>
+
+    <div class="aviso">
+      Chaves ficam salvas só neste navegador. <b>Em produção nenhuma delas pode estar no front-end</b> — a chamada precisa sair da API .NET, que guarda o segredo no servidor.
+    </div>
+
+    <label style="margin-top:24px">Catálogo</label>
+    <button class="bt sec mini" id="exportar">Exportar catálogo (JSON)</button>
+    <button class="bt sec mini" id="importar">Importar catálogo (JSON)</button>
+    <input type="file" id="arquivo" accept=".json,application/json" style="display:none">
+    <button class="bt perigo mini" id="restaurar">Restaurar catálogo de exemplo</button>
+  </section>
+
+</main>
+
+<button class="fab" id="novo" aria-label="Novo produto">+</button>
+
+</div>
+
+<div class="modal" id="modal">
+  <div class="folha">
+    <button class="fechar" id="fecharModal" aria-label="Fechar">✕</button>
+    <h3 id="tituloModal">Novo produto</h3>
+    <p class="sub">Alterações aparecem no app do cliente imediatamente.</p>
+
+    <label for="f-nome">Nome</label>
+    <input id="f-nome" placeholder="Ex.: Coca-Cola Original 2L">
+
+    <label for="f-cat">Categoria</label>
+    <select id="f-cat"></select>
+
+    <div class="duo">
+      <div>
+        <label for="f-preco">Preço (R$)</label>
+        <input id="f-preco" type="number" step="0.01" inputmode="decimal" placeholder="0,00">
+      </div>
+      <div>
+        <label for="f-estoque">Estoque</label>
+        <input id="f-estoque" type="number" inputmode="numeric" placeholder="0">
+      </div>
+    </div>
+
+    <div class="duo">
+      <div>
+        <label for="f-corredor">Corredor</label>
+        <input id="f-corredor" type="number" inputmode="numeric" placeholder="1">
+      </div>
+      <div>
+        <label for="f-prat">Prateleira</label>
+        <select id="f-prat">
+          <option value="superior">superior</option>
+          <option value="meio">meio</option>
+          <option value="inferior">inferior</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="f-promo">Promoção (vazio se não houver)</label>
+    <input id="f-promo" placeholder="Ex.: Leve 2 pague 1">
+
+    <label for="f-sin">Como o cliente chama (separado por vírgula)</label>
+    <input id="f-sin" placeholder="coca, coca cola, cocacola">
+
+    <button class="bt" id="salvarProd">Salvar produto</button>
+    <button class="bt perigo mini" id="excluirProd" style="display:none">Excluir produto</button>
+  </div>
+</div>
+
+<script src="../shared/dados.js"></script>
+<script>
+let editando = null;
+
+document.querySelectorAll('.aba').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.aba').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.tela').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('t-'+b.dataset.tela).classList.add('on');
+    document.getElementById('novo').style.display = b.dataset.tela==='produtos' ? 'block' : 'none';
+    if(b.dataset.tela==='perguntas') renderPerguntas();
+  };
+});
+
+const selCat = document.getElementById('f-cat');
+Object.keys(CATEGORIAS).forEach(k=>{
+  const o=document.createElement('option'); o.value=k; o.textContent=CATEGORIAS[k];
+  selCat.appendChild(o);
+});
+
+function renderProdutos(){
+  const lista = Dados.produtos();
+  const filtro = norm(document.getElementById('busca').value);
+  const vis = filtro ? lista.filter(p=>norm(p.nome+' '+p.sinonimos).indexOf(filtro)>=0) : lista;
+
+  document.getElementById('k1').textContent = lista.length;
+  document.getElementById('k2').textContent = lista.filter(p=>p.estoque<=0).length;
+  document.getElementById('k3').textContent = lista.filter(p=>p.promo).length;
+
+  const el = document.getElementById('lista');
+  if(!vis.length){ el.innerHTML='<div class="vazio">Nenhum produto encontrado.</div>'; return; }
+
+  el.innerHTML = vis.map(p=>
+    '<div class="item" data-id="'+p.id+'">'+
+      '<div class="info">'+
+        '<h4>'+p.nome+'</h4>'+
+        '<p>'+CATEGORIAS[p.cat]+' · corredor '+p.corredor+' · '+p.prat+
+        (p.promo?' · <span class="pr">'+p.promo+'</span>':'')+'</p>'+
+      '</div>'+
+      '<div class="preco">'+brl(p.preco)+
+        '<small class="'+(p.estoque>0?'ok':'no')+'">'+(p.estoque>0? p.estoque+' un.' : 'esgotado')+'</small>'+
+      '</div>'+
+    '</div>'
+  ).join('');
+
+  el.querySelectorAll('.item').forEach(d=>{ d.onclick=()=>abrirModal(Number(d.dataset.id)); });
+}
+document.getElementById('busca').oninput = renderProdutos;
+
+const modal=document.getElementById('modal');
+function abrirModal(id){
+  editando = id || null;
+  const p = id ? Dados.produtos().find(x=>x.id===id) : null;
+  document.getElementById('tituloModal').textContent = p ? 'Editar produto' : 'Novo produto';
+  document.getElementById('f-nome').value     = p ? p.nome : '';
+  document.getElementById('f-cat').value      = p ? p.cat : 'mercearia';
+  document.getElementById('f-preco').value    = p ? p.preco : '';
+  document.getElementById('f-estoque').value  = p ? p.estoque : '';
+  document.getElementById('f-corredor').value = p ? p.corredor : '';
+  document.getElementById('f-prat').value     = p ? p.prat : 'meio';
+  document.getElementById('f-promo').value    = p ? (p.promo||'') : '';
+  document.getElementById('f-sin').value      = p ? (p.sinonimos||'') : '';
+  document.getElementById('excluirProd').style.display = p ? 'block' : 'none';
+  modal.classList.add('on');
+}
+document.getElementById('novo').onclick=()=>abrirModal(null);
+document.getElementById('fecharModal').onclick=()=>modal.classList.remove('on');
+modal.onclick=e=>{ if(e.target===modal) modal.classList.remove('on'); };
+
+document.getElementById('salvarProd').onclick=()=>{
+  const nome = document.getElementById('f-nome').value.trim();
+  if(!nome){ alert('Informe o nome do produto.'); return; }
+  const lista = Dados.produtos();
+  const dados = {
+    nome: nome,
+    cat: document.getElementById('f-cat').value,
+    preco: parseFloat(document.getElementById('f-preco').value) || 0,
+    estoque: parseInt(document.getElementById('f-estoque').value,10) || 0,
+    corredor: parseInt(document.getElementById('f-corredor').value,10) || 1,
+    prat: document.getElementById('f-prat').value,
+    promo: document.getElementById('f-promo').value.trim(),
+    sinonimos: document.getElementById('f-sin').value.trim()
+  };
+  if(editando){
+    const i = lista.findIndex(x=>x.id===editando);
+    lista[i] = Object.assign(lista[i], dados);
+  }else{
+    lista.push(Object.assign({id: Dados.proximoId()}, dados));
+  }
+  Dados.salvarProdutos(lista);
+  modal.classList.remove('on');
+  renderProdutos();
+};
+
+document.getElementById('excluirProd').onclick=()=>{
+  if(!editando) return;
+  if(!confirm('Excluir este produto?')) return;
+  Dados.salvarProdutos(Dados.produtos().filter(p=>p.id!==editando));
+  modal.classList.remove('on');
+  renderProdutos();
+};
+
+function renderPerguntas(){
+  const lista = Dados.perguntas();
+  const falhas = lista.filter(p=>!p.respondida);
+  document.getElementById('p1').textContent = lista.length;
+  document.getElementById('p2').textContent = falhas.length;
+  document.getElementById('p3').textContent = lista.length
+    ? Math.round((lista.length-falhas.length)/lista.length*100)+'%' : '—';
+
+  const el = document.getElementById('listaPerg');
+  if(!lista.length){
+    el.innerHTML = '<div class="vazio">Nenhuma pergunta registrada.<br>Abra o app do cliente, faça uma consulta e volte aqui.</div>';
+    return;
+  }
+  el.innerHTML = lista.map(p=>{
+    const d = new Date(p.quando);
+    const hora = d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return '<div class="perg'+(p.respondida?'':' falhou')+'">'+
+      '<q>'+p.texto+'</q>'+
+      '<em>'+hora+' · '+(p.respondida ? (p.produto||'respondida') : 'sem resposta no catálogo')+'</em>'+
+    '</div>';
+  }).join('');
+}
+document.getElementById('limparPerg').onclick=()=>{
+  if(!confirm('Apagar todo o histórico de perguntas?')) return;
+  Dados.limparPerguntas(); renderPerguntas();
+};
+
+const cfg = Dados.config();
+document.getElementById('sgUrl').value = cfg.smartgoUrl || '';
+document.getElementById('sgToken').value = cfg.smartgoToken || '';
+document.getElementById('orKey').value = cfg.orKey || '';
+document.getElementById('orModelo').value = cfg.orModelo || 'auto';
+
+document.getElementById('salvarSg').onclick=()=>{
+  Dados.salvarConfig({
+    smartgoUrl: document.getElementById('sgUrl').value.trim(),
+    smartgoToken: document.getElementById('sgToken').value.trim()
+  });
+  alert(document.getElementById('sgUrl').value.trim()
+    ? 'SmartGO conectado. Perguntas fora do catálogo serão encaminhadas.'
+    : 'SmartGO desconectado.');
+};
+
+document.getElementById('salvarCfg').onclick=()=>{
+  Dados.salvarConfig({
+    orKey: document.getElementById('orKey').value.trim(),
+    orModelo: document.getElementById('orModelo').value
+  });
+  alert('Ajustes de LLM salvos.');
+};
+
+document.getElementById('exportar').onclick=()=>{
+  const blob = new Blob([JSON.stringify(Dados.produtos(),null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'smart-store-catalogo.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+document.getElementById('importar').onclick=()=>document.getElementById('arquivo').click();
+document.getElementById('arquivo').onchange=e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload=()=>{
+    try{
+      const j = JSON.parse(r.result);
+      if(!Array.isArray(j)) throw new Error('formato');
+      Dados.salvarProdutos(j);
+      renderProdutos();
+      alert('Catálogo importado: '+j.length+' produtos.');
+    }catch(err){ alert('Arquivo inválido.'); }
+  };
+  r.readAsText(f);
+};
+document.getElementById('restaurar').onclick=()=>{
+  if(!confirm('Restaurar o catálogo de exemplo? Suas alterações serão perdidas.')) return;
+  Dados.restaurar(); renderProdutos();
+};
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}));
+}
+
+renderProdutos();
+</script>
+</body>
+</html>

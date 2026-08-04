@@ -1,0 +1,13 @@
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# editores
+.vscode/
+.idea/
+*.swp
+
+# ambiente
+.env
+.env.local

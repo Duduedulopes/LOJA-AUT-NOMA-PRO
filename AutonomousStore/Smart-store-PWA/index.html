@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0A1420">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Assistente de catálogo da Smart Store — preço, estoque, promoções e localização dos produtos.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Smart Store — Catálogo</title>
+<style>
+  :root{
+    --bg:#08121C; --bg2:#0B1826; --panel:#0E2030; --panel2:#12293B;
+    --linha:#1B3C52; --linha2:#245A76;
+    --ciano:#35C8E8; --ciano-forte:#5FE3FF; --ciano-fraco:#1E7E99;
+    --txt:#DCE9F0; --dim:#7E9BAD; --dim2:#5B7B8E;
+    --ok:#3ED6A0; --alerta:#F0A93C; --erro:#F06A6A;
+    --topo: env(safe-area-inset-top, 0px);
+    --base: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg); color:var(--txt);
+    display:flex; flex-direction:column; align-items:center;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(53,200,232,.10), transparent 60%),
+      linear-gradient(var(--linha) 1px, transparent 1px),
+      linear-gradient(90deg, var(--linha) 1px, transparent 1px),
+      var(--bg);
+    background-size:auto, 44px 44px, 44px 44px, auto;
+  }
+
+  /* no celular ocupa a tela toda; no desktop vira uma coluna centralizada */
+  .app{
+    width:100%; max-width:560px; height:100%;
+    display:flex; flex-direction:column; position:relative;
+    background:rgba(8,18,28,.55);
+  }
+  @media(min-width:600px){
+    .app{border-left:1px solid var(--linha);border-right:1px solid var(--linha)}
+  }
+
+  /* ---------- topo ---------- */
+  header{
+    padding:calc(12px + var(--topo)) 16px 12px;
+    background:rgba(11,24,38,.92);
+    border-bottom:1px solid var(--linha2);
+    display:flex; align-items:center; gap:11px; flex-shrink:0;
+  }
+  .marca{
+    width:34px;height:34px;border-radius:9px;flex-shrink:0;
+    border:1px solid var(--ciano-fraco);background:rgba(53,200,232,.10);
+    display:flex;align-items:center;justify-content:center;color:var(--ciano);
+  }
+  header h1{
+    font-size:13px;font-weight:700;color:var(--ciano-forte);
+    letter-spacing:2.4px;text-transform:uppercase;line-height:1.3;
+  }
+  header p{font-size:11px;color:var(--dim2);letter-spacing:.2px}
+  .estado{
+    margin-left:auto;font-size:9.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+    color:var(--ok);border:1px solid rgba(62,214,160,.35);background:rgba(62,214,160,.10);
+    padding:4px 9px;border-radius:5px;
+  }
+  .estado.ouvindo{color:var(--alerta);border-color:rgba(240,169,60,.35);background:rgba(240,169,60,.10)}
+  .estado.pensando{color:var(--ciano);border-color:rgba(53,200,232,.35);background:rgba(53,200,232,.10)}
+
+  /* ---------- conversa ---------- */
+  .log{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+  .log::-webkit-scrollbar{width:5px}
+  .log::-webkit-scrollbar-thumb{background:var(--linha2);border-radius:3px}
+
+  .msg{max-width:88%;font-size:14.5px;line-height:1.6;padding:11px 14px;border-radius:10px;white-space:pre-line;word-break:break-word}
+  .eu{align-self:flex-end;background:rgba(53,200,232,.14);border:1px solid var(--ciano-fraco);color:#E6F7FC}
+  .ass{align-self:flex-start;background:var(--panel);border:1px solid var(--linha2)}
+  .via{font-size:9px;color:var(--dim2);margin-top:7px;display:block;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  .card{align-self:flex-start;width:92%;background:var(--panel);border:1px solid var(--linha2);border-radius:10px;padding:12px 14px;font-size:13px}
+  .card h4{font-size:13px;font-weight:700;margin-bottom:9px;color:var(--ciano-forte);letter-spacing:.3px}
+  .lin{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--linha)}
+  .lin:last-child{border:0}
+  .lin span:first-child{color:var(--dim2);flex-shrink:0;font-size:12px}
+  .lin span:last-child{text-align:right;font-weight:600}
+  .marca-tag{display:inline-block;font-size:9px;padding:3px 8px;border-radius:4px;margin-left:7px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;vertical-align:middle}
+  .m-ok{background:rgba(62,214,160,.12);color:var(--ok);border:1px solid rgba(62,214,160,.3)}
+  .m-no{background:rgba(240,106,106,.12);color:var(--erro);border:1px solid rgba(240,106,106,.3)}
+  .m-pr{background:rgba(240,169,60,.12);color:var(--alerta);border:1px solid rgba(240,169,60,.3)}
+
+  .pts{align-self:flex-start;background:var(--panel);border:1px solid var(--linha2);border-radius:10px;padding:13px 17px;display:flex;gap:5px}
+  .pts i{width:6px;height:6px;border-radius:50%;background:var(--ciano);animation:pi 1.2s infinite}
+  .pts i:nth-child(2){animation-delay:.2s}
+  .pts i:nth-child(3){animation-delay:.4s}
+  @keyframes pi{0%,60%,100%{opacity:.25}30%{opacity:1}}
+
+  /* ---------- sugestões ---------- */
+  .chips{display:flex;gap:7px;padding:0 14px 10px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{
+    white-space:nowrap;font-size:12px;padding:8px 13px;border-radius:6px;flex-shrink:0;
+    background:rgba(53,200,232,.06);border:1px solid var(--linha2);color:var(--dim);
+    font-family:inherit;font-weight:500;
+  }
+  .chip:active{background:rgba(53,200,232,.16);color:var(--ciano-forte)}
+
+  /* ---------- barra ---------- */
+  .barra{
+    display:flex;gap:9px;align-items:center;
+    padding:11px 14px calc(11px + var(--base));
+    background:rgba(11,24,38,.96);border-top:1px solid var(--linha2);flex-shrink:0;
+  }
+  .barra input{
+    flex:1;min-width:0;background:var(--bg2);border:1px solid var(--linha2);border-radius:8px;
+    padding:13px 15px;font-size:16px;font-family:inherit;color:var(--txt);
+  }
+  .barra input::placeholder{color:var(--dim2)}
+  .barra input:focus{outline:0;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(53,200,232,.12)}
+  .bt{
+    width:48px;height:48px;flex-shrink:0;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--linha2);background:var(--panel2);color:var(--ciano);
+  }
+  .bt.enviar{background:rgba(53,200,232,.16);border-color:var(--ciano-fraco)}
+  .bt.gravando{background:rgba(240,106,106,.18);border-color:var(--erro);color:var(--erro);animation:pu 1.1s infinite}
+  .bt:disabled{opacity:.35}
+  @keyframes pu{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+
+  /* ---------- instalar ---------- */
+  .instalar{
+    position:absolute;left:12px;right:12px;bottom:calc(126px + var(--base));
+    background:var(--panel);border:1px solid var(--ciano-fraco);border-radius:10px;
+    padding:12px 14px;display:none;align-items:center;gap:11px;font-size:13px;z-index:20;
+  }
+  .instalar.on{display:flex}
+  .instalar button{background:rgba(53,200,232,.18);border:1px solid var(--ciano-fraco);color:var(--ciano-forte);padding:8px 14px;border-radius:6px;font-weight:700;font-family:inherit;font-size:12.5px;margin-left:auto}
+  .instalar .x{background:transparent;border:0;color:var(--dim2);padding:8px;margin-left:0}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<header>
+  <div class="marca">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l1.5-5h15L21 9"/><path d="M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M9 13h6"/>
+    </svg>
+  </div>
+  <div>
+    <h1>Smart Store</h1>
+    <p>Assistente de catálogo</p>
+  </div>
+  <div class="estado" id="estado">online</div>
+</header>
+
+<div class="log" id="log"></div>
+
+<div class="chips" id="chips"></div>
+
+<div class="barra">
+  <input id="entrada" placeholder="Digite sua dúvida..." autocomplete="off" enterkeyhint="send">
+  <button class="bt" id="mic" aria-label="Falar">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M18 11a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-3.09A6 6 0 0 0 18 11z"/></svg>
+  </button>
+  <button class="bt enviar" id="enviar" aria-label="Enviar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5v-6l8-2.5-8-2.5v-6l19 8.5z"/></svg>
+  </button>
+</div>
+
+<div class="instalar" id="instalar">
+  <div>Instalar na tela inicial</div>
+  <button id="btInstalar">Instalar</button>
+  <button class="x" id="btFechar" aria-label="Fechar">✕</button>
+</div>
+
+</div>
+
+<script src="shared/dados.js"></script>
+<script>
+const log=document.getElementById('log'), entrada=document.getElementById('entrada'),
+      estado=document.getElementById('estado');
+const HIST=[];
+
+function setEstado(e){
+  estado.className='estado'+(e?' '+e:'');
+  estado.textContent = e || 'online';
+}
+
+/* ---------- entrada por voz (opcional) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, gravando=false;
+const mic=document.getElementById('mic');
+
+if(SR){
+  rec=new SR(); rec.lang='pt-BR'; rec.continuous=false; rec.interimResults=true;
+  rec.onstart=()=>{ gravando=true; mic.classList.add('gravando'); setEstado('ouvindo'); };
+  rec.onresult=ev=>{
+    let t='';
+    for(let i=ev.resultIndex;i<ev.results.length;i++) t+=ev.results[i][0].transcript;
+    entrada.value=t;
+    if(ev.results[ev.results.length-1].isFinal) enviar(t);
+  };
+  rec.onerror=()=>{ gravando=false; mic.classList.remove('gravando'); setEstado(''); };
+  rec.onend=()=>{ gravando=false; mic.classList.remove('gravando'); if(estado.textContent==='ouvindo') setEstado(''); };
+}else{
+  mic.disabled=true;
+}
+mic.onclick=()=>{
+  if(!rec) return;
+  if(gravando){ rec.stop(); return; }
+  try{ rec.start(); }catch(e){}
+};
+
+/* ---------- render ---------- */
+function bolha(txt, quem, via){
+  const d=document.createElement('div');
+  d.className='msg '+quem; d.textContent=txt;
+  if(via){ const s=document.createElement('span'); s.className='via'; s.textContent=via; d.appendChild(s); }
+  log.appendChild(d); log.scrollTop=log.scrollHeight; return d;
+}
+function cartao(c){
+  const d=document.createElement('div'); d.className='card';
+  let tags = c.esgotado ? '<span class="marca-tag m-no">esgotado</span>' : '<span class="marca-tag m-ok">em estoque</span>';
+  if(c.promo) tags += '<span class="marca-tag m-pr">promoção</span>';
+  d.innerHTML = '<h4>'+c.titulo+(c.linhas.length<=2?'':tags)+'</h4>'+
+    c.linhas.map(l=>'<div class="lin"><span>'+l[0]+'</span><span>'+l[1]+'</span></div>').join('');
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+function pensando(){
+  const d=document.createElement('div'); d.className='pts';
+  d.innerHTML='<i></i><i></i><i></i>';
+  log.appendChild(d); log.scrollTop=log.scrollHeight; return d;
+}
+
+/* ---------- fluxo ---------- */
+async function enviar(txt){
+  txt=(txt||'').trim(); if(!txt) return;
+  bolha(txt,'eu'); entrada.value='';
+  HIST.push({role:'user', content:txt});
+  if(HIST.length>8) HIST.splice(0, HIST.length-8);
+
+  const local = responderLocal(txt);
+  if(local){
+    Dados.registrarPergunta(txt, !local.esgotado, local.produto||'');
+    bolha(local.fala,'ass','catálogo');
+    if(local.card) cartao(local.card);
+    HIST.push({role:'assistant', content:local.fala});
+    return;
+  }
+
+  Dados.registrarPergunta(txt, false, '');
+
+  const cfg = Dados.config();
+  if(!cfg.smartgoUrl && !cfg.orKey){
+    const f='Não encontrei essa informação no catálogo. Posso consultar energéticos, refrigerantes, águas, sucos, cervejas, salgadinhos e mercearia.';
+    bolha(f,'ass','catálogo'); HIST.push({role:'assistant', content:f});
+    return;
+  }
+
+  const d=pensando(); setEstado('pensando');
+  try{
+    const r = cfg.smartgoUrl ? await responderSmartGO(txt, HIST) : await responderLLM(HIST);
+    d.remove(); setEstado('');
+    bolha(r.fala,'ass',r.via);
+    HIST.push({role:'assistant', content:r.fala});
+  }catch(e){
+    d.remove(); setEstado('');
+    bolha('Não consegui consultar agora. Tente novamente em instantes.','ass','erro: '+e.message);
+  }
+}
+
+document.getElementById('enviar').onclick=()=>enviar(entrada.value);
+entrada.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); enviar(entrada.value); } });
+
+const SUGESTOES=['Tem Red Bull?','Onde fica a água com gás?','Quanto custa a Coca 2L?','Promoções de hoje','Quais energéticos vocês têm?'];
+const chips=document.getElementById('chips');
+SUGESTOES.forEach(s=>{
+  const b=document.createElement('button');
+  b.className='chip'; b.textContent=s;
+  b.onclick=()=>enviar(s);
+  chips.appendChild(b);
+});
+
+bolha('Olá. Sou o assistente de catálogo da Smart Store. Consulto preço, estoque, promoções e em que corredor fica cada produto. O que você procura?','ass','catálogo');
+
+/* ---------- PWA ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+let promptInstalar=null;
+const barraInstalar=document.getElementById('instalar');
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); promptInstalar=e;
+  if(!sessionStorage.getItem('ss_instalar_off')) barraInstalar.classList.add('on');
+});
+document.getElementById('btInstalar').onclick=()=>{
+  barraInstalar.classList.remove('on');
+  if(promptInstalar){ promptInstalar.prompt(); promptInstalar=null; }
+};
+document.getElementById('btFechar').onclick=()=>{
+  barraInstalar.classList.remove('on');
+  sessionStorage.setItem('ss_instalar_off','1');
+};
+</script>
+</body>
+</html>
