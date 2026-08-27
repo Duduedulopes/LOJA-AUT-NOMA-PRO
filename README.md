@@ -166,3 +166,32 @@ Feche e reabra o Visual Studio depois de definir.
 **3. Firmware** — em cada projeto de `firmware/`, copiar `Segredos.exemplo.cs` para
 `Segredos.cs` e preencher `Ssid`, `SenhaWifi` e `BaseUrl`. O `Segredos.cs` está no
 `.gitignore`.
+
+---
+
+## Licença
+
+**MIT** — veja [`LICENSE`](LICENSE). Use, copie, modifique e venda; basta manter o
+aviso de copyright.
+
+A licença cobre o código deste repositório. As bibliotecas restauradas pelo NuGet e
+os pacotes do nanoFramework têm licenças próprias.
+
+---
+
+## Projetos relacionados
+
+Este repositório é **metade do sistema**. A etiqueta RFID identifica o item e conta
+o que sai pelo portal — ela sabe **o quê** e **quantos**, e não sabe **quem** pegou
+nem **de qual prateleira**. Essa outra metade é um projeto separado, em Python.
+
+| Repositório | O quê |
+|---|---|
+| **este** | a loja autônoma em .NET 8 — API, apps Blazor, firmware ESP32 |
+| [SO-Espacial](https://github.com/Duduedulopes/SO-Espacial) | a percepção espacial por câmeras — o gêmeo digital da loja |
+
+As duas leituras do mesmo gesto ainda **não se falam**: cada sistema opera sozinho,
+e a reconciliação entre elas é a próxima decisão de arquitetura, não um trabalho de
+encanamento pendente.
+
+Site do projeto: **[smart-store.contato-dudulopes.workers.dev](https://smart-store.contato-dudulopes.workers.dev)**
