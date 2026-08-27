@@ -22,6 +22,12 @@ public class SessionItem : Entity
         if (quantity <= 0)
             throw new ArgumentException("A quantidade deve ser maior que zero.", nameof(quantity));
 
+        if (unitPrice < 0)
+            throw new ArgumentException("O preço unitário não pode ser negativo.", nameof(unitPrice));
+
+        if (string.IsNullOrWhiteSpace(productName))
+            throw new ArgumentException("O nome do produto não pode ser vazio.", nameof(productName));
+
         StoreSessionId = storeSessionId;
         ProductId = productId;
         ProductName = productName;
@@ -29,7 +35,19 @@ public class SessionItem : Entity
         Quantity = quantity;
     }
 
-    internal void IncreaseQuantity(int quantity) => Quantity += quantity;
+    internal void IncreaseQuantity(int quantity)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("A quantidade deve ser maior que zero.", nameof(quantity));
 
-    internal void DecreaseQuantity(int quantity) => Quantity = Math.Max(0, Quantity - quantity);
+        Quantity += quantity;
+    }
+
+    internal void DecreaseQuantity(int quantity)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("A quantidade deve ser maior que zero.", nameof(quantity));
+
+        Quantity = Math.Max(0, Quantity - quantity);
+    }
 }

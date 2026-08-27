@@ -1,4 +1,4 @@
-@page "/produtos"
+﻿@page "/produtos"
 @inject IProductApiService ProductApi
 @inject ICatalogApiService CatalogApi
 @inject AppState AppState
@@ -14,9 +14,8 @@
 
 @if (!string.IsNullOrEmpty(_successMessage))
 {
-    <div class="notification-pill pill-ok" style="margin-bottom:1rem;">
-        <span class="pill-dot"></span> @_successMessage
-    </div>
+    <div class="notification-bar"><span class="notification-pill pill-ok">
+        <span class="pill-dot"></span> @_successMessage</span></div>
 }
 
 <div class="card">
@@ -65,7 +64,7 @@
             <label>Descrição (opcional)</label>
             <InputText @bind-Value="_newProduct.Description" />
         </div>
-        <button class="btn-primary" type="submit" disabled="@_isSubmitting" style="width:auto; padding:0.7rem 1.5rem;">
+        <button class="btn-primary btn-auto" type="submit" disabled="@_isSubmitting">
             @(_isSubmitting ? "Salvando..." : "Cadastrar produto")
         </button>
     </EditForm>
@@ -89,7 +88,7 @@
                 <thead>
                     <tr>
                         <th>Nome</th>
-                        <th>Preço</th>
+                        <th class="numero">Preço</th>
                         <th>Estoque</th>
                         <th>Repor estoque</th>
                         <th>Estoque mínimo</th>

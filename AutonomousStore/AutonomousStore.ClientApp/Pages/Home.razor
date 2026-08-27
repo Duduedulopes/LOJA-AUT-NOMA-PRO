@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @inject AppState AppState
 @inject ISessionApiService SessionApi
 @inject NavigationManager Nav
@@ -7,7 +7,7 @@
 {
     <div class="auth-wrapper">
         <div class="auth-card">
-            <div class="auth-icon"><svg width="46" height="58" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg" style="color: var(--cyan); filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.6));"><path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><circle cx="12" cy="-1" r="1" fill="currentColor" /><circle cx="9" cy="21" r="1.1" fill="currentColor" /><circle cx="20" cy="21" r="1.1" fill="currentColor" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg></div>
+            <div class="auth-icon"><svg width="46" height="58" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /><circle cx="12" cy="-1" r="1" fill="currentColor" /><circle cx="9" cy="21" r="1.1" fill="currentColor" /><circle cx="20" cy="21" r="1.1" fill="currentColor" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" fill="none" /></svg></div>
             <h1 class="auth-title">Bem-vindo(a)</h1>
             <p class="auth-subtitle">Entre ou cadastre-se para começar a comprar na loja autônoma.</p>
             <button class="btn-primary" @onclick="GoToLogin">Entrar</button>
@@ -26,8 +26,16 @@
 else
 {
     <div class="dashboard">
-        <div class="dashboard-avatar">@GetInitial()</div>
-        <h1 class="dashboard-greeting">Olá, @AppState.CurrentCustomerName!</h1>
+        <section class="hero">
+            <img class="hero-marca" src="img/logo-mark-alpha.png" alt="" aria-hidden="true" />
+            <span class="hero-pill">Loja aberta agora</span>
+            <h1 class="hero-titulo">Olá, @AppState.CurrentCustomerName, sua jornada de compras está prestes a começar.</h1>
+            <p class="hero-apoio">Gere o código, e aproxime do leitor. Lembre-se de configurar a forma de pagamento.</p>
+            <div class="hero-acoes">
+                <button class="btn-branco" @onclick="GoToOpenStore">Gerar QR code de entrada</button>
+                <button class="btn-outline" @onclick="GoToHowItWorks">Como funciona</button>
+            </div>
+        </section>
 
         @if (_isLoadingStatus)
         {
@@ -56,48 +64,52 @@ else
         }
         else
         {
-            <div class="status-pill">
-                <span>🟢 Loja: <strong>Online</strong></span>
-                <span class="status-pill-divider">|</span>
-                <span>Carrinho: R$ 0,00</span>
+            <div class="faixa-qr">
+                <div class="faixa-qr-codigo">
+                    <span class="faixa-qr-marca-dagua">QR CODE</span>
+                </div>
+                <div class="faixa-qr-texto">
+                    <span class="faixa-qr-etiqueta">Seu código de entrada</span>
+                    <h2 class="faixa-qr-titulo">Gere o código para entrar</h2>
+                    <p class="faixa-qr-apoio">
+                        Aproxime a tela do leitor na entrada. O código vale por poucos minutos;
+                        se expirar, gere outro pelo botão ao lado.
+                    </p>
+                </div>
+                <div class="faixa-qr-acoes">
+                    <button class="btn-primary" @onclick="GoToOpenStore">Gerar novo código</button>
+                    <button class="btn-outline" @onclick="GoToCatalog">Ver catálogo</button>
+                </div>
             </div>
         }
 
-        <div class="dashboard-panels">
-            <div class="dashboard-panel">
-                <h2 class="dashboard-panel-heading">🚪 Abrir a Loja</h2>
-                <div class="dashboard-panel-actions">
-                    <button class="btn-primary" @onclick="GoToOpenStore">Gerar QR code de entrada</button>
-                </div>
-            </div>
+        <div class="grade-resumo">
+            <button type="button" class="card-resumo tom-rosa" @onclick="GoToLiveCart">
+                <span class="card-resumo-etiqueta">Carrinho</span>
+                <span class="card-resumo-valor">
+                    R$ @((_activeSession is not null && _activeSession.Status == SessionStatus.Aberta) ? _activeSession.Total.ToString("0.00") : "0,00")
+                </span>
+                <span class="card-resumo-apoio">Ver carrinho →</span>
+            </button>
 
-            <div class="dashboard-panel">
-                <h2 class="dashboard-panel-heading">🛒 Ações do Carrinho</h2>
-                <div class="dashboard-panel-actions">
-                    <button class="btn-primary btn-outline" @onclick="GoToLiveCart">
-                        Ver Carrinho @((_activeSession is not null && _activeSession.Status == SessionStatus.Aberta) ? $"(R$ {_activeSession.Total:0.00})" : "")
-                    </button>
-                </div>
-            </div>
+            <button type="button" class="card-resumo tom-ciano" @onclick="GoToCatalog">
+                <span class="card-resumo-etiqueta">Catálogo</span>
+                <span class="card-resumo-valor">Produtos</span>
+                <span class="card-resumo-apoio">O que está na prateleira</span>
+            </button>
 
-            <div class="dashboard-panel">
-                <h2 class="dashboard-panel-heading">📦 Acesso Rápido</h2>
-                <div class="dashboard-panel-actions">
-                    <button class="btn-primary btn-outline" @onclick="GoToCatalog">Catálogo</button>
-                    <button class="btn-primary btn-outline" @onclick="GoToHowItWorks">Como Funciona</button>
-                </div>
-            </div>
+            <button type="button" class="card-resumo tom-violeta" @onclick="GoToPurchases">
+                <span class="card-resumo-etiqueta">Minhas compras</span>
+                <span class="card-resumo-valor">Histórico</span>
+                <span class="card-resumo-apoio">Recibos e valores</span>
+            </button>
 
-            <div class="dashboard-panel">
-                <h2 class="dashboard-panel-heading">👤 Gestão de Conta</h2>
-                <div class="dashboard-panel-actions">
-                    <button class="btn-primary btn-outline" @onclick="GoToPurchases">Minhas Compras &amp; Histórico</button>
-                    <button class="btn-primary btn-outline" @onclick="GoToProfile">Perfil &amp; Pagamentos</button>
-                </div>
-            </div>
+            <button type="button" class="card-resumo tom-branco" @onclick="GoToProfile">
+                <span class="card-resumo-etiqueta">Perfil</span>
+                <span class="card-resumo-valor">Pagamento</span>
+                <span class="card-resumo-apoio">Forma de pagamento</span>
+            </button>
         </div>
-
-        <button class="btn-primary btn-logout" @onclick="Logout">🚪 Sair</button>
     </div>
 }
 

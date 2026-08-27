@@ -1,6 +1,6 @@
 # Smart Store — Catálogo
 
-Assistente de catálogo da loja, em dois apps PWA no mesmo domínio:
+Assistente virtual da loja, em dois apps PWA no mesmo domínio:
 
 - `/` — app do cliente: consulta preço, estoque, promoções e localização
 - `/admin` — painel do administrador: produtos, radar de perguntas e integrações

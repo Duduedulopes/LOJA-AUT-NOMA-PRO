@@ -23,7 +23,7 @@
         {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
                 <span class="hint">Sessão @session.Id.ToString()[..8]... — QR expira às @session.QrCodeExpiresAt.ToLocalTime().ToString("HH:mm:ss")</span>
-                <button class="btn-primary" style="width:auto; padding:0.5rem 1rem;" @onclick="() => ConfirmEntry(session.QrCodeToken)">
+                <button class="btn-primary btn-small" @onclick="() => ConfirmEntry(session.QrCodeToken)">
                     Confirmar entrada
                 </button>
             </div>
@@ -40,20 +40,37 @@
     }
     else
     {
+        <div class="lista-monitorada">
         @foreach (var product in _products)
         {
-            <label style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; font-weight:normal; text-transform:none; color:var(--text-primary);">
+            <label>
                 <input type="checkbox"
                        checked="@_selectedProductIds.Contains(product.Id)"
-                       @onchange="e => ToggleProduct(product.Id, (bool)e.Value!)"
-                       style="width:auto; accent-color:var(--cyan);" />
+                       @onchange="e => ToggleProduct(product.Id, (bool)e.Value!)" />
                 @product.Name — R$ @product.Price.ToString("0.00")
             </label>
         }
+        </div>
     }
 </div>
 
 <div class="card">
+    @* Escolher a camera nao e luxo: a padrao do Windows costuma ser a
+       integrada, e neste PC ela e justamente a unica que nao abre. *@
+    <label class="linha-camera">
+        <span class="hint">Câmera</span>
+        <select @bind="_cameraId" disabled="@_isMonitoring">
+            @if (_cameras.Count == 0)
+            {
+                <option value="">Nenhuma câmera encontrada</option>
+            }
+            @foreach (var cam in _cameras)
+            {
+                <option value="@cam.Id">@cam.Nome</option>
+            }
+        </select>
+    </label>
+
     <video id="shelf-video" autoplay playsinline muted class="shelf-video"></video>
     <canvas id="shelf-canvas" class="shelf-canvas-hidden"></canvas>
 
@@ -69,8 +86,8 @@
     }
     else
     {
-        <button class="btn-primary" style="background:#e0e0e0; color:#333; box-shadow:none;" @onclick="StopMonitoring">Parar monitoramento</button>
-        <p class="hint" style="text-align:center; margin-top:0.5rem;">🟢 Observando a prateleira...</p>
+        <button class="btn-primary btn-suave" @onclick="StopMonitoring">Parar monitoramento</button>
+        <div class="notification-bar" style="margin-top:0.75rem;"><span class="notification-pill pill-ok pill-viva"><span class="pill-dot"></span> Observando a prateleira...</span></div>
     }
 
     @if (!string.IsNullOrEmpty(_lastEventMessage))
@@ -98,9 +115,12 @@
                 <p>@item.Quantity x @item.ProductName — R$ @item.Subtotal.ToString("0.00")</p>
             }
         }
-        <div class="total-value">R$ @_currentSession.Total.ToString("0.00")</div>
+        <div class="card-total">
+            <span class="card-total-etiqueta">Total desta sessão</span>
+            <span class="total-value">R$ @_currentSession.Total.ToString("0.00")</span>
+        </div>
     }
-    <button class="btn-primary" style="background:transparent; border:1px solid var(--cyan); color:var(--cyan); box-shadow:none;" @onclick="RefreshAll">
+    <button class="btn-primary btn-outline" @onclick="RefreshAll">
         Atualizar
     </button>
 </div>
@@ -114,6 +134,52 @@
     private string? _lastEventMessage;
     private string? _errorMessage;
     private DotNetObjectReference<MonitorPrateleira>? _dotNetRef;
+
+    private List<CameraOpcao> _cameras = new();
+    private string? _cameraId;
+
+    public sealed class CameraOpcao
+    {
+        public string Id { get; set; } = "";
+        public string Nome { get; set; } = "";
+    }
+
+    // A lista so pode ser lida depois que a pagina existe no navegador.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await CarregarCameras();
+        StateHasChanged();
+    }
+
+    private async Task CarregarCameras()
+    {
+        try
+        {
+            _cameras = await JS.InvokeAsync<List<CameraOpcao>>("shelfMonitor.listar") ?? new();
+        }
+        catch (JSException)
+        {
+            _cameras = new();
+        }
+
+        if (_cameras.Count == 0)
+        {
+            _cameraId = null;
+            return;
+        }
+
+        // A camera desta prateleira e a VGA — e ela que fica apontada para os
+        // produtos. Fica so como escolha INICIAL: o seletor manda, e camera
+        // virtual (OBS, DroidCam) nunca deve ser escolhida sozinha.
+        var preferida = _cameras.FirstOrDefault(
+            c => c.Nome.Contains("VGA", StringComparison.OrdinalIgnoreCase));
+
+        if (_cameraId is null || _cameras.All(c => c.Id != _cameraId))
+        {
+            _cameraId = (preferida ?? _cameras[0]).Id;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -155,16 +221,45 @@
         await RefreshAll();
     }
 
+    // `shelfMonitor.start` devolve null quando deu certo, ou a frase que
+    // explica o que impediu. Nao lanca mais excecao: a pagina inteira caia
+    // com "Ocorreu um erro inesperado" quando a webcam estava so ocupada.
     private async Task StartMonitoring()
     {
+        _errorMessage = null;
         _dotNetRef = DotNetObjectReference.Create(this);
-        await JS.InvokeVoidAsync("shelfMonitor.start", "shelf-video", "shelf-canvas", _dotNetRef, 2500);
+
+        string? falha;
+        try
+        {
+            falha = await JS.InvokeAsync<string?>(
+                "shelfMonitor.start", "shelf-video", "shelf-canvas", _dotNetRef, 2500, _cameraId);
+        }
+        catch (JSException ex)
+        {
+            falha = $"Falha ao falar com a câmera: {ex.Message}";
+        }
+
+        if (!string.IsNullOrEmpty(falha))
+        {
+            _errorMessage = falha;
+            _dotNetRef?.Dispose();
+            _dotNetRef = null;
+            _isMonitoring = false;
+            return;
+        }
+
         _isMonitoring = true;
+
+        // Agora que a permissao foi dada, o navegador revela os nomes reais
+        // das cameras. Antes disso a lista vem anonima, por privacidade.
+        await CarregarCameras();
     }
 
     private async Task StopMonitoring()
     {
-        await JS.InvokeVoidAsync("shelfMonitor.stop");
+        try { await JS.InvokeVoidAsync("shelfMonitor.stop"); }
+        catch (JSException) { /* parar uma camera que ja morreu nao e erro */ }
         _isMonitoring = false;
     }
 

@@ -2,16 +2,22 @@
    Estratégia: cache-first para o app shell, network-first para o resto.
    Suba a versão do CACHE ao publicar mudanças. */
 
-const CACHE = "smart-store-v3";
+const CACHE = "smart-store-v10";
 
 const SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./shared/dados.js",
+  "./shared/acesso.js",
+  "./cliente/",
+  "./cliente/index.html",
+  "./cliente/manifest.webmanifest",
   "./admin/",
   "./admin/index.html",
   "./admin/manifest.webmanifest",
+  "./porta/",
+  "./porta/index.html",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];

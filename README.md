@@ -4,7 +4,7 @@
 
 IoT × Inteligência Artificial × Varejo sem fricção
 
-Repositório privado — Eduardo Lopes, 2026
+Eduardo Lopes, 2026 — código aberto para leitura, ver `LICENSE`
 
 ---
 

@@ -1,4 +1,4 @@
-@page "/minhas-compras"
+﻿@page "/minhas-compras"
 @inject ISessionApiService SessionApi
 @inject AppState AppState
 @inject NavigationManager Nav
@@ -25,7 +25,7 @@ else
 {
     <p class="hint" style="text-align:center; margin-bottom:1rem;">
         @_purchases.Count compra(s) · total gasto
-        <strong style="color:var(--cyan);">R$ @_purchases.Sum(p => p.Total).ToString("0.00")</strong>
+        <strong class="destaque">R$ @_purchases.Sum(p => p.Total).ToString("0.00")</strong>
     </p>
 
     @foreach (var purchase in _purchases)

@@ -157,7 +157,7 @@ public class SessionsController : ControllerBase
     /// </summary>
     [AllowAnonymous]
     [HttpPost("confirm-entry")]
-    public async Task<ActionResult<SessionResponse>> ConfirmEntry(
+    public async Task<ActionResult<ConfirmEntryResponse>> ConfirmEntry(
         ConfirmEntryRequest request,
         CancellationToken cancellationToken)
     {
@@ -180,7 +180,15 @@ public class SessionsController : ControllerBase
 
         await _sessionRepository.SaveChangesAsync(cancellationToken);
 
-        return Ok(ToResponse(session));
+        var customer = await _customerRepository.GetByIdAsync(session.CustomerId, cancellationToken);
+        var customerName = customer?.Name ?? "Cliente";
+
+        return Ok(new ConfirmEntryResponse(
+            Allowed: true,
+            CustomerName: customerName,
+            SessionId: session.Id,
+            Message: "Entrada liberada.",
+            EntryConfirmedAt: session.EntryConfirmedAt));
     }
 
     /// <summary>Usado pelo módulo de Hardware quando um produto é identificado (RFID/sensor).</summary>

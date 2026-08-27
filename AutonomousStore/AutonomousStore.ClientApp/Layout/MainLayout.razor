@@ -12,19 +12,26 @@
                 {
                     <button class="back-button" @onclick="GoBack" title="Voltar">←</button>
                 }
-                <span class="app-title">
-                    <svg class="brand-icon" width="24" height="32" viewBox="0 -12 24 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M5 -6a10 10 0 0 1 14 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                        <path d="M8 -3a6 6 0 0 1 8 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-                        <circle cx="12" cy="-1" r="1.1" fill="currentColor" />
-                        <circle cx="9" cy="21" r="1.2" fill="currentColor" />
-                        <circle cx="20" cy="21" r="1.2" fill="currentColor" />
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"
-                              stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-                    </svg>
-                    SmartGo Store
-                </span>
+                <a class="marca" href="/">
+                    <img src="img/logo-mark-alpha.png" alt="Smart Store" />
+                    <span class="marca-texto">
+                        <span class="marca-nome"><b>Smart</b><i>Store</i></span>
+                        <span class="marca-tagline">Sistema Spacial SO</span>
+                    </span>
+                </a>
             </div>
+
+            @if (AppState.IsAuthenticated)
+            {
+                @* NavLink marca sozinho o item ativo pela rota. Nao ha estado
+                   novo no componente: quem sabe a rota e o roteador. *@
+                <nav class="menu-principal">
+                    <NavLink class="menu-item" href="" Match="NavLinkMatch.All">Início</NavLink>
+                    <NavLink class="menu-item" href="catalogo">Catálogo</NavLink>
+                    <NavLink class="menu-item" href="minhas-compras">Compras</NavLink>
+                    <NavLink class="menu-item" href="como-funciona">Ajuda</NavLink>
+                </nav>
+            }
 
             @if (AppState.IsAuthenticated)
             {
@@ -52,6 +59,17 @@
             @Body
         </article>
     </main>
+
+    <footer class="rodape">
+        <div class="rodape-marca">
+            <img src="img/logo-mark-alpha.png" alt="" />
+            <span class="rodape-linha">Smart Store · Sistema Spacial SO</span>
+        </div>
+        @if (AppState.IsAuthenticated)
+        {
+            <a class="rodape-sair" @onclick="LogoutAndClose">Sair</a>
+        }
+    </footer>
 
     <ChatWidget />
 </div>

@@ -17,6 +17,14 @@ public record ConfirmPaymentRequest(Guid PaymentMethodId);
 /// <summary>O que a leitora da porta envia: só o conteúdo lido do QR code.</summary>
 public record ConfirmEntryRequest(string QrCodeToken);
 
+/// <summary>Resposta específica da leitora da porta: pensada para exibir em uma tela grande (verde/vermelho).</summary>
+public record ConfirmEntryResponse(
+    bool Allowed,
+    string? CustomerName,
+    Guid? SessionId,
+    string Message,
+    DateTime? EntryConfirmedAt);
+
 public record SessionItemResponse(
     Guid ProductId,
     string ProductName,

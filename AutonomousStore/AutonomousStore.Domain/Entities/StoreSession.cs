@@ -33,11 +33,13 @@ public class StoreSession : Entity
     /// </summary>
     public const int AbandonedVisitMinutes = 60;
 
-    public StoreSession(Guid customerId)
+    public StoreSession(Guid customerId, DateTime? utcNow = null)
     {
+        var agora = utcNow ?? DateTime.UtcNow;
+
         CustomerId = customerId;
         QrCodeToken = Guid.NewGuid().ToString("N");
-        QrCodeExpiresAt = DateTime.UtcNow.AddMinutes(QrCodeValidityMinutes);
+        QrCodeExpiresAt = agora.AddMinutes(QrCodeValidityMinutes);
         Status = SessionStatus.AguardandoEntrada;
     }
 
@@ -45,19 +47,21 @@ public class StoreSession : Entity
     /// Chamado quando a leitora da porta valida o QR code e libera a entrada. Exige o token lido
     /// do QR: quem não leu o código do cliente não consegue abrir a porta, mesmo sabendo o Id da sessão.
     /// </summary>
-    public void ConfirmEntry(string qrCodeToken)
+    public void ConfirmEntry(string qrCodeToken, DateTime? utcNow = null)
     {
+        var agora = utcNow ?? DateTime.UtcNow;
+
         if (Status != SessionStatus.AguardandoEntrada)
             throw new InvalidOperationException("A sessão não está aguardando entrada.");
 
         if (!string.Equals(QrCodeToken, qrCodeToken, StringComparison.Ordinal))
             throw new InvalidOperationException("QR code inválido para esta sessão.");
 
-        if (DateTime.UtcNow > QrCodeExpiresAt)
+        if (agora > QrCodeExpiresAt)
             throw new InvalidOperationException("O QR code expirou. Gere um novo para tentar novamente.");
 
         Status = SessionStatus.Aberta;
-        EntryConfirmedAt = DateTime.UtcNow;
+        EntryConfirmedAt = agora;
     }
 
     /// <summary>
@@ -86,13 +90,13 @@ public class StoreSession : Entity
     }
 
     /// <summary>Gera um novo QR code (e nova validade) quando o anterior expirou, sem precisar criar outra sessão.</summary>
-    public void RegenerateQrCode()
+    public void RegenerateQrCode(DateTime? utcNow = null)
     {
         if (Status != SessionStatus.AguardandoEntrada)
             throw new InvalidOperationException("Só é possível gerar um novo QR code enquanto aguarda entrada.");
 
         QrCodeToken = Guid.NewGuid().ToString("N");
-        QrCodeExpiresAt = DateTime.UtcNow.AddMinutes(QrCodeValidityMinutes);
+        QrCodeExpiresAt = (utcNow ?? DateTime.UtcNow).AddMinutes(QrCodeValidityMinutes);
     }
 
     /// <summary>Chamado pelo módulo de Hardware (RFID/sensores) quando um produto é identificado.</summary>
@@ -129,7 +133,7 @@ public class StoreSession : Entity
     }
 
     /// <summary>Chamado quando o cliente sai da loja: fecha a sessão e trava o valor total.</summary>
-    public void RequestCheckout()
+    public void RequestCheckout(DateTime? utcNow = null)
     {
         if (Status != SessionStatus.Aberta)
             throw new InvalidOperationException("A sessão precisa estar aberta para finalizar a compra.");
@@ -138,17 +142,17 @@ public class StoreSession : Entity
             throw new InvalidOperationException("Não é possível finalizar uma sessão sem itens.");
 
         Status = SessionStatus.AguardandoPagamento;
-        ClosedAt = DateTime.UtcNow;
+        ClosedAt = utcNow ?? DateTime.UtcNow;
     }
 
     /// <summary>Chamado quando o cliente confirma o pagamento no app, depois de ver o total.</summary>
-    public void ConfirmPayment(Guid paymentMethodId)
+    public void ConfirmPayment(Guid paymentMethodId, DateTime? utcNow = null)
     {
         if (Status != SessionStatus.AguardandoPagamento)
             throw new InvalidOperationException("A sessão não está aguardando pagamento.");
 
         PaymentMethodId = paymentMethodId;
-        PaymentConfirmedAt = DateTime.UtcNow;
+        PaymentConfirmedAt = utcNow ?? DateTime.UtcNow;
         Status = SessionStatus.Concluida;
     }
 

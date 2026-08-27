@@ -1,4 +1,4 @@
-@page "/como-funciona"
+﻿@page "/como-funciona"
 @inject NavigationManager Nav
 
 <div class="auth-wrapper">
@@ -43,14 +43,14 @@
         </div>
 
         <div class="info-highlight">
-            <strong style="color:var(--cyan);">Segurança em duas camadas.</strong>
+            <strong class="destaque">Segurança em duas camadas.</strong>
             Além da leitura RFID, câmeras nas prateleiras confirmam de forma independente cada produto
             retirado ou devolvido. Na saída, o sistema nunca tranca fisicamente a porta — se algo não
             bater, ele apenas dispara um alerta, preservando sua segurança em caso de emergência.
         </div>
 
         <div class="info-highlight">
-            <strong style="color:var(--cyan);">Funciona 24 horas.</strong>
+            <strong class="destaque">Funciona 24 horas.</strong>
             Sem operador de caixa, a loja fica disponível de madrugada, feriados e fins de semana —
             ideal para aquela compra rápida fora do horário comercial.
         </div>
@@ -58,7 +58,7 @@
         <button class="btn-primary" style="margin-top:1.5rem;" @onclick='() => Nav.NavigateTo("/cadastro")'>
             Criar minha conta
         </button>
-        <button class="btn-primary" style="background:transparent; border:1px solid var(--cyan); color:var(--cyan); box-shadow:none; margin-top:0.75rem;" @onclick='() => Nav.NavigateTo("/")'>
+        <button class="btn-primary btn-outline" style="margin-top:0.75rem;" @onclick='() => Nav.NavigateTo("/")'>
             Voltar
         </button>
     </div>

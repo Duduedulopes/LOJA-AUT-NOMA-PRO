@@ -85,14 +85,16 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddAuthorization();
 
-// Libera o app Blazor (ClientApp) a chamar esta API durante o desenvolvimento.
-// Ajuste as portas se o seu ClientApp rodar em outras (confira em Properties/launchSettings.json dele).
+// Libera o app Blazor (ClientApp) a chamar esta API.
+// Em vez de uma lista fixa de portas, a regra esta na funcao IsOriginAllowed,
+// la no fim do arquivo: aceita localhost, qualquer IP de rede local e o tunel.
+// Assim o IP do PC pode mudar de rede para rede sem quebrar nada.
 const string ClientAppCorsPolicy = "ClientAppCorsPolicy";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(ClientAppCorsPolicy, policy =>
     {
-        policy.WithOrigins("https://localhost:7280", "http://localhost:5280", "https://localhost:7290", "http://localhost:5290")
+        policy.SetIsOriginAllowed(IsOriginAllowed)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -120,3 +122,38 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+// Quem pode chamar esta API pelo navegador.
+//
+// Aceita tres casos:
+//   1. localhost / 127.0.0.1  -> desenvolvimento no proprio PC
+//   2. IP de rede privada     -> celular no mesmo wifi ou no hotspot
+//   3. o dominio fixo do ngrok -> demonstracao fora da rede
+//
+// A faixa privada cobre 10.x.x.x, 192.168.x.x e 172.16-31.x.x (essa ultima
+// inclui o 172.20.10.x que o hotspot do iPhone usa). Esses IPs so existem
+// dentro de uma rede local, entao liberar a faixa nao expoe a API na internet.
+static bool IsOriginAllowed(string origin)
+{
+    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+        return false;
+
+    var host = uri.Host;
+
+    if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase) || host == "127.0.0.1")
+        return true;
+
+    if (host.Equals("reselect-headfirst-headless.ngrok-free.dev", StringComparison.OrdinalIgnoreCase))
+        return true;
+
+    if (!System.Net.IPAddress.TryParse(host, out var ip) ||
+        ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+        return false;
+
+    var b = ip.GetAddressBytes();
+
+    return b[0] == 10
+        || (b[0] == 192 && b[1] == 168)
+        || (b[0] == 172 && b[1] >= 16 && b[1] <= 31);
+}

@@ -1,4 +1,4 @@
-@implements IAsyncDisposable
+﻿@implements IAsyncDisposable
 @inject IProductApiService ProductApi
 @inject ISessionApiService SessionApi
 @inject NavigationManager Nav
@@ -11,7 +11,7 @@
             @(_lowStockCount > 0 ? $"{_lowStockCount} produto(s) com estoque baixo" : "Estoque em dia")
         </a>
 
-        <a href="/monitor-prateleira" class="notification-pill @(_hasOpenSession ? "pill-ok" : "")">
+        <a href="/monitor-prateleira" class="notification-pill @(_hasOpenSession ? "pill-ok pill-viva" : "")">
             <span class="pill-dot"></span>
             @(_hasOpenSession ? "Sessão aberta — cliente comprando" : "Nenhuma sessão aberta agora")
         </a>

@@ -1,4 +1,4 @@
-﻿@page "/checkout"
+@page "/checkout"
 @inject ISessionApiService SessionApi
 @inject ICustomerApiService CustomerApi
 @inject AppState AppState
@@ -42,7 +42,10 @@ else
             {
                 <p>@item.Quantity x @item.ProductName — R$ @item.Subtotal.ToString("0.00")</p>
             }
-            <div class="total-value">R$ @_session.Total.ToString("0.00")</div>
+            <div class="total-value card-total">
+            <span class="card-total-etiqueta">Total da compra</span>
+            R$ @_session.Total.ToString("0.00")
+        </div>
 
             @if (!_isAddingPaymentMethod && _paymentMethods.Count > 0)
             {

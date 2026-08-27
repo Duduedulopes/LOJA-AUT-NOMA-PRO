@@ -111,6 +111,30 @@
   .aviso{background:rgba(240,169,60,.08);border:1px solid rgba(240,169,60,.3);color:#E8C48A;border-radius:8px;padding:11px 13px;font-size:11.5px;line-height:1.6;margin-top:14px}
   .dica{background:rgba(53,200,232,.06);border:1px solid var(--linha2);color:var(--dim);border-radius:8px;padding:11px 13px;font-size:11.5px;line-height:1.6;margin-top:10px}
   .dica code{color:var(--ciano);font-size:11px}
+
+  /* ---------- login ---------- */
+  .entrada{
+    position:absolute;inset:0;z-index:50;background:var(--bg);
+    display:flex;flex-direction:column;justify-content:center;padding:30px 24px;
+  }
+  .entrada.off{display:none}
+  .entrada .selo{
+    width:52px;height:52px;border-radius:14px;border:1px solid var(--ciano-fraco);
+    background:rgba(53,200,232,.10);color:var(--ciano);
+    display:flex;align-items:center;justify-content:center;margin-bottom:20px;
+  }
+  .entrada h2{font-size:20px;font-weight:600;margin-bottom:6px}
+  .entrada .txt{font-size:13.5px;color:var(--dim);line-height:1.65;margin-bottom:6px}
+  .erro{
+    display:none;margin-top:14px;background:rgba(240,106,106,.10);
+    border:1px solid rgba(240,106,106,.35);color:var(--erro);
+    border-radius:8px;padding:11px 13px;font-size:12.5px;
+  }
+  .erro.on{display:block}
+  .voltar{
+    display:block;text-align:center;margin-top:18px;color:var(--dim2);
+    font-size:12.5px;text-decoration:none;
+  }
 </style>
 </head>
 <body>
@@ -127,11 +151,12 @@
     <h1>Smart Store</h1>
     <p>Painel do administrador</p>
   </div>
-  <a href="../">Ver app ↗</a>
+  <a href="../">Início ↗</a>
 </header>
 
 <div class="abas">
   <button class="aba on" data-tela="produtos">Produtos</button>
+  <button class="aba" data-tela="acesso">Acesso</button>
   <button class="aba" data-tela="perguntas">Perguntas</button>
   <button class="aba" data-tela="ajustes">Ajustes</button>
 </div>
@@ -148,6 +173,32 @@
     <div id="lista"></div>
   </section>
 
+  <section class="tela" id="t-acesso">
+    <div class="kpis">
+      <div class="kpi"><b id="a1">0</b><span>entradas</span></div>
+      <div class="kpi alerta"><b id="a2">0</b><span>negadas</span></div>
+      <div class="kpi"><b id="a3">—</b><span>situação</span></div>
+    </div>
+
+    <div class="dica" style="margin-top:0">
+      A porta libera sozinha quando o QR é válido e a conta está em dia.
+      O administrador não aprova entradas — só define as regras abaixo.
+    </div>
+
+    <label for="pUrl" style="margin-top:20px">Worker da porta (avisa o celular)</label>
+    <input id="pUrl" placeholder="https://smart-store-porta.usuario.workers.dev" autocomplete="off">
+    <button class="bt sec mini" id="salvarPorta">Salvar e testar conexão</button>
+    <span class="st" id="pSt" style="display:block;margin:8px 0 0"></span>
+
+    <label style="margin-top:20px">Loja</label>
+    <button class="bt" id="btLoja">Fechar loja</button>
+    <button class="bt sec mini" id="btLeitor">Abrir tela do leitor da porta ↗</button>
+
+    <label style="margin-top:22px">Últimas leituras na porta</label>
+    <div id="listaAcesso"></div>
+    <button class="bt sec mini" id="limparAcesso">Limpar registro</button>
+  </section>
+
   <section class="tela" id="t-perguntas">
     <div class="kpis">
       <div class="kpi"><b id="p1">0</b><span>perguntas</span></div>
@@ -160,7 +211,18 @@
 
   <section class="tela" id="t-ajustes">
 
-    <label for="sgUrl">Endpoint do assistente SmartGO</label>
+    <label for="admUser" style="margin-top:0">Acesso ao painel</label>
+    <input id="admUser" placeholder="usuário" autocomplete="username">
+    <input id="admSenha" type="password" placeholder="nova senha" autocomplete="new-password" style="margin-top:9px">
+    <button class="bt sec mini" id="salvarAdm">Salvar credenciais</button>
+    <span class="st" id="admSt" style="display:block;margin:8px 0 0"></span>
+    <button class="bt perigo mini" id="sairAdm">Sair do painel</button>
+    <div class="aviso">
+      Padrão de demonstração: <b>admin</b> / <b>smartstore</b>. Troque agora.<br>
+      A senha fica salva neste navegador — em produção a autenticação precisa ser feita pela API .NET.
+    </div>
+
+    <label for="sgUrl" style="margin-top:26px">Endpoint do assistente SmartGO</label>
     <input id="sgUrl" placeholder="https://sua-api/smartgo/chat" autocomplete="off">
     <label for="sgToken">Token (opcional)</label>
     <input id="sgToken" type="password" placeholder="enviado como Bearer" autocomplete="off">
@@ -199,6 +261,25 @@
 </main>
 
 <button class="fab" id="novo" aria-label="Novo produto">+</button>
+
+<div class="entrada" id="entrada">
+  <div class="selo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+    </svg>
+  </div>
+  <h2>Painel do administrador</h2>
+  <p class="txt">Área restrita. Entre com suas credenciais para gerenciar produtos, promoções e regras de acesso.</p>
+
+  <label for="lUser">Usuário</label>
+  <input id="lUser" autocomplete="username" placeholder="admin">
+  <label for="lSenha">Senha</label>
+  <input id="lSenha" type="password" autocomplete="current-password" placeholder="••••••••">
+
+  <div class="erro" id="lErro"></div>
+  <button class="bt" id="lEntrar">Entrar</button>
+  <a class="voltar" href="../">← Voltar ao início</a>
+</div>
 
 </div>
 
@@ -246,13 +327,82 @@
     <label for="f-sin">Como o cliente chama (separado por vírgula)</label>
     <input id="f-sin" placeholder="coca, coca cola, cocacola">
 
+    <label for="f-tag">Tag RFID (opcional)</label>
+    <input id="f-tag" placeholder="A1B2C3D4" autocapitalize="characters" autocomplete="off">
+
     <button class="bt" id="salvarProd">Salvar produto</button>
     <button class="bt perigo mini" id="excluirProd" style="display:none">Excluir produto</button>
   </div>
 </div>
 
 <script src="../shared/dados.js"></script>
+<script src="../shared/acesso.js"></script>
 <script>
+/* ============================================================
+   ACESSO AO PAINEL — ISTO NÃO É AUTENTICAÇÃO.
+
+   A senha abaixo está escrita no código, que roda no navegador
+   do visitante. Qualquer pessoa a lê com Ctrl+U. Ela não protege
+   nada: `entrar()` só grava um sinalizador no sessionStorage, e
+   todos os dados desta demonstração já vivem no próprio navegador
+   de quem abre a página.
+
+   Está aqui de propósito, e é seguro PORQUE não há nada do outro
+   lado — este PWA é uma maquete navegável, sem servidor e sem
+   dados reais.
+
+       Autenticação de verdade não pode ser decidida pelo cliente.
+       Quem valida a senha tem que ser quem guarda o dado.
+
+   A versão real é a AdminApp em Blazor, que autentica contra a
+   API .NET com JWT. Se algum dia este PWA for ligado a uma API
+   de verdade, este bloco tem que sair antes — não depois.
+   ============================================================ */
+const ADMIN_PADRAO = {usuario:"admin", senha:"smartstore"};
+
+const Admin = {
+  credenciais(){
+    const c = Dados.config();
+    return {usuario: c.admUser || ADMIN_PADRAO.usuario, senha: c.admSenha || ADMIN_PADRAO.senha};
+  },
+  logado(){
+    try{ return sessionStorage.getItem("ss_adm") === "1"; }catch(e){ return false; }
+  },
+  entrar(u, s){
+    const c = Admin.credenciais();
+    if(u.trim().toLowerCase() !== c.usuario.toLowerCase() || s !== c.senha) return false;
+    try{ sessionStorage.setItem("ss_adm","1"); }catch(e){}
+    return true;
+  },
+  sair(){
+    try{ sessionStorage.removeItem("ss_adm"); }catch(e){}
+  }
+};
+
+const telaEntrada = document.getElementById('entrada');
+
+function abrirPainel(){
+  telaEntrada.classList.add('off');
+  renderProdutos();
+}
+
+document.getElementById('lEntrar').onclick = ()=>{
+  const u = document.getElementById('lUser').value;
+  const s = document.getElementById('lSenha').value;
+  const erro = document.getElementById('lErro');
+  if(Admin.entrar(u, s)){
+    erro.classList.remove('on');
+    abrirPainel();
+  }else{
+    erro.textContent = "Usuário ou senha incorretos.";
+    erro.classList.add('on');
+    document.getElementById('lSenha').value = "";
+  }
+};
+document.getElementById('lSenha').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('lEntrar').click();
+});
+
 let editando = null;
 
 document.querySelectorAll('.aba').forEach(b=>{
@@ -263,8 +413,63 @@ document.querySelectorAll('.aba').forEach(b=>{
     document.getElementById('t-'+b.dataset.tela).classList.add('on');
     document.getElementById('novo').style.display = b.dataset.tela==='produtos' ? 'block' : 'none';
     if(b.dataset.tela==='perguntas') renderPerguntas();
+    if(b.dataset.tela==='acesso') renderAcesso();
   };
 });
+
+/* ---------- acesso ---------- */
+function renderAcesso(){
+  const l = Entradas.lista();
+  const neg = l.filter(x=>!x.ok);
+  document.getElementById('a1').textContent = l.length - neg.length;
+  document.getElementById('a2').textContent = neg.length;
+
+  const est = Loja.estado();
+  document.getElementById('a3').textContent = est.aberta ? 'aberta' : 'fechada';
+  document.getElementById('a3').style.color = est.aberta ? 'var(--ok)' : 'var(--erro)';
+  document.getElementById('btLoja').textContent = est.aberta ? 'Fechar loja' : 'Abrir loja';
+
+  const el = document.getElementById('listaAcesso');
+  if(!l.length){
+    el.innerHTML='<div class="vazio">Nenhuma leitura registrada.<br>Abra a tela do leitor e aponte um QR de acesso.</div>';
+    return;
+  }
+  el.innerHTML = l.slice(0,40).map(x=>{
+    const d=new Date(x.quando);
+    const h=d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return '<div class="perg'+(x.ok?'':' falhou')+'">'+
+      '<q>'+(x.nome||'desconhecido')+'</q>'+
+      '<em>'+h+' · '+(x.ok?'acesso liberado':(x.motivo||'negado'))+'</em>'+
+    '</div>';
+  }).join('');
+}
+
+document.getElementById('btLoja').onclick=()=>{
+  const est = Loja.estado();
+  Loja.salvar({aberta: !est.aberta});
+  renderAcesso();
+};
+document.getElementById('btLeitor').onclick=()=>window.open('../porta/','_blank');
+
+document.getElementById('pUrl').value = Porta.url();
+document.getElementById('salvarPorta').onclick=async()=>{
+  const st = document.getElementById('pSt');
+  Porta.definirUrl(document.getElementById('pUrl').value);
+  if(!Porta.ligada()){ st.textContent='sem Worker — o celular não recebe aviso'; st.style.color='var(--dim2)'; return; }
+  st.textContent='testando...'; st.style.color='var(--dim2)';
+  try{
+    const r = await fetch(Porta.url() + "/", {cache:"no-store"});
+    const j = await r.json();
+    if(j && j.ok){ st.textContent='conectado'; st.style.color='var(--ok)'; }
+    else { st.textContent = j.erro || 'resposta inesperada'; st.style.color='var(--erro)'; }
+  }catch(e){
+    st.textContent='não respondeu: ' + e.message; st.style.color='var(--erro)';
+  }
+};
+document.getElementById('limparAcesso').onclick=()=>{
+  if(!confirm('Limpar o registro de entradas?')) return;
+  Entradas.limpar(); renderAcesso();
+};
 
 const selCat = document.getElementById('f-cat');
 Object.keys(CATEGORIAS).forEach(k=>{
@@ -314,6 +519,7 @@ function abrirModal(id){
   document.getElementById('f-prat').value     = p ? p.prat : 'meio';
   document.getElementById('f-promo').value    = p ? (p.promo||'') : '';
   document.getElementById('f-sin').value      = p ? (p.sinonimos||'') : '';
+  document.getElementById('f-tag').value      = p ? (p.tag||'') : '';
   document.getElementById('excluirProd').style.display = p ? 'block' : 'none';
   modal.classList.add('on');
 }
@@ -333,7 +539,8 @@ document.getElementById('salvarProd').onclick=()=>{
     corredor: parseInt(document.getElementById('f-corredor').value,10) || 1,
     prat: document.getElementById('f-prat').value,
     promo: document.getElementById('f-promo').value.trim(),
-    sinonimos: document.getElementById('f-sin').value.trim()
+    sinonimos: document.getElementById('f-sin').value.trim(),
+    tag: document.getElementById('f-tag').value.trim().toUpperCase()
   };
   if(editando){
     const i = lista.findIndex(x=>x.id===editando);
@@ -382,6 +589,7 @@ document.getElementById('limparPerg').onclick=()=>{
 };
 
 const cfg = Dados.config();
+document.getElementById('admUser').value = Admin.credenciais().usuario;
 document.getElementById('sgUrl').value = cfg.smartgoUrl || '';
 document.getElementById('sgToken').value = cfg.smartgoToken || '';
 document.getElementById('orKey').value = cfg.orKey || '';
@@ -437,7 +645,25 @@ if('serviceWorker' in navigator){
   window.addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}));
 }
 
-renderProdutos();
+/* trocar as credenciais do painel */
+document.getElementById('salvarAdm').onclick = ()=>{
+  const u = document.getElementById('admUser').value.trim();
+  const s = document.getElementById('admSenha').value;
+  const st = document.getElementById('admSt');
+  if(!u || !s){ st.textContent = "preencha usuário e senha"; st.style.color = "var(--erro)"; return; }
+  if(s.length < 4){ st.textContent = "senha muito curta"; st.style.color = "var(--erro)"; return; }
+  Dados.salvarConfig({admUser:u, admSenha:s});
+  document.getElementById('admSenha').value = "";
+  st.textContent = "credenciais atualizadas";
+  st.style.color = "var(--ok)";
+};
+
+document.getElementById('sairAdm').onclick = ()=>{
+  Admin.sair();
+  location.reload();
+};
+
+if(Admin.logado()) abrirPainel();
 </script>
 </body>
 </html>

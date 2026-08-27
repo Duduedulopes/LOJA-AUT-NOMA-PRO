@@ -45,6 +45,9 @@ public class Product : Entity
         if (string.IsNullOrWhiteSpace(barcode))
             throw new ArgumentException("O código de barras não pode ser vazio.", nameof(barcode));
 
+        if (price < 0)
+            throw new ArgumentException("O preço não pode ser negativo.", nameof(price));
+
         if (stockQuantity < 0)
             throw new ArgumentException("A quantidade em estoque não pode ser negativa.", nameof(stockQuantity));
 

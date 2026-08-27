@@ -1,438 +1,534 @@
-/* ===== SmartGo Store � tema HUD/futurista ===== */
+/* ==========================================================================
+   Smart Store — sistema visual do aplicativo do cliente
+   --------------------------------------------------------------------------
+   Substitui por completo o tema escuro com grade, brilho neon e monoespacada
+   em texto corrido. Foi reescrito, e nao sobreposto: regra antiga de neon que
+   sobrevive num canto reaparece na primeira tela que ninguem conferiu.
+
+   Estrutura do arquivo:
+     1. Variaveis e base          5. Faixa do QR e cards de resumo
+     2. Cabecalho e marca         6. Produtos e listas
+     3. Botoes e formularios      7. Telas de acesso, chat e rodape
+     4. Bloco de boas-vindas      8. Responsivo
+   ========================================================================== */
+
+/* 1. VARIAVEIS E BASE ==================================================== */
 
 :root {
-    --bg-void: #070b14;
-    --bg-void-2: #0c1220;
-    --panel: rgba(13, 20, 36, 0.72);
-    --panel-border: rgba(34, 211, 238, 0.28);
-    --cyan: #22d3ee;
-    --cyan-soft: rgba(34, 211, 238, 0.55);
-    --violet: #8b5cf6;
-    --text-primary: #eaf6ff;
-    --text-muted: #a9c1de;
-    --danger: #ff6b81;
-    --font-display: 'Orbitron', sans-serif;
-    --font-body: 'Inter', 'Segoe UI', sans-serif;
-    --font-mono: 'Share Tech Mono', monospace;
+    --ink: #14121c;
+    --ink-2: #4e4a55;
+    --ink-3: #6b6673;
+    --line: oklch(0.93 0.02 280);
+    --surface: rgba(255, 255, 255, 0.8);
+    --surface-solid: #ffffff;
+
+    --ciano: oklch(0.72 0.14 195);
+    --violeta: oklch(0.60 0.19 295);
+    --rosa: oklch(0.65 0.21 345);
+
+    --acao-azul: oklch(0.62 0.15 205);
+    --acao-violeta: oklch(0.60 0.19 295);
+
+    --tint-ciano: oklch(0.93 0.06 195);
+    --tint-violeta: oklch(0.93 0.065 295);
+    --tint-rosa: oklch(0.93 0.065 345);
+
+    --marca: linear-gradient(102deg, var(--ciano) 0%, var(--violeta) 54%, var(--rosa) 100%);
+
+    --raio-bloco: 24px;
+    --raio-card: 16px;
+    --raio-campo: 12px;
+    --raio-pill: 999px;
+
+    /* Sombra so onde ha elevacao real. Nada de brilho colorido. */
+    --sombra-card: 0 1px 2px rgba(20, 18, 28, 0.04), 0 8px 24px rgba(20, 18, 28, 0.05);
+    --sombra-flutuante: 0 12px 40px rgba(20, 18, 28, 0.12);
 }
 
-html, body {
-    font-family: var(--font-body);
-    background-color: var(--bg-void);
-    color: var(--text-primary);
-    margin: 0;
-    padding: 0;
-    min-height: 100vh;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
-    background-image: radial-gradient(circle at 20% 10%, rgba(34, 211, 238, 0.10), transparent 40%), radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.10), transparent 45%), linear-gradient(var(--bg-void-2) 1px, transparent 1px), linear-gradient(90deg, var(--bg-void-2) 1px, transparent 1px);
-    background-size: auto, auto, 42px 42px, 42px 42px;
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(90% 70% at 8% 0%, oklch(0.95 0.045 200) 0%, rgba(255, 255, 255, 0) 60%),
+        radial-gradient(85% 75% at 100% 12%, oklch(0.95 0.05 340) 0%, rgba(255, 255, 255, 0) 58%),
+        radial-gradient(70% 60% at 55% 100%, oklch(0.96 0.04 295) 0%, rgba(255, 255, 255, 0) 62%),
+        oklch(0.985 0.012 280);
     background-attachment: fixed;
+    color: var(--ink);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* ---- Barra superior ---- */
+h1, h2, h3, h4 {
+    margin: 0;
+    letter-spacing: -0.035em;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+p {
+    margin: 0;
+}
+
+a {
+    color: var(--acao-azul);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Etiqueta tecnica: o UNICO lugar onde monoespacada e permitida. */
+.etiqueta,
+.status-pill,
+.marca-tagline,
+.badge,
+.notification-pill,
+.item-qty {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 24px 56px;
+}
+
+.content-wide {
+    max-width: 1180px;
+}
+
+.px-4 {
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.hint {
+    color: var(--ink-3);
+    font-size: 14px;
+}
+
+/* 2. CABECALHO E MARCA =================================================== */
 
 .top-row {
+    position: sticky;
+    top: 0;
+    z-index: 40;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    background: linear-gradient(180deg, #0a0f1c, #070b14);
-    color: var(--text-primary);
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--panel-border);
-    box-shadow: 0 1px 18px rgba(34, 211, 238, 0.15);
-    position: relative;
-    z-index: 20;
+    gap: 20px;
+    height: 84px;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid var(--line);
 }
 
 .top-row-left {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 14px;
     min-width: 0;
 }
 
 .back-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-    background: rgba(34, 211, 238, 0.06);
-    border: 1px solid var(--panel-border);
-    border-radius: 50%;
-    color: var(--cyan);
-    font-size: 1rem;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-pill);
+    background: var(--surface-solid);
+    color: var(--ink-2);
+    font-size: 17px;
     cursor: pointer;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: border-color .15s, color .15s;
 }
 
-    .back-button:hover {
-        border-color: var(--cyan-soft);
-        background: rgba(34, 211, 238, 0.14);
-    }
+.back-button:hover {
+    border-color: var(--acao-azul);
+    color: var(--acao-azul);
+}
 
-/* ---- Menu de perfil (canto superior direito) ---- */
+.marca {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-decoration: none;
+    min-width: 0;
+}
 
+.marca:hover {
+    text-decoration: none;
+}
+
+.marca img {
+    height: 60px;
+    width: auto;
+    flex: none;
+}
+
+.marca-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.marca-nome {
+    font-size: 26px;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+    white-space: nowrap;
+}
+
+.marca-nome b {
+    font-weight: 700;
+}
+
+.marca-nome i {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--violeta);
+}
+
+.marca-tagline {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: #8b8797;
+    white-space: nowrap;
+}
+
+/* menu em pills */
+.menu-principal {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.menu-item {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: var(--raio-pill);
+    color: var(--ink-2);
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.75);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.menu-item.active {
+    background: var(--acao-violeta);
+    color: #fff;
+}
+
+.menu-item.active:hover {
+    background: var(--acao-violeta);
+    color: #fff;
+}
+
+/* chip do usuario */
 .profile-menu {
     position: relative;
+    flex: none;
 }
 
 .profile-chip {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    background: rgba(34, 211, 238, 0.06);
-    border: 1px solid var(--panel-border);
-    border-radius: 999px;
-    padding: 0.35rem 0.8rem 0.35rem 0.35rem;
+    gap: 10px;
+    height: 44px;
+    padding: 0 16px 0 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-pill);
+    background: var(--surface-solid);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
     cursor: pointer;
-    color: var(--text-primary);
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition: border-color .15s;
 }
 
-    .profile-chip:hover {
-        border-color: var(--cyan-soft);
-        background: rgba(34, 211, 238, 0.12);
-    }
+.profile-chip:hover {
+    border-color: var(--violeta);
+}
 
-.profile-avatar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--cyan), var(--violet));
-    color: #04121a;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 0.78rem;
-    flex-shrink: 0;
+.profile-avatar,
+.dashboard-avatar {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex: none;
+    border-radius: var(--raio-pill);
+    background: var(--marca);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
 }
 
 .profile-name {
-    font-size: 0.82rem;
-    font-weight: 600;
-    max-width: 120px;
+    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .profile-caret {
-    font-size: 0.6rem;
-    color: var(--text-muted);
+    font-size: 9px;
+    color: var(--ink-3);
 }
 
 .profile-dropdown {
     position: absolute;
-    top: calc(100% + 0.5rem);
     right: 0;
-    min-width: 200px;
-    background: var(--bg-void-2);
-    border: 1px solid var(--panel-border);
-    border-radius: 6px;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-    overflow: hidden;
-    z-index: 30;
+    top: calc(100% + 10px);
+    min-width: 230px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--surface-solid);
+    border: 1px solid var(--line);
+    border-radius: var(--raio-card);
+    box-shadow: var(--sombra-flutuante);
 }
 
 .profile-dropdown-item {
-    display: block;
-    padding: 0.7rem 1rem;
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    text-decoration: none;
+    padding: 11px 14px;
+    border-radius: 11px;
+    color: var(--ink-2);
+    font-size: 15px;
     cursor: pointer;
-    border-bottom: 1px solid rgba(34, 211, 238, 0.1);
-    transition: background 0.15s ease;
+    transition: background .12s, color .12s;
 }
 
-    .profile-dropdown-item:last-child {
-        border-bottom: none;
-    }
-
-    .profile-dropdown-item:hover {
-        background: rgba(34, 211, 238, 0.1);
-    }
+.profile-dropdown-item:hover {
+    background: var(--tint-violeta);
+    color: var(--ink);
+    text-decoration: none;
+}
 
 .profile-dropdown-danger {
-    color: var(--danger);
+    color: var(--rosa);
 }
 
-@media (max-width: 420px) {
-    .app-title {
-        font-size: 0.95rem;
-    }
-
-    .profile-name {
-        display: none;
-    }
+.profile-dropdown-danger:hover {
+    background: var(--tint-rosa);
+    color: var(--rosa);
 }
 
-.app-title {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-    font-family: var(--font-display);
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    background: linear-gradient(90deg, var(--cyan), #a6f4ff);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-}
-
+/* o titulo antigo com icone deixa de existir; fica escondido se sobrar */
+.app-title,
 .brand-icon {
-    color: var(--cyan);
-    filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.7));
-    flex-shrink: 0;
+    display: none;
 }
 
-.content {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 1.5rem 1rem;
-}
+/* 3. BOTOES E FORMULARIOS ================================================ */
 
-/* A Home (dashboard) precisa de mais largura pra caber as colunas lado a lado; as outras
-   páginas (formulários, checkout etc.) continuam estreitas de propósito. */
-.content.content-wide {
-    max-width: 960px;
-}
-
-h1 {
-    font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: var(--text-primary);
-    text-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
-}
-
-/* ---- Cards com moldura HUD ---- */
-
-.card, .auth-card {
-    position: relative;
-    background: var(--panel);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
-    padding: 1.75rem;
-    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.05), 0 20px 60px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(34, 211, 238, 0.03);
-    margin-bottom: 1rem;
-}
-
-    /* Cantos estilo HUD (moldura em L) */
-    .card::before, .card::after,
-    .auth-card::before, .auth-card::after {
-        content: "";
-        position: absolute;
-        width: 18px;
-        height: 18px;
-        border: 2px solid var(--cyan);
-        opacity: 0.85;
-        pointer-events: none;
-    }
-
-    .card::before, .auth-card::before {
-        top: -1px;
-        left: -1px;
-        border-right: none;
-        border-bottom: none;
-    }
-
-    .card::after, .auth-card::after {
-        bottom: -1px;
-        right: -1px;
-        border-left: none;
-        border-top: none;
-    }
-
-/* Linha fina de "scanner" no topo do card */
-.card, .auth-card {
-    border-top: 2px solid var(--cyan);
-}
-
-.auth-wrapper {
-    display: flex;
+.btn-primary,
+.btn-outline,
+.btn-ghost,
+.btn-branco {
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    padding-top: 2rem;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 22px;
+    border: 1px solid transparent;
+    border-radius: var(--raio-campo);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: filter .15s, background .15s, border-color .15s, color .15s;
 }
-
-.auth-card::before {
-    top: -1px;
-    left: -1px;
-}
-
-.auth-card {
-    max-width: 420px;
-    width: 100%;
-    text-align: center;
-}
-
-    .auth-card::marker {
-        content: none;
-    }
-
-.auth-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.4rem;
-    filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.6));
-}
-
-.auth-title {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    letter-spacing: 0.03em;
-    margin: 0 0 0.5rem 0;
-    color: var(--text-primary);
-}
-
-.auth-subtitle {
-    font-family: var(--font-mono);
-    color: var(--text-muted);
-    font-size: 0.82rem;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
-
-.auth-card .form-group {
-    text-align: left;
-}
-
-.auth-divider {
-    text-align: center;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    margin: 1rem 0;
-}
-
-.auth-footer-link {
-    margin-top: 1.5rem;
-    text-align: center;
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-    .auth-footer-link a, a {
-        color: var(--cyan);
-    }
-
-/* ---- Bot�es ---- */
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--cyan), #0891b2);
-    color: #04121a;
-    font-weight: 600;
-    border: none;
-    border-radius: 3px;
-    padding: 0.8rem 1.5rem;
-    font-size: 0.95rem;
-    letter-spacing: 0.02em;
-    cursor: pointer;
+    background: var(--acao-azul);
+    color: #fff;
     width: 100%;
-    box-shadow: 0 0 22px rgba(34, 211, 238, 0.45);
-    transition: box-shadow 0.2s ease, transform 0.1s ease;
 }
 
-    .btn-primary:hover:not(:disabled) {
-        box-shadow: 0 0 34px rgba(34, 211, 238, 0.7);
-        transform: translateY(-1px);
-    }
+.btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+}
 
-    .btn-primary:disabled {
-        background: rgba(34, 211, 238, 0.18);
-        color: var(--text-muted);
-        box-shadow: none;
-        cursor: not-allowed;
-    }
+.btn-primary:disabled {
+    background: oklch(0.90 0.005 280);
+    color: #9b96a5;
+    cursor: not-allowed;
+}
 
-/* ---- Formul�rios ---- */
+.btn-outline {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--ink);
+}
+
+.btn-outline:hover:not(:disabled) {
+    border-color: var(--acao-azul);
+    color: var(--acao-azul);
+}
+
+.btn-branco {
+    background: #fff;
+    color: var(--violeta);
+}
+
+.btn-branco:hover {
+    filter: brightness(0.97);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--ink-2);
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--ink);
+}
+
+.btn-small {
+    min-height: 44px;
+    padding: 0 18px;
+    font-size: 14px;
+}
+
+/* `.btn-primary` nasce com `width: 100%` porque a maioria dos botoes desta
+   interface e o unico da tela. Onde ha dois lado a lado numa linha, isso
+   precisa ser desligado — e por uma classe, nao por `style="width:auto"`
+   repetido em seis arquivos. */
+.btn-auto {
+    width: auto;
+}
+
+/* O UNICO BOTAO QUE APAGA ALGUMA COISA.
+   Rosa e nao vermelho: vermelho, neste sistema, so aparece quando algo ja
+   deu errado. Remover um cartao cadastrado e uma acao normal, so que sem
+   volta — merece destaque, nao alarme. */
+.btn-perigo {
+    background: var(--tint-rosa);
+    border-color: transparent;
+    color: oklch(0.45 0.13 350);
+}
+
+.btn-perigo:hover:not(:disabled) {
+    filter: brightness(0.97);
+}
+
+/* Palavra em destaque dentro de texto corrido. Peso, nao cor saturada:
+   texto colorido sobre fundo claro e justamente o que a regra de contraste
+   do sistema proibe. */
+.destaque {
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.btn-logout {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--rosa);
+    width: auto;
+    margin-top: 8px;
+}
+
+.btn-logout:hover {
+    border-color: var(--rosa);
+    background: var(--tint-rosa);
+}
 
 .form-group {
-    margin-bottom: 1rem;
-}
-
-    .form-group label {
-        display: block;
-        margin-bottom: 0.35rem;
-        font-weight: 600;
-        font-size: 0.82rem;
-        letter-spacing: 0.03em;
-        color: var(--text-muted);
-        text-transform: uppercase;
-    }
-
-    .form-group input,
-    .form-group select {
-        width: 100%;
-        padding: 0.65rem 0.75rem;
-        background: rgba(5, 10, 20, 0.6);
-        border: 1px solid rgba(34, 211, 238, 0.25);
-        border-radius: 3px;
-        color: var(--text-primary);
-        box-sizing: border-box;
-        font-family: var(--font-body);
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: var(--cyan);
-            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.15);
-        }
-
-        .form-group input::placeholder {
-            color: rgba(143, 163, 189, 0.6);
-        }
-
-.error-message {
-    color: #ffd4dc;
-    background: rgba(255, 107, 129, 0.12);
-    border: 1px solid rgba(255, 107, 129, 0.4);
-    border-radius: 3px;
-    padding: 0.65rem 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.88rem;
-}
-
-.total-value {
-    font-family: var(--font-display);
-    font-size: 2.2rem;
-    font-weight: 700;
-    text-align: center;
-    margin: 1rem 0;
-    color: var(--cyan);
-    text-shadow: 0 0 24px rgba(34, 211, 238, 0.5);
-}
-
-.hint, .password-hint {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin: 0.3rem 0 0 0;
-}
-
-#qrcode-container {
     display: flex;
-    justify-content: center;
-    margin: 1.5rem 0;
-    padding: 12px;
-    background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 0 30px rgba(34, 211, 238, 0.35);
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 18px;
 }
 
-/* ---- Senha (mostrar/ocultar) ---- */
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-2);
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: var(--surface-solid);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 15px;
+    transition: border-color .15s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--acao-azul);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #a8a4b0;
+}
 
 .password-field {
     position: relative;
@@ -440,561 +536,1014 @@ h1 {
     align-items: center;
 }
 
-    .password-field input {
-        flex: 1;
-        padding-right: 2.5rem;
-    }
+.password-field input {
+    padding-right: 48px;
+}
 
 .toggle-password {
     position: absolute;
-    right: 0.5rem;
-    background: none;
+    right: 8px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
     border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--ink-3);
     cursor: pointer;
-    font-size: 1.05rem;
-    padding: 0.25rem;
-    filter: grayscale(0.3);
 }
 
-.checkbox-group label {
+.password-hint,
+.error-message {
+    font-size: 13px;
+}
+
+.password-hint {
+    color: var(--ink-3);
+}
+
+.error-message {
+    padding: 11px 14px;
+    border-radius: 11px;
+    background: var(--tint-rosa);
+    color: oklch(0.45 0.16 345);
+}
+
+.checkbox-group {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-weight: normal;
-    font-size: 0.85rem;
-    text-transform: none;
-    color: var(--text-muted);
+    gap: 10px;
+    font-size: 15px;
+    color: var(--ink-2);
 }
 
 .checkbox-group input[type="checkbox"] {
-    width: auto;
-    accent-color: var(--cyan);
+    width: 20px;
+    height: 20px;
+    min-height: 0;
+    accent-color: var(--acao-violeta);
 }
 
-#blazor-error-ui {
-    background: #1a0f16;
-    color: #ffd4dc;
-    border-top: 1px solid var(--danger);
-    bottom: 0;
-    box-shadow: 0 -1px 20px rgba(255, 107, 129, 0.3);
-    display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-}
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-        color: var(--danger);
-    }
-
-/* ---- Cat�logo ---- */
-
-.company-block {
-    text-align: left;
-    max-width: 720px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.company-heading {
-    font-family: var(--font-display);
-    font-size: 1.1rem;
-    letter-spacing: 0.03em;
-    color: var(--cyan);
-    text-shadow: 0 0 14px rgba(34, 211, 238, 0.4);
-    margin: 0 0 0.5rem 0;
-}
-
-.category-heading {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--panel-border);
-    padding-bottom: 0.4rem;
-    margin: 1.5rem 0 0.75rem 0;
-}
-
-.catalog-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 0.9rem;
-}
-
-.product-card {
-    background: rgba(5, 10, 20, 0.55);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
-    padding: 0.85rem;
-    text-align: center;
-}
-
-.product-image {
-    width: 100%;
-    height: 90px;
-    object-fit: cover;
-    border-radius: 3px;
-    margin-bottom: 0.5rem;
-}
-
-.product-image-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    background: rgba(34, 211, 238, 0.06);
-    color: var(--text-muted);
-}
-
-.product-name {
-    font-size: 0.88rem;
-    font-weight: 600;
-    margin: 0 0 0.2rem 0;
-    color: var(--text-primary);
-}
-
-.product-description {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin: 0 0 0.4rem 0;
-}
-
-.product-price {
-    font-family: var(--font-mono);
-    color: var(--cyan);
-    font-weight: 700;
-    margin: 0;
-}
-
-.empty-state {
-    max-width: 520px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-    .empty-state code {
-        background: rgba(34, 211, 238, 0.1);
-        color: var(--cyan);
-        padding: 0.1rem 0.4rem;
-        border-radius: 3px;
-        font-family: var(--font-mono);
-        font-size: 0.85em;
-    }
-
-/* ---- P�gina "Como funciona" ---- */
-
-.step-item {
-    display: flex;
-    gap: 0.9rem;
-    align-items: flex-start;
-    text-align: left;
-    margin-bottom: 1.25rem;
-}
-
-    .step-item:last-child {
-        margin-bottom: 0;
-    }
-
-.step-number {
-    flex-shrink: 0;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(34, 211, 238, 0.12);
-    border: 1px solid var(--cyan-soft);
-    color: var(--cyan);
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 0.95rem;
-}
-
-.step-title {
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 0.2rem 0;
-    font-size: 0.95rem;
-}
-
-.step-text {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    line-height: 1.5;
-    margin: 0;
-}
-
-.info-highlight {
-    background: rgba(34, 211, 238, 0.08);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
-    padding: 0.9rem 1rem;
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    line-height: 1.5;
-    margin-top: 1rem;
-}
-
-.btn-small {
-    width: auto;
-    padding: 0.45rem 0.85rem;
-    font-size: 0.8rem;
-    box-shadow: none;
-}
-
-.badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 3px;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.02em;
-    margin-top: 0.3rem;
-}
-
-.badge-ok {
-    background: rgba(52, 211, 153, 0.12);
-    color: #86efc7;
-}
-
-/* ---- Dashboard do cliente (Home logada) ---- */
-
-.status-banner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    background: rgba(34, 211, 238, 0.08);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
-    padding: 0.85rem 1rem;
-    margin-bottom: 1.25rem;
-    text-align: left;
-}
-
-    .status-banner.status-active {
-        border-color: rgba(52, 211, 153, 0.45);
-        background: rgba(52, 211, 153, 0.08);
-    }
-
-    .status-banner .status-text {
-        font-size: 0.85rem;
-        color: var(--text-primary);
-    }
+/* 4. BLOCO DE BOAS-VINDAS ================================================ */
 
 .dashboard {
-    max-width: 940px;
-    margin: 0 auto;
-    text-align: center;
-}
-
-.dashboard-avatar {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 0.75rem auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--cyan), var(--violet));
-    color: #04121a;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.6rem;
-    box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
+    flex-direction: column;
+    gap: 22px;
 }
 
-.dashboard-greeting {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    letter-spacing: 0.03em;
-    margin: 0 0 1rem 0;
+.hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--raio-bloco);
+    padding: 52px 48px;
+    background: var(--marca);
+    color: #fff;
 }
 
-.status-pill {
+.hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* A marca gigante e decoracao: fica atras e nao recebe leitor de tela. */
+.hero-marca {
+    position: absolute;
+    right: -40px;
+    bottom: -110px;
+    height: 420px;
+    width: auto;
+    opacity: .3;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.hero-pill {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    background: rgba(5, 10, 20, 0.5);
-    border: 1px solid var(--panel-border);
-    border-radius: 999px;
-    padding: 0.5rem 1.1rem;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-bottom: 1.5rem;
+    gap: 9px;
+    padding: 8px 16px;
+    border-radius: var(--raio-pill);
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
 }
 
-.status-pill-divider {
-    color: var(--panel-border);
+.hero-pill::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
 }
 
-.dashboard-panels {
+.hero-titulo,
+.dashboard-greeting {
+    margin: 22px 0 0;
+    max-width: 15ch;
+    font-size: 54px;
+    line-height: 1.06;
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    color: #fff;
+}
+
+.hero-apoio {
+    margin-top: 18px;
+    max-width: 52ch;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.hero-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+}
+
+.hero-acoes .btn-primary,
+.hero-acoes .btn-outline,
+.hero-acoes .btn-branco {
+    width: auto;
+}
+
+.hero-acoes .btn-outline {
+    border-color: rgba(255, 255, 255, 0.65);
+    color: #fff;
+}
+
+.hero-acoes .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: #fff;
+    color: #fff;
+}
+
+/* TITULO DE PAGINA DAS TELAS INTERNAS
+   ------------------------------------------------------------------------
+   As dez telas internas usam `<h1>` puro, sem classe. Estilizar pelo seletor
+   de elemento cobre todas de uma vez, e nao obriga a editar dez arquivos so
+   para acrescentar um nome de classe.
+
+   O `.content > h1` limita o alcance: `<h1>` dentro de um card ou de uma tela
+   de acesso continua com o tamanho que aquele contexto pede. */
+.titulo-pagina,
+.content > h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    margin-bottom: 22px;
+}
+
+.subtitulo-pagina {
+    color: var(--ink-3);
+    font-size: 16px;
+    margin-bottom: 26px;
+}
+
+/* 5. FAIXA DO QR E CARDS DE RESUMO ======================================= */
+
+.card,
+.faixa-qr {
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+    border-radius: var(--raio-card);
+    box-shadow: var(--sombra-card);
+}
+
+.card {
+    padding: 22px 24px;
+}
+
+.faixa-qr {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 22px 24px;
+}
+
+.faixa-qr-codigo {
+    width: 124px;
+    height: 124px;
+    flex: none;
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    place-items: center;
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+}
+
+.faixa-qr-codigo img,
+.faixa-qr-codigo canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.faixa-qr-texto {
+    flex: 1;
+    min-width: 0;
+}
+
+.faixa-qr-etiqueta {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--rosa);
+}
+
+.faixa-qr-titulo {
+    margin: 8px 0 6px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+}
+
+.faixa-qr-apoio {
+    color: var(--ink-3);
+    font-size: 15px;
+}
+
+.faixa-qr-acoes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: none;
+    width: 200px;
+}
+
+.faixa-qr-acoes .btn-primary,
+.faixa-qr-acoes .btn-outline {
+    width: 100%;
+}
+
+/* quatro cards de resumo */
+.dashboard-panels,
+.grade-resumo {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.dashboard-panel,
+.card-resumo {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 22px 24px;
+    border-radius: var(--raio-card);
+    border: 1px solid transparent;
+    background: var(--surface-solid);
+    text-decoration: none;
+    color: var(--ink);
+    transition: transform .15s;
+}
+
+.dashboard-panel:hover,
+.card-resumo:hover {
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+
+/* Os cards de resumo sao <button> por acessibilidade: navegam ao clicar, e
+   um div clicavel nao chega pelo teclado. Aqui so se desfaz a aparencia
+   nativa de botao — o comportamento e o que se quer manter. */
+button.card-resumo {
+    align-items: flex-start;
     text-align: left;
-    margin-top: 0.5rem;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
 }
 
-@media (min-width: 620px) {
-    .dashboard-panels {
-        grid-template-columns: repeat(2, 1fr);
-    }
+button.card-resumo:focus-visible {
+    outline: 2px solid var(--acao-violeta);
+    outline-offset: 2px;
 }
 
-@media (min-width: 900px) {
-    .dashboard-panels {
-        grid-template-columns: repeat(3, 1fr);
-    }
+.faixa-qr-marca-dagua {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #b6b1c0;
 }
 
-@media (min-width: 1180px) {
-    .dashboard-panels {
-        grid-template-columns: repeat(4, 1fr);
-    }
+.rodape-sair {
+    color: var(--ink-2);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
 }
 
-.btn-logout {
-    max-width: 320px;
-    margin: 1.75rem auto 0 auto;
-    background: linear-gradient(180deg, #e8e8ec, #b8bcc4);
-    color: #1a1d23;
-    box-shadow: 0 0 20px rgba(255, 107, 129, 0.25);
-    border: 1px solid rgba(255, 107, 129, 0.4);
+.rodape-sair:hover {
+    color: var(--rosa);
+    text-decoration: none;
 }
 
-    .btn-logout:hover:not(:disabled) {
-        box-shadow: 0 0 26px rgba(255, 107, 129, 0.4);
-    }
+.card-resumo.tom-rosa    { background: var(--tint-rosa); }
+.card-resumo.tom-ciano   { background: var(--tint-ciano); }
+.card-resumo.tom-violeta { background: var(--tint-violeta); }
+.card-resumo.tom-branco  { background: var(--surface-solid); border-color: var(--line); }
 
-.dashboard-panel {
-    position: relative;
-    background: var(--panel);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid var(--panel-border);
-    border-top: 2px solid var(--cyan);
-    border-radius: 4px;
-    padding: 1.25rem;
-    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.05), 0 20px 60px rgba(0, 0, 0, 0.45);
-}
-
+.card-resumo-etiqueta,
 .dashboard-panel-heading {
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    letter-spacing: 0.03em;
-    text-align: center;
-    color: var(--text-primary);
-    margin: 0 0 1.1rem 0;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+}
+
+.card-resumo-valor {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+}
+
+.card-resumo-apoio {
+    font-size: 15px;
+    color: var(--ink-3);
 }
 
 .dashboard-panel-actions {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 9px;
+    margin-top: 4px;
 }
 
-.btn-outline {
-    background: transparent;
-    color: var(--cyan);
-    border: 1px solid var(--panel-border);
-    box-shadow: none;
-}
-
-    .btn-outline:hover:not(:disabled) {
-        border-color: var(--cyan-soft);
-        background: rgba(34, 211, 238, 0.08);
-        box-shadow: none;
-    }
-
-/* ---- Carrinho ao vivo / listas de itens ---- */
-
-.item-row {
+/* faixas de estado */
+.status-banner,
+.status-pill,
+.info-highlight {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid rgba(34, 211, 238, 0.1);
-    font-size: 0.88rem;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: var(--raio-card);
+    border: 1px solid var(--line);
+    background: var(--surface);
 }
 
-    .item-row:last-child {
-        border-bottom: none;
-    }
+.status-banner {
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
 
-    .item-row .item-name {
-        color: var(--text-primary);
-    }
+.status-active {
+    background: var(--tint-ciano);
+    border-color: transparent;
+}
 
-    .item-row .item-qty {
-        color: var(--text-muted);
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-    }
+.status-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+}
 
-    .item-row .item-price {
-        color: var(--cyan);
-        font-family: var(--font-mono);
-        font-weight: 600;
-    }
-
-.live-dot {
-    display: inline-block;
+.live-dot,
+.pill-dot {
     width: 8px;
     height: 8px;
+    flex: none;
     border-radius: 50%;
-    background: #34d399;
-    box-shadow: 0 0 8px #34d399;
-    margin-right: 0.4rem;
+    background: var(--ciano);
 }
 
-/* ---- Perfil / formas de pagamento ---- */
+.status-pill {
+    color: var(--ink-2);
+}
+
+.status-pill-divider {
+    color: var(--line);
+}
+
+.info-highlight {
+    display: block;
+    background: var(--tint-violeta);
+    border-color: transparent;
+    font-size: 15px;
+    color: var(--ink-2);
+}
+
+/* 6. PRODUTOS E LISTAS =================================================== */
+
+.secao-titulo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.secao-titulo h2 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+}
+
+.chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-pill);
+    background: var(--surface-solid);
+    color: var(--ink-2);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.chip.active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+}
+
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.product-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-card);
+    background: var(--surface-solid);
+    box-shadow: var(--sombra-card);
+    transition: transform .15s;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+}
+
+.product-image,
+.product-image-placeholder {
+    height: 168px;
+    display: grid;
+    place-items: center;
+    width: 100%;
+    object-fit: cover;
+    background: linear-gradient(160deg, var(--tint-ciano), rgba(255, 255, 255, 0));
+    color: var(--ink-3);
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* uma cor por card, alternando */
+.product-card:nth-child(3n+2) .product-image,
+.product-card:nth-child(3n+2) .product-image-placeholder {
+    background: linear-gradient(160deg, var(--tint-rosa), rgba(255, 255, 255, 0));
+}
+
+.product-card:nth-child(3n) .product-image,
+.product-card:nth-child(3n) .product-image-placeholder {
+    background: linear-gradient(160deg, var(--tint-violeta), rgba(255, 255, 255, 0));
+}
+
+.product-card > *:not(.product-image):not(.product-image-placeholder) {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.product-name {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.product-description {
+    margin-top: 4px;
+    padding-bottom: 18px;
+    font-size: 14px;
+    color: var(--ink-3);
+}
+
+.product-price {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+}
+
+.category-heading {
+    margin: 34px 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+/* lista de itens do carrinho */
+.item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-card);
+    background: var(--surface-solid);
+}
+
+.item-name {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.item-qty {
+    color: var(--ink-3);
+    letter-spacing: 0.1em;
+}
+
+.item-price {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.total-value {
+    display: block;
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.045em;
+}
+
+/* O TOTAL DA COMPRA E O UNICO NUMERO QUE PRECISA SER VISTO DE LONGE.
+   Por isso ele ganha fundo tingido e nao so um tamanho maior: numa lista de
+   itens que ja tem precos em 17px/700, subir para 40px sem separar o fundo
+   deixaria dois pesos parecidos competindo. O tingimento resolve a hierarquia
+   sem inventar mais uma cor de texto.
+
+   `.total-value` sozinho continua existindo — `MyPurchases` usa a mesma classe
+   para o total de CADA compra do historico, e ali um card grande tingido
+   repetido dez vezes seria pior que nao ter destaque nenhum. */
+.card-total {
+    padding: 22px 26px;
+    border-radius: var(--raio-card);
+    background: var(--tint-rosa);
+    color: var(--ink);
+}
+
+.card-total-etiqueta {
+    display: block;
+    margin-bottom: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: oklch(0.48 0.12 350);
+}
+
+.empty-state {
+    padding: 56px 24px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 16px;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 13px;
+    border-radius: var(--raio-pill);
+    background: var(--tint-violeta);
+    color: var(--ink-2);
+    letter-spacing: 0.12em;
+}
+
+.badge-ok {
+    background: var(--tint-ciano);
+    color: oklch(0.42 0.09 200);
+}
+
+/* 7. TELAS DE ACESSO, CHAT E RODAPE ====================================== */
+
+.auth-wrapper {
+    display: grid;
+    place-items: center;
+    padding: 56px 0;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 460px;
+    padding: 40px;
+    text-align: center;
+    background: var(--surface-solid);
+    border: 1px solid var(--line);
+    border-radius: var(--raio-bloco);
+    box-shadow: var(--sombra-card);
+}
+
+.auth-icon {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 20px;
+    border-radius: var(--raio-pill);
+    background: var(--marca);
+    color: #fff;
+}
+
+.auth-icon svg {
+    filter: none !important;
+    color: #fff !important;
+}
+
+.auth-title {
+    font-size: 34px;
+    letter-spacing: -0.04em;
+}
+
+.auth-subtitle {
+    margin: 10px 0 26px;
+    color: var(--ink-3);
+    font-size: 16px;
+}
+
+.auth-footer-link {
+    margin-top: 14px;
+    font-size: 15px;
+    color: var(--ink-3);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0;
+    color: var(--ink-3);
+    font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+}
+
+/* passos do "como funciona" */
+.step-item {
+    display: flex;
+    gap: 16px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.step-number {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border-radius: var(--raio-pill);
+    background: var(--tint-violeta);
+    color: var(--violeta);
+    font-weight: 700;
+}
+
+.step-title {
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.step-text {
+    color: var(--ink-3);
+    font-size: 15px;
+}
+
+.company-block {
+    margin-top: 30px;
+}
+
+.company-heading {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
 
 .payment-method-card {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    background: rgba(5, 10, 20, 0.55);
-    border: 1px solid var(--panel-border);
-    border-radius: 4px;
-    padding: 0.85rem 1rem;
-    margin-bottom: 0.6rem;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px;
+    margin-bottom: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-card);
+    background: var(--surface-solid);
 }
 
-    .payment-method-card.is-default {
-        border-color: rgba(52, 211, 153, 0.4);
-    }
+.is-default {
+    border-color: var(--acao-violeta);
+    background: var(--tint-violeta);
+}
 
-/* ---- Widget de chat ---- */
-
+/* chat */
 .chat-toggle-button {
     position: fixed;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--cyan), #0891b2);
+    right: 24px;
+    bottom: 24px;
+    z-index: 60;
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
     border: none;
-    font-size: 1.4rem;
+    border-radius: var(--raio-pill);
+    background: var(--marca);
+    color: #fff;
+    font-size: 22px;
     cursor: pointer;
-    box-shadow: 0 0 24px rgba(34, 211, 238, 0.55);
-    z-index: 1100;
+    box-shadow: var(--sombra-flutuante);
 }
 
 .chat-panel {
     position: fixed;
-    bottom: 5.5rem;
-    right: 1.5rem;
-    width: 320px;
-    max-width: calc(100vw - 2rem);
-    height: 420px;
-    max-height: calc(100vh - 8rem);
-    background: var(--panel);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid var(--panel-border);
-    border-radius: 6px;
+    right: 24px;
+    bottom: 92px;
+    z-index: 60;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(34, 211, 238, 0.08);
-    z-index: 1100;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    height: 480px;
+    max-height: calc(100vh - 140px);
     overflow: hidden;
+    background: var(--surface-solid);
+    border: 1px solid var(--line);
+    border-radius: var(--raio-bloco);
+    box-shadow: var(--sombra-flutuante);
 }
 
 .chat-panel-header {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--panel-border);
-    font-family: var(--font-display);
-    font-size: 0.85rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--cyan);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    font-weight: 600;
 }
 
 .chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 0.75rem;
+    padding: 18px 20px;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 10px;
 }
 
 .chat-message {
-    padding: 0.5rem 0.7rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    line-height: 1.4;
-    max-width: 85%;
-    white-space: pre-wrap;
+    max-width: 82%;
+    padding: 11px 15px;
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.45;
 }
 
 .chat-message-bot {
-    background: rgba(34, 211, 238, 0.08);
-    border: 1px solid var(--panel-border);
-    color: var(--text-primary);
     align-self: flex-start;
+    background: var(--tint-ciano);
+    color: var(--ink);
 }
 
 .chat-message-user {
-    background: linear-gradient(135deg, rgba(34, 211, 238, 0.3), rgba(8, 145, 178, 0.3));
-    color: var(--text-primary);
     align-self: flex-end;
+    background: var(--acao-violeta);
+    color: #fff;
 }
 
 .chat-message-typing {
-    color: var(--text-muted);
-    font-style: italic;
+    align-self: flex-start;
+    color: var(--ink-3);
+    font-size: 14px;
 }
 
 .chat-input-row {
     display: flex;
-    gap: 0.4rem;
-    padding: 0.6rem;
-    border-top: 1px solid var(--panel-border);
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--line);
 }
 
-    .chat-input-row input {
-        flex: 1;
-        background: rgba(5, 10, 20, 0.6);
-        border: 1px solid rgba(34, 211, 238, 0.25);
-        border-radius: 4px;
-        padding: 0.5rem 0.6rem;
-        color: var(--text-primary);
-        font-family: var(--font-body);
-        font-size: 0.85rem;
+.chat-input-row .btn-primary {
+    width: auto;
+}
+
+/* rodape */
+.rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 22px 24px;
+    background: rgba(255, 255, 255, 0.6);
+    border-top: 1px solid var(--line);
+}
+
+.rodape-marca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rodape-marca img {
+    height: 34px;
+    width: auto;
+}
+
+.rodape-linha {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #8b8797;
+}
+
+/* infraestrutura do Blazor */
+.loading-indicator {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    color: var(--ink-3);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-size: 16px;
+}
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    padding: 16px 24px;
+    background: var(--tint-rosa);
+    color: oklch(0.42 0.16 345);
+    font-size: 15px;
+}
+
+#blazor-error-ui .dismiss {
+    position: absolute;
+    right: 18px;
+    top: 14px;
+    cursor: pointer;
+}
+
+/* O link "Recarregar" da barra de erro. Estava sem regra: herdava o azul de
+   `a` sobre o rosa da barra — texto colorido sobre fundo colorido, que e
+   exatamente o que a regra de contraste deste sistema proibe. */
+#blazor-error-ui .reload {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+/* NOMES ANTIGOS, MANTIDOS DE PROPOSITO.
+   Algumas telas ainda trazem `var(--cyan)` cravado em `style="..."`. Uma
+   variavel que deixa de existir nao gera erro nenhum: o navegador descarta a
+   declaracao e a cor cai para o valor herdado. E o defeito mais caro de achar,
+   porque nada quebra — so fica errado. */
+:root {
+    --cyan: var(--acao-azul);
+    --cyan-soft: var(--tint-ciano);
+    --panel: var(--surface-solid);
+    --panel-border: var(--line);
+    --bg-void: oklch(0.985 0.012 280);
+    --text-primary: var(--ink);
+    --text-muted: var(--ink-3);
+    --danger: oklch(0.55 0.19 25);
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+}
+
+/* 8. RESPONSIVO ========================================================== */
+
+@media (max-width: 900px) {
+    .dashboard-panels,
+    .grade-resumo,
+    .catalog-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 
-        .chat-input-row input:focus {
-            outline: none;
-            border-color: var(--cyan);
-        }
-
-    .chat-input-row button {
-        background: var(--cyan);
-        color: #04121a;
-        border: none;
-        border-radius: 4px;
-        width: 38px;
-        cursor: pointer;
-        font-size: 1rem;
+    .hero {
+        padding: 38px 26px;
     }
 
-        .chat-input-row button:disabled {
-            background: rgba(34, 211, 238, 0.2);
-            color: var(--text-muted);
-            cursor: not-allowed;
-        }
+    .hero-titulo,
+    .dashboard-greeting {
+        font-size: 38px;
+        max-width: none;
+    }
+
+    .hero-marca {
+        height: 260px;
+        bottom: -70px;
+        right: -60px;
+    }
+
+    .faixa-qr {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .faixa-qr-acoes {
+        width: 100%;
+        flex-direction: row;
+    }
+
+    .menu-principal {
+        display: none;
+    }
+}
+
+@media (max-width: 560px) {
+    .top-row {
+        height: 72px;
+    }
+
+    .marca img {
+        height: 44px;
+    }
+
+    .marca-nome {
+        font-size: 21px;
+    }
+
+    .content {
+        padding: 20px 16px 44px;
+    }
+
+    .px-4 {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .dashboard-panels,
+    .grade-resumo,
+    .catalog-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-titulo,
+    .dashboard-greeting {
+        font-size: 31px;
+    }
+
+    .titulo-pagina {
+        font-size: 29px;
+    }
+
+    .profile-name {
+        display: none;
+    }
+}

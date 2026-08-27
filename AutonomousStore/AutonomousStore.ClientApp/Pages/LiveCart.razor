@@ -58,7 +58,10 @@ else
             </div>
         }
 
-        <div class="total-value">R$ @_session.Total.ToString("0.00")</div>
+        <div class="total-value card-total">
+            <span class="card-total-etiqueta">Total da compra</span>
+            R$ @_session.Total.ToString("0.00")
+        </div>
 
         @if (_session.Status == SessionStatus.Aberta)
         {

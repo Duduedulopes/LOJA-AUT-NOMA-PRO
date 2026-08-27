@@ -20,29 +20,29 @@ const CATEGORIAS = {
 };
 
 const SEMENTE = [
-  {id:1,  nome:"Red Bull Energy Drink 250ml",     cat:"energetico",   preco:9.90,  estoque:48,  corredor:4, prat:"superior", promo:"",                       sinonimos:"red bull, redbull"},
-  {id:2,  nome:"Monster Energy 473ml",            cat:"energetico",   preco:11.50, estoque:32,  corredor:4, prat:"superior", promo:"Leve 2 pague 1",         sinonimos:"monster, monstro"},
-  {id:3,  nome:"TNT Energy Drink 269ml",          cat:"energetico",   preco:6.49,  estoque:60,  corredor:4, prat:"meio",     promo:"",                       sinonimos:"tnt"},
-  {id:4,  nome:"Fusion Energy 2L",                cat:"energetico",   preco:19.90, estoque:0,   corredor:4, prat:"inferior", promo:"",                       sinonimos:"fusion"},
-  {id:5,  nome:"Coca-Cola Original 2L",           cat:"refrigerante", preco:10.99, estoque:120, corredor:3, prat:"inferior", promo:"R$ 8,99 na compra de 2", sinonimos:"coca, coca cola, cocacola"},
-  {id:6,  nome:"Coca-Cola Zero Lata 350ml",       cat:"refrigerante", preco:4.79,  estoque:210, corredor:3, prat:"meio",     promo:"",                       sinonimos:"coca zero, coca cola zero"},
-  {id:7,  nome:"Guaraná Antarctica 2L",           cat:"refrigerante", preco:8.49,  estoque:75,  corredor:3, prat:"inferior", promo:"",                       sinonimos:"guarana, antarctica"},
-  {id:8,  nome:"Pepsi Black Lata 350ml",          cat:"refrigerante", preco:4.29,  estoque:0,   corredor:3, prat:"meio",     promo:"",                       sinonimos:"pepsi"},
-  {id:9,  nome:"Sprite Limão 1,5L",               cat:"refrigerante", preco:7.99,  estoque:44,  corredor:3, prat:"meio",     promo:"",                       sinonimos:"sprite"},
-  {id:10, nome:"Água Mineral Crystal 500ml",      cat:"agua",         preco:2.49,  estoque:300, corredor:2, prat:"inferior", promo:"",                       sinonimos:"agua, crystal, agua mineral"},
-  {id:11, nome:"Água com Gás Perrier 330ml",      cat:"agua",         preco:8.90,  estoque:26,  corredor:2, prat:"superior", promo:"",                       sinonimos:"agua com gas, perrier, com gas"},
-  {id:12, nome:"Água de Coco Kero Coco 1L",       cat:"agua",         preco:12.90, estoque:18,  corredor:2, prat:"meio",     promo:"15% off",                sinonimos:"agua de coco, coco, kero coco"},
-  {id:13, nome:"Suco de Laranja Del Valle 1L",    cat:"suco",         preco:9.29,  estoque:52,  corredor:2, prat:"meio",     promo:"",                       sinonimos:"suco, suco de laranja, del valle, laranja"},
-  {id:14, nome:"Suco de Uva Integral 1,5L",       cat:"suco",         preco:16.90, estoque:21,  corredor:2, prat:"superior", promo:"",                       sinonimos:"suco de uva, uva"},
-  {id:15, nome:"Cerveja Heineken Long Neck",      cat:"cerveja",      preco:7.49,  estoque:180, corredor:5, prat:"inferior", promo:"6 por R$ 39,90",         sinonimos:"heineken, cerveja, long neck"},
-  {id:16, nome:"Cerveja Brahma Duplo Malte 350ml",cat:"cerveja",      preco:4.19,  estoque:240, corredor:5, prat:"inferior", promo:"",                       sinonimos:"brahma, duplo malte"},
-  {id:17, nome:"Batata Ruffles Original 96g",     cat:"snack",        preco:11.90, estoque:64,  corredor:6, prat:"meio",     promo:"",                       sinonimos:"ruffles, batata, salgadinho"},
-  {id:18, nome:"Doritos Queijo Nacho 84g",        cat:"snack",        preco:10.49, estoque:38,  corredor:6, prat:"meio",     promo:"2 por R$ 18,00",         sinonimos:"doritos, nacho"},
-  {id:19, nome:"Amendoim Japonês 150g",           cat:"snack",        preco:7.90,  estoque:0,   corredor:6, prat:"superior", promo:"",                       sinonimos:"amendoim, amendoim japones"},
-  {id:20, nome:"Pipoca de Micro-ondas 100g",      cat:"snack",        preco:4.99,  estoque:88,  corredor:6, prat:"inferior", promo:"",                       sinonimos:"pipoca, microondas"},
-  {id:21, nome:"Café Solúvel Nescafé 160g",       cat:"mercearia",    preco:22.90, estoque:35,  corredor:7, prat:"meio",     promo:"",                       sinonimos:"cafe, nescafe, cafe soluvel"},
-  {id:22, nome:"Achocolatado Nescau 400g",        cat:"mercearia",    preco:13.49, estoque:47,  corredor:7, prat:"meio",     promo:"Leve 2 pague 1",         sinonimos:"nescau, achocolatado, chocolate em po"},
-  {id:23, nome:"Leite Integral Italac 1L",        cat:"mercearia",    preco:5.79,  estoque:96,  corredor:7, prat:"inferior", promo:"",                       sinonimos:"leite, italac"}
+  {id:1,  nome:"Red Bull Energy Drink 250ml",     cat:"energetico",   preco:9.90,  estoque:48,  corredor:4, prat:"superior", promo:"",                       sinonimos:"red bull, redbull", tag:""},
+  {id:2,  nome:"Monster Energy 473ml",            cat:"energetico",   preco:11.50, estoque:32,  corredor:4, prat:"superior", promo:"Leve 2 pague 1",         sinonimos:"monster, monstro", tag:""},
+  {id:3,  nome:"TNT Energy Drink 269ml",          cat:"energetico",   preco:6.49,  estoque:60,  corredor:4, prat:"meio",     promo:"",                       sinonimos:"tnt", tag:""},
+  {id:4,  nome:"Fusion Energy 2L",                cat:"energetico",   preco:19.90, estoque:0,   corredor:4, prat:"inferior", promo:"",                       sinonimos:"fusion", tag:""},
+  {id:5,  nome:"Coca-Cola Original 2L",           cat:"refrigerante", preco:10.99, estoque:120, corredor:3, prat:"inferior", promo:"R$ 8,99 na compra de 2", sinonimos:"coca, coca cola, cocacola", tag:""},
+  {id:6,  nome:"Coca-Cola Zero Lata 350ml",       cat:"refrigerante", preco:4.79,  estoque:210, corredor:3, prat:"meio",     promo:"",                       sinonimos:"coca zero, coca cola zero", tag:""},
+  {id:7,  nome:"Guaraná Antarctica 2L",           cat:"refrigerante", preco:8.49,  estoque:75,  corredor:3, prat:"inferior", promo:"",                       sinonimos:"guarana, antarctica", tag:""},
+  {id:8,  nome:"Pepsi Black Lata 350ml",          cat:"refrigerante", preco:4.29,  estoque:0,   corredor:3, prat:"meio",     promo:"",                       sinonimos:"pepsi", tag:""},
+  {id:9,  nome:"Sprite Limão 1,5L",               cat:"refrigerante", preco:7.99,  estoque:44,  corredor:3, prat:"meio",     promo:"",                       sinonimos:"sprite", tag:""},
+  {id:10, nome:"Água Mineral Crystal 500ml",      cat:"agua",         preco:2.49,  estoque:300, corredor:2, prat:"inferior", promo:"",                       sinonimos:"agua, crystal, agua mineral", tag:""},
+  {id:11, nome:"Água com Gás Perrier 330ml",      cat:"agua",         preco:8.90,  estoque:26,  corredor:2, prat:"superior", promo:"",                       sinonimos:"agua com gas, perrier, com gas", tag:""},
+  {id:12, nome:"Água de Coco Kero Coco 1L",       cat:"agua",         preco:12.90, estoque:18,  corredor:2, prat:"meio",     promo:"15% off",                sinonimos:"agua de coco, coco, kero coco", tag:""},
+  {id:13, nome:"Suco de Laranja Del Valle 1L",    cat:"suco",         preco:9.29,  estoque:52,  corredor:2, prat:"meio",     promo:"",                       sinonimos:"suco, suco de laranja, del valle, laranja", tag:""},
+  {id:14, nome:"Suco de Uva Integral 1,5L",       cat:"suco",         preco:16.90, estoque:21,  corredor:2, prat:"superior", promo:"",                       sinonimos:"suco de uva, uva", tag:""},
+  {id:15, nome:"Cerveja Heineken Long Neck",      cat:"cerveja",      preco:7.49,  estoque:180, corredor:5, prat:"inferior", promo:"6 por R$ 39,90",         sinonimos:"heineken, cerveja, long neck", tag:""},
+  {id:16, nome:"Cerveja Brahma Duplo Malte 350ml",cat:"cerveja",      preco:4.19,  estoque:240, corredor:5, prat:"inferior", promo:"",                       sinonimos:"brahma, duplo malte", tag:""},
+  {id:17, nome:"Batata Ruffles Original 96g",     cat:"snack",        preco:11.90, estoque:64,  corredor:6, prat:"meio",     promo:"",                       sinonimos:"ruffles, batata, salgadinho", tag:""},
+  {id:18, nome:"Doritos Queijo Nacho 84g",        cat:"snack",        preco:10.49, estoque:38,  corredor:6, prat:"meio",     promo:"2 por R$ 18,00",         sinonimos:"doritos, nacho", tag:""},
+  {id:19, nome:"Amendoim Japonês 150g",           cat:"snack",        preco:7.90,  estoque:0,   corredor:6, prat:"superior", promo:"",                       sinonimos:"amendoim, amendoim japones", tag:""},
+  {id:20, nome:"Pipoca de Micro-ondas 100g",      cat:"snack",        preco:4.99,  estoque:88,  corredor:6, prat:"inferior", promo:"",                       sinonimos:"pipoca, microondas", tag:""},
+  {id:21, nome:"Café Solúvel Nescafé 160g",       cat:"mercearia",    preco:22.90, estoque:35,  corredor:7, prat:"meio",     promo:"",                       sinonimos:"cafe, nescafe, cafe soluvel", tag:""},
+  {id:22, nome:"Achocolatado Nescau 400g",        cat:"mercearia",    preco:13.49, estoque:47,  corredor:7, prat:"meio",     promo:"Leve 2 pague 1",         sinonimos:"nescau, achocolatado, chocolate em po", tag:""},
+  {id:23, nome:"Leite Integral Italac 1L",        cat:"mercearia",    preco:5.79,  estoque:96,  corredor:7, prat:"inferior", promo:"",                       sinonimos:"leite, italac", tag:""}
 ];
 
 /* ---------- persistência ---------- */
@@ -101,6 +101,13 @@ const contem = (t,arr)=>{
 
 const sinonimosDe = p => (p.sinonimos||"").split(",").map(s=>s.trim()).filter(Boolean);
 
+/* ---------- busca por tag RFID ---------- */
+function acharPorTag(tag){
+  const t = String(tag||"").trim().toUpperCase();
+  if(!t) return null;
+  return Dados.produtos().find(p => String(p.tag||"").trim().toUpperCase() === t) || null;
+}
+
 /* ---------- busca ---------- */
 function acharProdutos(txt, lista){
   const t = norm(txt), achados = [];
@@ -154,7 +161,7 @@ function responderLocal(txt){
     return {fala:"À disposição. Boas compras."};
 
   if(contem(t,["quem e voce","voce e um robo","seu nome","como funciona","voce e real"]))
-    return {fala:"Sou o assistente de catálogo da Smart Store. Consulto os dados da loja em tempo real, então preço e estoque estão sempre atualizados."};
+    return {fala:"Sou o assistente virtual da Smart Store. Consulto os dados da loja em tempo real, então preço e estoque estão sempre atualizados."};
 
   if(contem(t,["promocao","promocoes","oferta","ofertas","desconto","descontos"])){
     const promos = PRODUTOS.filter(p=>p.promo && p.estoque>0);
@@ -291,7 +298,7 @@ function promptSistema(){
     " | "+(p.estoque>0 ? p.estoque+" un." : "ESGOTADO")+(p.promo ? " | promo: "+p.promo : "")
   ).join("\n");
 
-  return "Você é o assistente de catálogo da loja Smart Store. Fale em português do Brasil.\n\n"+
+  return "Você é o assistente virtual da loja Smart Store. Fale em português do Brasil.\n\n"+
     "REGRAS OBRIGATÓRIAS\n"+
     "1. Responda APENAS sobre os produtos da lista abaixo. Nada fora dela existe na loja.\n"+
     "2. NUNCA invente preço, estoque ou corredor. Use exatamente os valores da lista.\n"+

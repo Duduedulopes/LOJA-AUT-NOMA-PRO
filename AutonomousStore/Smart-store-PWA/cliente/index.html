@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#08121C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/icon-192.png">
+<title>Smart Store — Cliente</title>
+<style>
+  :root{
+    --bg:#08121C; --bg2:#0B1826; --panel:#0E2030; --panel2:#12293B;
+    --linha:#1B3C52; --linha2:#245A76;
+    --ciano:#35C8E8; --ciano-forte:#5FE3FF; --ciano-fraco:#1E7E99;
+    --txt:#DCE9F0; --dim:#7E9BAD; --dim2:#5B7B8E;
+    --ok:#3ED6A0; --alerta:#F0A93C; --erro:#F06A6A;
+    --topo: env(safe-area-inset-top, 0px);
+    --base: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--txt);
+    display:flex;flex-direction:column;align-items:center;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(53,200,232,.10), transparent 60%),
+      linear-gradient(var(--linha) 1px, transparent 1px),
+      linear-gradient(90deg, var(--linha) 1px, transparent 1px),
+      var(--bg);
+    background-size:auto, 44px 44px, 44px 44px, auto;
+  }
+  .app{width:100%;max-width:560px;height:100%;display:flex;flex-direction:column;position:relative;background:rgba(8,18,28,.55)}
+  @media(min-width:600px){ .app{border-left:1px solid var(--linha);border-right:1px solid var(--linha)} }
+
+  header{
+    padding:calc(11px + var(--topo)) 16px 11px;background:rgba(11,24,38,.94);
+    border-bottom:1px solid var(--linha2);display:flex;align-items:center;gap:11px;flex-shrink:0;
+  }
+  .marca{width:32px;height:32px;border-radius:8px;border:1px solid var(--ciano-fraco);background:rgba(53,200,232,.10);display:flex;align-items:center;justify-content:center;color:var(--ciano);flex-shrink:0}
+  header h1{font-size:12px;font-weight:700;color:var(--ciano-forte);letter-spacing:2.2px;text-transform:uppercase}
+  header p{font-size:11px;color:var(--dim2)}
+  .sair{margin-left:auto;background:transparent;border:1px solid var(--linha2);color:var(--dim2);font-size:11px;padding:6px 11px;border-radius:6px;font-family:inherit}
+
+  main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;min-height:0}
+  main::-webkit-scrollbar{width:5px}
+  main::-webkit-scrollbar-thumb{background:var(--linha2);border-radius:3px}
+  .aba-c{display:none;flex-direction:column;flex:1;min-height:0}
+  .aba-c.on{display:flex}
+  .rolagem{flex:1;overflow-y:auto;padding:16px 14px}
+
+  /* ---------- entrada / login ---------- */
+  .login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px 22px;gap:6px}
+  .login h2{font-size:19px;font-weight:600;margin-bottom:4px}
+  .login .txt{font-size:13.5px;color:var(--dim);line-height:1.65;margin-bottom:18px}
+  label{display:block;font-size:10px;font-weight:700;color:var(--dim2);text-transform:uppercase;letter-spacing:1px;margin:14px 0 6px}
+  input{width:100%;padding:13px 14px;border:1px solid var(--linha2);border-radius:9px;font-size:16px;font-family:inherit;background:var(--bg2);color:var(--txt)}
+  input::placeholder{color:var(--dim2)}
+  input:focus{outline:0;border-color:var(--ciano)}
+  .btn{
+    width:100%;padding:15px;border:1px solid var(--ciano-fraco);border-radius:10px;
+    background:rgba(53,200,232,.18);color:var(--ciano-forte);
+    font-size:15px;font-weight:700;font-family:inherit;margin-top:20px;letter-spacing:.4px;
+  }
+  .btn.sec{background:var(--panel);color:var(--txt);border-color:var(--linha2)}
+  .btn.mini{padding:11px;font-size:13px;margin-top:10px}
+
+  .alterna{display:flex;gap:0;background:var(--bg2);border:1px solid var(--linha2);border-radius:10px;padding:4px;margin-bottom:22px}
+  .alt{
+    flex:1;padding:10px;border:0;border-radius:7px;background:transparent;
+    color:var(--dim2);font-size:13.5px;font-weight:700;font-family:inherit;
+  }
+  .alt.on{background:rgba(53,200,232,.16);color:var(--ciano-forte)}
+
+  .msg-erro{
+    display:none;margin-top:16px;background:rgba(240,106,106,.10);
+    border:1px solid rgba(240,106,106,.35);color:var(--erro);
+    border-radius:9px;padding:11px 13px;font-size:13px;line-height:1.5;
+  }
+  .msg-erro.on{display:block}
+
+  /* ---------- QR ---------- */
+  .qrbox{display:flex;flex-direction:column;align-items:center;padding:20px 16px 10px;gap:14px}
+  .qrcard{
+    background:#fff;padding:16px;border-radius:16px;
+    width:min(78vw,268px);aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  }
+  .qrcard img, .qrcard canvas{width:100%;height:100%;image-rendering:pixelated}
+  .conta{text-align:center}
+  .conta b{font-size:17px;display:block}
+  .conta span{font-size:11.5px;color:var(--dim2)}
+  .validade{
+    display:flex;align-items:center;gap:9px;font-size:12px;color:var(--dim);
+    background:var(--panel);border:1px solid var(--linha2);padding:9px 15px;border-radius:20px;
+  }
+  .barra-t{width:70px;height:4px;background:var(--linha);border-radius:3px;overflow:hidden}
+  .barra-t i{display:block;height:100%;background:var(--ciano);width:100%;transition:width 1s linear}
+  .aviso{
+    margin:4px 16px 16px;background:rgba(53,200,232,.06);border:1px solid var(--linha2);
+    border-radius:10px;padding:12px 14px;font-size:12px;color:var(--dim);line-height:1.65;
+  }
+
+  /* ---------- carrinho ---------- */
+  .item{background:var(--panel);border:1px solid var(--linha2);border-radius:10px;padding:11px 13px;margin-bottom:8px;display:flex;gap:11px;align-items:center}
+  .item .inf{flex:1;min-width:0}
+  .item h4{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .item small{font-size:11px;color:var(--dim2)}
+  .qtd{display:flex;align-items:center;gap:9px;flex-shrink:0}
+  .qtd button{width:30px;height:30px;border-radius:7px;border:1px solid var(--linha2);background:var(--panel2);color:var(--ciano);font-size:17px;font-family:inherit;line-height:1}
+  .qtd b{font-size:14px;min-width:18px;text-align:center}
+  .totalbar{
+    padding:14px 16px calc(14px + var(--base));border-top:1px solid var(--linha2);
+    background:rgba(11,24,38,.96);flex-shrink:0;
+  }
+  .totalbar .lin{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+  .totalbar .lin span{font-size:12px;color:var(--dim2);text-transform:uppercase;letter-spacing:1px}
+  .totalbar .lin b{font-size:25px;color:var(--ciano-forte)}
+  .vazio{text-align:center;color:var(--dim2);font-size:13px;padding:50px 20px;line-height:1.8}
+
+  /* ---------- assistente ---------- */
+  .log{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
+  .msg{max-width:88%;font-size:14.5px;line-height:1.6;padding:11px 14px;border-radius:10px;white-space:pre-line;word-break:break-word}
+  .eu{align-self:flex-end;background:rgba(53,200,232,.14);border:1px solid var(--ciano-fraco);color:#E6F7FC}
+  .ass{align-self:flex-start;background:var(--panel);border:1px solid var(--linha2)}
+  .via{font-size:9px;color:var(--dim2);margin-top:6px;display:block;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  .cartao{align-self:flex-start;width:92%;background:var(--panel);border:1px solid var(--linha2);border-radius:10px;padding:12px 14px;font-size:13px}
+  .cartao h4{font-size:13px;font-weight:700;margin-bottom:9px;color:var(--ciano-forte)}
+  .cartao .l{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--linha)}
+  .cartao .l:last-of-type{border:0}
+  .cartao .l span:first-child{color:var(--dim2);font-size:12px}
+  .cartao .l span:last-child{font-weight:600;text-align:right}
+  .addbt{width:100%;margin-top:10px;padding:10px;border:1px solid var(--ciano-fraco);border-radius:8px;background:rgba(53,200,232,.14);color:var(--ciano-forte);font-size:12.5px;font-weight:700;font-family:inherit}
+  .chips{display:flex;gap:7px;padding:0 14px 10px;overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{white-space:nowrap;font-size:12px;padding:8px 13px;border-radius:6px;flex-shrink:0;background:rgba(53,200,232,.06);border:1px solid var(--linha2);color:var(--dim);font-family:inherit}
+  .barra{display:flex;gap:9px;align-items:center;padding:10px 14px;background:rgba(11,24,38,.96);border-top:1px solid var(--linha2);flex-shrink:0}
+  .barra input{flex:1;min-width:0;border-radius:8px;padding:12px 14px}
+  .icb{width:46px;height:46px;flex-shrink:0;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid var(--linha2);background:var(--panel2);color:var(--ciano)}
+  .icb.env{background:rgba(53,200,232,.16);border-color:var(--ciano-fraco)}
+
+  /* ---------- navegação ---------- */
+  nav{
+    display:flex;background:rgba(11,24,38,.97);border-top:1px solid var(--linha2);
+    padding-bottom:var(--base);flex-shrink:0;
+  }
+  nav button{
+    flex:1;padding:11px 4px 10px;border:0;background:transparent;font-family:inherit;
+    color:var(--dim2);display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;
+  }
+  nav button.on{color:var(--ciano-forte)}
+  nav button span{font-size:9.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase}
+  .badge{
+    position:absolute;top:6px;right:calc(50% - 22px);min-width:17px;height:17px;
+    border-radius:9px;background:var(--ciano);color:#04141C;font-size:10px;font-weight:700;
+    display:none;align-items:center;justify-content:center;padding:0 4px;
+  }
+  .badge.on{display:flex}
+
+  /* ---------- aviso de acesso ---------- */
+  .aviso-acesso{
+    position:absolute;inset:0;z-index:60;display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;
+  }
+  .aviso-acesso.on{display:flex;animation:entra .28s ease-out}
+  .aviso-acesso.lib{background:rgba(8,34,26,.975)}
+  .aviso-acesso.neg{background:rgba(44,12,12,.975)}
+  @keyframes entra{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+  .aviso-acesso .ic{width:104px;height:104px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:4px solid}
+  .lib .ic{border-color:var(--ok);color:var(--ok)}
+  .neg .ic{border-color:var(--erro);color:var(--erro)}
+  .aviso-acesso h3{font-size:23px;letter-spacing:2.4px;text-transform:uppercase;font-weight:700}
+  .lib h3{color:var(--ok)} .neg h3{color:var(--erro)}
+  .aviso-acesso p{font-size:15px;color:var(--dim);line-height:1.6;max-width:300px}
+  .aviso-acesso button{margin-top:8px;padding:12px 26px;border-radius:9px;border:1px solid var(--linha2);background:var(--panel);color:var(--txt);font-size:14px;font-family:inherit}
+
+  .sinal{
+    display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim2);
+    justify-content:center;margin-top:2px;
+  }
+  .sinal i{width:7px;height:7px;border-radius:50%;background:var(--dim2);display:block}
+  .sinal.on i{background:var(--ok);box-shadow:0 0 8px rgba(62,214,160,.7)}
+
+  /* ---------- faixa de tag lida ---------- */
+  .toast{
+    position:absolute;left:12px;right:12px;top:calc(66px + var(--topo));z-index:55;
+    border-radius:11px;padding:13px 16px;
+    display:none;flex-direction:column;gap:2px;
+    transform:translateY(-12px);opacity:0;transition:transform .2s, opacity .2s;
+  }
+  .toast.on{display:flex;transform:translateY(0);opacity:1}
+  .toast.ok{background:rgba(10,44,34,.97);border:1px solid var(--ok)}
+  .toast.no{background:rgba(48,16,16,.97);border:1px solid var(--erro)}
+  .toast b{font-size:14.5px;font-weight:600}
+  .toast.ok b{color:var(--ok)}
+  .toast.no b{color:var(--erro)}
+  .toast span{font-size:12.5px;color:var(--dim)}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <div class="marca">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 8V6a4 4 0 0 1 8 0v2"/><rect x="4" y="8" width="16" height="13" rx="2"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Smart Store</h1>
+      <p id="sub">Aplicativo do cliente</p>
+    </div>
+    <button class="sair" id="sair" style="display:none">Sair</button>
+  </header>
+
+  <main>
+
+    <!-- LOGIN -->
+    <section class="aba-c on" id="t-login">
+      <div class="login">
+        <div class="alterna">
+          <button class="alt on" data-modo="login">Entrar</button>
+          <button class="alt" data-modo="criar">Criar conta</button>
+        </div>
+
+        <h2 id="lgTitulo">Entrar na sua conta</h2>
+        <p class="txt" id="lgTexto">Use o e-mail e a senha cadastrados para acessar o QR de entrada e seu carrinho.</p>
+
+        <div id="campoNome" style="display:none">
+          <label for="f-nome">Seu nome</label>
+          <input id="f-nome" placeholder="Como quer ser chamado" autocomplete="name">
+        </div>
+
+        <label for="f-email">E-mail</label>
+        <input id="f-email" type="email" placeholder="voce@email.com" autocomplete="email" inputmode="email">
+
+        <label for="f-senha">Senha</label>
+        <input id="f-senha" type="password" placeholder="mínimo 6 caracteres" autocomplete="current-password">
+
+        <div class="msg-erro" id="lgErro"></div>
+        <button class="btn" id="entrar">Entrar</button>
+
+        <p style="font-size:11.5px;color:var(--dim2);margin-top:16px;line-height:1.65">
+          Demonstração: a conta é validada, mas fica gravada apenas neste aparelho.
+          A senha é guardada como hash, nunca em texto.
+        </p>
+      </div>
+    </section>
+
+    <!-- ACESSO -->
+    <section class="aba-c" id="t-acesso">
+      <div class="rolagem" style="padding-top:6px">
+        <div class="qrbox">
+          <div class="conta">
+            <b id="cNome">—</b>
+            <span id="cId"></span>
+          </div>
+          <div class="qrcard"><div id="qr"></div></div>
+          <div class="validade">
+            <div class="barra-t"><i id="barraT"></i></div>
+            <span id="segundos">60s</span>
+          </div>
+          <button class="btn mini sec" id="renovar" style="width:auto;padding:10px 20px;margin-top:0">Gerar novo agora</button>
+          <div class="sinal" id="sinal"><i></i><span>aguardando leitura na porta</span></div>
+        </div>
+        <div class="aviso">
+          Aponte este QR para a câmera do leitor na entrada. Ele se renova sozinho a cada minuto — por segurança, um print não funciona depois que expira.
+        </div>
+      </div>
+    </section>
+
+    <!-- ASSISTENTE -->
+    <section class="aba-c" id="t-assistente">
+      <div class="log" id="log"></div>
+      <div class="chips" id="chips"></div>
+      <div class="barra">
+        <input id="entrada" placeholder="Digite sua dúvida..." autocomplete="off" enterkeyhint="send">
+        <button class="icb" id="mic" aria-label="Falar">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M18 11a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.91V20H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-3.09A6 6 0 0 0 18 11z"/></svg>
+        </button>
+        <button class="icb env" id="enviar" aria-label="Enviar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5v-6l8-2.5-8-2.5v-6l19 8.5z"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- CARRINHO -->
+    <section class="aba-c" id="t-carrinho">
+      <div class="rolagem" id="listaCarrinho"></div>
+      <div class="totalbar">
+        <div class="lin"><span>Total</span><b id="total">R$ 0,00</b></div>
+        <button class="btn" id="finalizar" style="margin-top:0">Finalizar e gerar QR de saída</button>
+      </div>
+    </section>
+
+  </main>
+
+  <nav id="nav" style="display:none">
+    <button data-t="acesso" class="on">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14h1M14 20h3M20 17v4"/></svg>
+      <span>Acesso</span>
+    </button>
+    <button data-t="assistente">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Assistente</span>
+    </button>
+    <button data-t="carrinho">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+      <span>Carrinho</span>
+      <div class="badge" id="badge">0</div>
+    </button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="aviso-acesso" id="avisoAcesso">
+    <div class="ic" id="avisoIc"></div>
+    <h3 id="avisoTit"></h3>
+    <p id="avisoTxt"></p>
+    <button id="avisoOk">Continuar</button>
+  </div>
+
+</div>
+
+<script src="../shared/dados.js"></script>
+<script src="../shared/acesso.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+let conta = Conta.atual();
+
+/* ---------- navegação ---------- */
+function ir(t){
+  document.querySelectorAll('.aba-c').forEach(x=>x.classList.remove('on'));
+  document.getElementById('t-'+t).classList.add('on');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  if(t==='carrinho') renderCarrinho();
+}
+document.querySelectorAll('nav button').forEach(b=>{ b.onclick=()=>ir(b.dataset.t); });
+
+/* ---------- login e cadastro ---------- */
+let modo = 'login';
+
+const lgErro = document.getElementById('lgErro');
+function erro(msg){
+  lgErro.textContent = msg;
+  lgErro.classList.toggle('on', !!msg);
+}
+
+document.querySelectorAll('.alt').forEach(b=>{
+  b.onclick = ()=>{
+    modo = b.dataset.modo;
+    document.querySelectorAll('.alt').forEach(x=>x.classList.toggle('on', x===b));
+    const criando = modo === 'criar';
+    document.getElementById('campoNome').style.display = criando ? 'block' : 'none';
+    document.getElementById('lgTitulo').textContent = criando ? 'Criar sua conta' : 'Entrar na sua conta';
+    document.getElementById('lgTexto').textContent = criando
+      ? 'Leva alguns segundos. É a conta que autoriza sua entrada na loja.'
+      : 'Use o e-mail e a senha cadastrados para acessar o QR de entrada e seu carrinho.';
+    document.getElementById('entrar').textContent = criando ? 'Criar conta' : 'Entrar';
+    document.getElementById('f-senha').setAttribute('autocomplete', criando ? 'new-password' : 'current-password');
+    erro('');
+  };
+});
+
+document.getElementById('entrar').onclick = async ()=>{
+  const bt = document.getElementById('entrar');
+  const email = document.getElementById('f-email').value;
+  const senha = document.getElementById('f-senha').value;
+  const nome  = document.getElementById('f-nome').value;
+
+  bt.disabled = true;
+  erro('');
+
+  const r = modo === 'criar'
+    ? await Contas.criar(nome, email, senha)
+    : await Contas.login(email, senha);
+
+  bt.disabled = false;
+
+  if(r.erro){ erro(r.erro); document.getElementById('f-senha').value = ''; return; }
+
+  conta = Conta.abrirSessao(r.conta);
+  iniciar();
+};
+
+document.getElementById('f-senha').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('entrar').click();
+});
+document.getElementById('sair').onclick=()=>{
+  if(!confirm('Sair da conta? O carrinho será esvaziado.')) return;
+  Conta.sair(); location.reload();
+};
+
+function iniciar(){
+  document.getElementById('sub').textContent = conta.nome;
+  document.getElementById('cNome').textContent = conta.nome;
+  document.getElementById('cId').textContent = 'conta ' + conta.id + ' · ' + conta.pagamento;
+  document.getElementById('nav').style.display='flex';
+  document.getElementById('sair').style.display='block';
+  ir('acesso');
+  ciclarQR();
+  atualizarBadge();
+  escutarPorta();
+}
+
+/* ---------- escuta o Worker esperando o aviso da porta ---------- */
+const CHECK='<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+const XIS  ='<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+
+function escutarPorta(){
+  const sinal = document.getElementById('sinal');
+  if(!Porta.ligada()){
+    sinal.querySelector('span').textContent = 'mostre este QR ao leitor da entrada';
+    return;
+  }
+  sinal.classList.add('on');
+  sinal.querySelector('span').textContent = 'conectado à porta';
+
+  /* tags RFID lidas na loja caem direto no carrinho */
+  ouvirProdutos(conta.id, evento=>{
+    const p = acharPorTag(evento.tag);
+    if(p){
+      Carrinho.adicionar(p, 1);
+      atualizarBadge();
+      if(document.getElementById('t-carrinho').classList.contains('on')) renderCarrinho();
+      aviseTag(p.nome + ' no carrinho', brl(p.preco), true);
+    }else{
+      aviseTag('Tag não cadastrada', evento.tag, false);
+    }
+    if(navigator.vibrate) navigator.vibrate(60);
+  });
+
+  ouvirEntradas(conta.id, evento=>{
+    const el = document.getElementById('avisoAcesso');
+    document.getElementById('avisoIc').innerHTML = evento.ok ? CHECK : XIS;
+    document.getElementById('avisoTit').textContent = evento.ok ? 'Acesso liberado' : 'Acesso negado';
+    document.getElementById('avisoTxt').textContent = evento.ok
+      ? 'A porta foi liberada para você. Boas compras, ' + (evento.nome || conta.nome) + '.'
+      : (evento.motivo || 'Não foi possível liberar a entrada.');
+    el.className = 'aviso-acesso on ' + (evento.ok ? 'lib' : 'neg');
+    if(navigator.vibrate) navigator.vibrate(evento.ok ? [90,60,90] : 260);
+    setTimeout(()=>{ el.className='aviso-acesso'; }, 6000);
+  });
+}
+document.getElementById('avisoOk').onclick=()=>{
+  document.getElementById('avisoAcesso').className='aviso-acesso';
+};
+
+/* faixa rápida que aparece quando uma tag é lida */
+let tempoTag = null;
+function aviseTag(titulo, detalhe, ok){
+  const t = document.getElementById('toast');
+  t.innerHTML = '<b>'+titulo+'</b><span>'+detalhe+'</span>';
+  t.className = 'toast on ' + (ok ? 'ok' : 'no');
+  clearTimeout(tempoTag);
+  tempoTag = setTimeout(()=>{ t.className = 'toast'; }, 2600);
+}
+
+/* ---------- QR de acesso ---------- */
+let restante = 0, timerQR = null;
+
+async function desenharQR(){
+  const token = await gerarToken(conta);
+  const qr = qrcode(0, 'M');
+  qr.addData(token);
+  qr.make();
+  document.getElementById('qr').innerHTML = qr.createSvgTag({cellSize:5, margin:0, scalable:true});
+  const svg = document.querySelector('#qr svg');
+  if(svg){ svg.style.width='100%'; svg.style.height='100%'; }
+  restante = 60;
+}
+
+function ciclarQR(){
+  clearInterval(timerQR);
+  desenharQR();
+  timerQR = setInterval(()=>{
+    restante--;
+    document.getElementById('segundos').textContent = Math.max(0,restante) + 's';
+    document.getElementById('barraT').style.width = Math.max(0,(restante/60*100)) + '%';
+    if(restante <= 0) desenharQR();
+  }, 1000);
+}
+document.getElementById('renovar').onclick=desenharQR;
+
+/* ---------- carrinho ---------- */
+function atualizarBadge(){
+  const q = Carrinho.quantidade();
+  const b = document.getElementById('badge');
+  b.textContent = q; b.classList.toggle('on', q>0);
+}
+
+function renderCarrinho(){
+  const itens = Carrinho.itens();
+  const el = document.getElementById('listaCarrinho');
+  document.getElementById('total').textContent = brl(Carrinho.total());
+  atualizarBadge();
+
+  if(!itens.length){
+    el.innerHTML='<div class="vazio">Seu carrinho está vazio.<br>Peça ao assistente: "adiciona duas cocas no carrinho".</div>';
+    return;
+  }
+  el.innerHTML = itens.map(i=>
+    '<div class="item" data-id="'+i.id+'">'+
+      '<div class="inf"><h4>'+i.nome+'</h4><small>'+brl(i.preco)+' cada · '+brl(i.preco*i.qtd)+'</small></div>'+
+      '<div class="qtd"><button data-d="-1">−</button><b>'+i.qtd+'</b><button data-d="1">+</button></div>'+
+    '</div>'
+  ).join('');
+
+  el.querySelectorAll('.qtd button').forEach(b=>{
+    b.onclick=()=>{
+      const id = Number(b.closest('.item').dataset.id);
+      Carrinho.mudarQtd(id, Number(b.dataset.d));
+      renderCarrinho();
+    };
+  });
+}
+
+document.getElementById('finalizar').onclick=async()=>{
+  if(!Carrinho.itens().length){ alert('Carrinho vazio.'); return; }
+  const total = Carrinho.total();
+  alert('Compra de ' + brl(total) + ' registrada.\n\nNa loja real, aqui seria gerado o QR de saída com o valor a pagar.');
+};
+
+/* ---------- assistente ---------- */
+const log=document.getElementById('log'), entrada=document.getElementById('entrada');
+const HIST=[];
+
+function bolha(txt, quem, via){
+  const d=document.createElement('div');
+  d.className='msg '+quem; d.textContent=txt;
+  if(via){ const s=document.createElement('span'); s.className='via'; s.textContent=via; d.appendChild(s); }
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+
+function cartao(c, produto){
+  const d=document.createElement('div'); d.className='cartao';
+  d.innerHTML = '<h4>'+c.titulo+'</h4>'+
+    c.linhas.map(l=>'<div class="l"><span>'+l[0]+'</span><span>'+l[1]+'</span></div>').join('');
+  if(produto && !c.esgotado){
+    const b=document.createElement('button');
+    b.className='addbt'; b.textContent='Adicionar ao carrinho';
+    b.onclick=()=>{
+      Carrinho.adicionar(produto,1);
+      atualizarBadge();
+      b.textContent='Adicionado ✓';
+      b.disabled=true;
+    };
+    d.appendChild(b);
+  }
+  log.appendChild(d); log.scrollTop=log.scrollHeight;
+}
+
+/* "adiciona duas cocas ao carrinho" */
+const NUMEROS={um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10};
+function tentarAdicionar(txt){
+  const t = norm(txt);
+  if(!/\b(adiciona|adicionar|coloca|colocar|poe|por|quero|leva|levar|bota)\b/.test(t)) return null;
+  const achados = acharProdutos(txt);
+  if(!achados.length) return null;
+  const p = achados[0];
+  let qtd = 1;
+  const num = t.match(/\b(\d{1,2})\b/);
+  if(num) qtd = Math.min(20, parseInt(num[1],10));
+  else { for(const k in NUMEROS){ if(new RegExp("\\b"+k+"\\b").test(t)){ qtd = NUMEROS[k]; break; } } }
+  if(p.estoque <= 0) return {erro:p.nome+' está esgotado.'};
+  Carrinho.adicionar(p, qtd);
+  atualizarBadge();
+  return {ok:true, texto: qtd+' × '+p.nome+' no carrinho. Total agora: '+brl(Carrinho.total())+'.'};
+}
+
+async function enviar(txt){
+  txt=(txt||'').trim(); if(!txt) return;
+  bolha(txt,'eu'); entrada.value='';
+  HIST.push({role:'user', content:txt});
+  if(HIST.length>8) HIST.splice(0,HIST.length-8);
+
+  const add = tentarAdicionar(txt);
+  if(add){
+    const f = add.erro || add.texto;
+    bolha(f,'ass','carrinho');
+    HIST.push({role:'assistant', content:f});
+    return;
+  }
+
+  const local = responderLocal(txt);
+  if(local){
+    Dados.registrarPergunta(txt, !local.esgotado, local.produto||'');
+    bolha(local.fala,'ass','catálogo');
+    if(local.card){
+      const p = local.produto ? Dados.produtos().find(x=>x.nome===local.produto) : null;
+      cartao(local.card, p);
+    }
+    HIST.push({role:'assistant', content:local.fala});
+    return;
+  }
+
+  Dados.registrarPergunta(txt, false, '');
+  const cfg = Dados.config();
+  if(!cfg.smartgoUrl && !cfg.orKey){
+    const f='Não encontrei essa informação no catálogo. Posso consultar preço, estoque e localização dos produtos da loja.';
+    bolha(f,'ass','catálogo'); HIST.push({role:'assistant', content:f});
+    return;
+  }
+  try{
+    const r = cfg.smartgoUrl ? await responderSmartGO(txt, HIST) : await responderLLM(HIST);
+    bolha(r.fala,'ass',r.via);
+    HIST.push({role:'assistant', content:r.fala});
+  }catch(e){
+    bolha('Não consegui consultar agora. Tente novamente.','ass','erro');
+  }
+}
+
+document.getElementById('enviar').onclick=()=>enviar(entrada.value);
+entrada.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); enviar(entrada.value); } });
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, gravando=false;
+const mic=document.getElementById('mic');
+if(SR){
+  rec=new SR(); rec.lang='pt-BR'; rec.continuous=false; rec.interimResults=true;
+  rec.onresult=ev=>{
+    let t='';
+    for(let i=ev.resultIndex;i<ev.results.length;i++) t+=ev.results[i][0].transcript;
+    entrada.value=t;
+    if(ev.results[ev.results.length-1].isFinal) enviar(t);
+  };
+  rec.onend=()=>{ gravando=false; mic.style.color='var(--ciano)'; };
+}else{ mic.disabled=true; mic.style.opacity='.35'; }
+mic.onclick=()=>{ if(!rec) return; if(gravando){rec.stop();return;} gravando=true; mic.style.color='var(--erro)'; try{rec.start();}catch(e){} };
+
+['Tem Red Bull?','Onde fica a água com gás?','Adiciona 2 cocas no carrinho','Promoções de hoje']
+  .forEach(s=>{
+    const b=document.createElement('button');
+    b.className='chip'; b.textContent=s; b.onclick=()=>{ enviar(s); };
+    document.getElementById('chips').appendChild(b);
+  });
+
+bolha('Olá. Sou o assistente virtual da Smart Store. Posso dizer preço, estoque e onde fica cada produto — e adicionar itens ao seu carrinho.','ass','catálogo');
+
+/* ---------- início ---------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(()=>{}));
+}
+if(conta) iniciar();
+</script>
+</body>
+</html>

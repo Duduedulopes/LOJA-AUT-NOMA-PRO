@@ -4,13 +4,13 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SmartGo Store — Admin</title>
+    <title>Smart Store — Painel administrativo</title>
     <base href="/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/app.css" />
-    <meta name="theme-color" content="#070b14" />
+    <meta name="theme-color" content="#f7f5fb" />
 </head>
 
 <body>
@@ -24,7 +24,12 @@
         <a class="dismiss">🗙</a>
     </div>
 
-    <script src="js/camera-monitor.js"></script>
+    <!-- O ?v= existe para o navegador NAO servir a versao velha do cache.
+         Sem ele, editar este .js e recompilar nao muda nada na tela: o Chrome
+         continua rodando o arquivo antigo, e o sintoma e cruel — a pagina nova
+         chamando funcoes que so existem no arquivo novo.
+         SUBA O NUMERO sempre que mexer em camera-monitor.js. -->
+    <script src="js/camera-monitor.js?v=4"></script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 

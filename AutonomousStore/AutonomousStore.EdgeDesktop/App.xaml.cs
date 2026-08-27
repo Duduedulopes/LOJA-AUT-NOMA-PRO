@@ -43,13 +43,16 @@ public partial class App : Application
                 services.AddSingleton<IRfidReader, MockRfidReader>();
                 services.AddTransient<MainViewModel>();
                 services.AddTransient<MainWindow>();
+                services.AddTransient<EntryGateWindow>();
             })
             .Build();
 
         await _host.StartAsync();
 
-        var mainWindow = _host.Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+        // Tela da porta (leitura de QR + feedback em tela cheia).
+        // Se você quiser voltar para a UI original, troque por MainWindow.
+        var entryGateWindow = _host.Services.GetRequiredService<EntryGateWindow>();
+        entryGateWindow.Show();
 
         base.OnStartup(e);
     }

@@ -2,28 +2,30 @@
 @inject AppState AppState
 @inject NavigationManager Nav
 
-<div class="auth-wrapper">
-    <div class="auth-card">
-        <h1 class="auth-title">Ferramentas administrativas</h1>
-        <p class="auth-subtitle">Olá, @AppState.AdminName — painel interno da SmartGo Store.</p>
+<h1>Ferramentas administrativas</h1>
+<p class="hint">Olá, @AppState.AdminName — painel interno da Smart Store.</p>
 
-        <button class="btn-primary" @onclick='() => Nav.NavigateTo("/produtos")'>
-            📦 Produtos e estoque
-        </button>
+<div class="grade-acoes">
+    <button type="button" class="card-acao" @onclick='() => Nav.NavigateTo("/produtos")'>
+        <span class="card-acao-etiqueta">Catálogo</span>
+        <span class="card-acao-titulo">Produtos e estoque</span>
+        <span class="card-acao-apoio">Cadastrar, ajustar preço e repor</span>
+    </button>
 
-        <button class="btn-primary" style="margin-top:0.75rem;" @onclick='() => Nav.NavigateTo("/monitor-prateleira")'>
-            🎥 Monitor da prateleira
-        </button>
+    <button type="button" class="card-acao" @onclick='() => Nav.NavigateTo("/monitor-prateleira")'>
+        <span class="card-acao-etiqueta">Visão</span>
+        <span class="card-acao-titulo">Monitor da prateleira</span>
+        <span class="card-acao-apoio">Câmera, produtos vigiados e sessão aberta</span>
+    </button>
 
-        <button class="btn-primary" style="margin-top:0.75rem;" @onclick='() => Nav.NavigateTo("/vendas")'>
-            🧾 Histórico de vendas
-        </button>
-
-        <button class="btn-primary" style="background:#e0e0e0; color:#333; margin-top:0.75rem;" @onclick="Logout">
-            Sair
-        </button>
-    </div>
+    <button type="button" class="card-acao" @onclick='() => Nav.NavigateTo("/vendas")'>
+        <span class="card-acao-etiqueta">Financeiro</span>
+        <span class="card-acao-titulo">Histórico de vendas</span>
+        <span class="card-acao-apoio">Compras concluídas e totais</span>
+    </button>
 </div>
+
+<button class="btn-primary btn-suave btn-auto" @onclick="Logout">Sair do painel</button>
 
 @code {
     protected override void OnInitialized()

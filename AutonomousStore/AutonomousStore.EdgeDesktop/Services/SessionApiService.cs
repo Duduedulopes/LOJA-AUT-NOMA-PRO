@@ -14,6 +14,32 @@ public class SessionApiService : ISessionApiService
         _httpClient = httpClient;
     }
 
+    public async Task<ConfirmEntryResult> ConfirmEntryAsync(string qrCodeToken, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PostAsJsonAsync(
+            "api/sessions/confirm-entry",
+            new ConfirmEntryRequest(qrCodeToken),
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            var error = ExtractErrorMessage(body) ?? $"Erro ao confirmar entrada ({(int)response.StatusCode}).";
+            return new ConfirmEntryResult(Allowed: false, Message: error);
+        }
+
+        var dto = await response.Content.ReadFromJsonAsync<ConfirmEntryResponse>(cancellationToken);
+        if (dto is null)
+            return new ConfirmEntryResult(Allowed: false, Message: "A API retornou resposta vazia.");
+
+        return new ConfirmEntryResult(
+            Allowed: dto.Allowed,
+            Message: string.IsNullOrWhiteSpace(dto.Message) ? "Entrada liberada." : dto.Message,
+            CustomerName: dto.CustomerName,
+            SessionId: dto.SessionId,
+            EntryConfirmedAt: dto.EntryConfirmedAt);
+    }
+
     public async Task<SessionDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync($"api/sessions/{id}", cancellationToken);

@@ -1,4 +1,4 @@
-@page "/vendas"
+﻿@page "/vendas"
 @inject ISessionApiService SessionApi
 @inject AppState AppState
 @inject NavigationManager Nav
@@ -22,20 +22,20 @@
     }
     else
     {
-        <p class="hint">
-            @_sales.Count venda(s) · total acumulado
-            <strong style="color:var(--cyan);">R$ @_sales.Sum(s => s.Total).ToString("0.00")</strong>
-        </p>
+        <div class="card-total">
+            <span class="card-total-etiqueta">@_sales.Count venda(s) · total acumulado</span>
+            <span class="total-value">R$ @_sales.Sum(s => s.Total).ToString("0.00")</span>
+        </div>
 
         @foreach (var sale in _sales)
         {
-            <div class="card" style="margin-top:1rem;">
+            <div class="card">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
                     <span class="hint">
                         Venda em @(sale.PaymentConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")
                         — sessão @sale.Id.ToString()[..8]...
                     </span>
-                    <span class="total-value" style="font-size:1.3rem; margin:0;">R$ @sale.Total.ToString("0.00")</span>
+                    <span class="valor-destaque">R$ @sale.Total.ToString("0.00")</span>
                 </div>
 
                 <div class="data-table-wrapper" style="margin-top:0.75rem;">
@@ -43,9 +43,9 @@
                         <thead>
                             <tr>
                                 <th>Produto</th>
-                                <th>Qtd.</th>
-                                <th>Preço unit.</th>
-                                <th>Subtotal</th>
+                                <th class="numero">Qtd.</th>
+                                <th class="numero">Preço unit.</th>
+                                <th class="numero">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -53,9 +53,9 @@
                             {
                                 <tr>
                                     <td>@item.ProductName</td>
-                                    <td>@item.Quantity</td>
-                                    <td>R$ @item.UnitPrice.ToString("0.00")</td>
-                                    <td>R$ @item.Subtotal.ToString("0.00")</td>
+                                    <td class="numero">@item.Quantity</td>
+                                    <td class="numero">R$ @item.UnitPrice.ToString("0.00")</td>
+                                    <td class="numero">R$ @item.Subtotal.ToString("0.00")</td>
                                 </tr>
                             }
                         </tbody>
