@@ -1,0 +1,122 @@
+[
+ {
+  "pergunta": "quantas pessoas estao na loja agora",
+  "intencao": "pessoas_na_loja",
+  "confianca": 0.99958,
+  "n_pecas": 36
+ },
+ {
+  "pergunta": "o que esta acabando",
+  "intencao": "estoque_baixo",
+  "confianca": 0.999863,
+  "n_pecas": 20
+ },
+ {
+  "pergunta": "quanto faturamos hoje",
+  "intencao": "faturamento",
+  "confianca": 0.999266,
+  "n_pecas": 22
+ },
+ {
+  "pergunta": "quanto custa o baly",
+  "intencao": "preco",
+  "confianca": 0.997269,
+  "n_pecas": 20
+ },
+ {
+  "pergunta": "as cameras estao ok",
+  "intencao": "cameras",
+  "confianca": 0.999979,
+  "n_pecas": 20
+ },
+ {
+  "pergunta": "o que tem no carrinho",
+  "intencao": "carrinho",
+  "confianca": 0.989257,
+  "n_pecas": 22
+ },
+ {
+  "pergunta": "oi bom dia",
+  "intencao": "saudacao",
+  "confianca": 0.99976,
+  "n_pecas": 11
+ },
+ {
+  "pergunta": "qual a cor do ceu",
+  "intencao": "fora_de_escopo",
+  "confianca": 0.998869,
+  "n_pecas": 18
+ },
+ {
+  "pergunta": "como funciona o rfid",
+  "intencao": "duvida_sistema",
+  "confianca": 0.995027,
+  "n_pecas": 21
+ },
+ {
+  "pergunta": "vendemos mais que ontem",
+  "intencao": "comparar",
+  "confianca": 0.968999,
+  "n_pecas": 24
+ },
+ {
+  "pergunta": "o que mais sai",
+  "intencao": "mais_vendidos",
+  "confianca": 0.947946,
+  "n_pecas": 15
+ },
+ {
+  "pergunta": "ajuda",
+  "intencao": "ajuda",
+  "confianca": 0.96827,
+  "n_pecas": 6
+ },
+ {
+  "pergunta": "quanto q eu faturei hj",
+  "intencao": "faturamento",
+  "confianca": 0.999186,
+  "n_pecas": 23
+ },
+ {
+  "pergunta": "cade os produtos acabando",
+  "intencao": "estoque_baixo",
+  "confianca": 0.988545,
+  "n_pecas": 25
+ },
+ {
+  "pergunta": "tem quantas pessoa ai dentro",
+  "intencao": "pessoas_na_loja",
+  "confianca": 0.993738,
+  "n_pecas": 29
+ },
+ {
+  "pergunta": "QUANTAS PESSOAS!!!",
+  "intencao": "pessoas_na_loja",
+  "confianca": 0.997031,
+  "n_pecas": 16
+ },
+ {
+  "pergunta": "  faturmento  ",
+  "intencao": "faturamento",
+  "confianca": 0.994904,
+  "n_pecas": 10
+ },
+ {
+  "pergunta": "xyzzy",
+  "intencao": "cancelar_operacao",
+  "confianca": 0.489564,
+  "n_pecas": 1
+ },
+ {
+  "pergunta": "câmeras estão boas?",
+  "intencao": "cameras",
+  "confianca": 0.999974,
+  "n_pecas": 19
+ },
+ {
+  "pergunta": "quanto   custa    a   agua",
+  "intencao": "preco",
+  "confianca": 0.998317,
+  "n_pecas": 20
+ }
+]

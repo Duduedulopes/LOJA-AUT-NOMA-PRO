@@ -16,7 +16,6 @@
                     <img src="img/logo-mark-alpha.png" alt="Smart Store" />
                     <span class="marca-texto">
                         <span class="marca-nome"><b>Smart</b><i>Store</i></span>
-                        <span class="marca-tagline">Sistema Spacial SO</span>
                     </span>
                 </a>
             </div>
@@ -32,6 +31,11 @@
                     <NavLink class="menu-item" href="como-funciona">Ajuda</NavLink>
                 </nav>
             }
+
+            @* No cliente o seletor fica FORA do `IsAuthenticated`: quem
+               ainda nao entrou tambem ve a tela, e a tela de login era a
+               mais clara de todas. *@
+            <SeletorDeTema />
 
             @if (AppState.IsAuthenticated)
             {
@@ -63,7 +67,7 @@
     <footer class="rodape">
         <div class="rodape-marca">
             <img src="img/logo-mark-alpha.png" alt="" />
-            <span class="rodape-linha">Smart Store · Sistema Spacial SO</span>
+            <span class="rodape-linha">Smart Store</span>
         </div>
         @if (AppState.IsAuthenticated)
         {

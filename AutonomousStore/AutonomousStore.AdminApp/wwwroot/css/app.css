@@ -44,6 +44,35 @@
     --surface: rgba(255, 255, 255, 0.8);
     --surface-solid: #ffffff;
 
+    /* O "vidro" das barras: painel translucido sobre o fundo colorido.
+       Era `rgba(255,255,255,0.72)` cravado em quatro lugares — e branco
+       cravado e exatamente o que continua branco quando o tema escurece.
+       Vira variavel para que o tema escuro possa dar outro valor. */
+    --vidro: rgba(255, 255, 255, 0.72);
+    --vidro-forte: rgba(255, 255, 255, 0.88);
+
+    /* O ambar de ACAO: marca o botao que vai MEXER na loja, em oposicao
+       aos que so consultam. Nasceu cravado dentro do chat; virou token
+       porque a distincao "isto escreve" vale para o sistema todo. */
+    --acao-ambar:       oklch(0.75 0.15 75);
+    --acao-ambar-forte: oklch(0.62 0.14 75);
+    --tint-ambar:       oklch(0.97 0.03 85);
+    --tint-ambar-alto:  oklch(0.93 0.06 85);
+
+    /* A cor do texto SOBRE o gradiente da marca (bolha da fala, botao de
+       enviar, botao flutuante).
+
+       No tema claro isto continua branco — que e o que sempre foi, e nao
+       vou mudar a aparencia do app claro sem combinar. Mas fica o registro
+       medido: branco sobre a ponta CIANO do gradiente da 2,29:1, quando o
+       minimo da WCAG para texto normal e 4,5:1. O texto da bolha ja e
+       dificil de ler hoje, na ponta esquerda. */
+    --sobre-marca: #fff;
+
+    /* Texto sobre um bloco SÓLIDO da cor da marca (aba ativa, botão
+       primário). No claro segue branco, que é o que sempre foi. */
+    --sobre-acao: #fff;
+
     --ciano: oklch(0.72 0.14 195);
     --violeta: oklch(0.60 0.19 295);
     --rosa: oklch(0.65 0.21 345);
@@ -91,8 +120,8 @@ body {
        mesmas tres manchas de cor, com menos croma. Ele precisa ser reconhecido
        como o mesmo produto sem competir com dados na tela. */
     background:
-        radial-gradient(90% 70% at 8% 0%, oklch(0.965 0.025 200) 0%, rgba(255,255,255,0) 60%),
-        radial-gradient(85% 75% at 100% 12%, oklch(0.965 0.028 340) 0%, rgba(255,255,255,0) 58%),
+        radial-gradient(90% 70% at 8% 0%, oklch(0.965 0.025 200) 0%, transparent 60%),
+        radial-gradient(85% 75% at 100% 12%, oklch(0.965 0.028 340) 0%, transparent 58%),
         oklch(0.99 0.008 280);
     background-attachment: fixed;
     color: var(--ink);
@@ -142,7 +171,7 @@ a:hover {
     min-height: 84px;
     padding-top: 12px;
     padding-bottom: 12px;
-    background: rgba(255, 255, 255, 0.72);
+    background: var(--vidro);
     backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--line);
     position: sticky;
@@ -198,7 +227,7 @@ a:hover {
     font-weight: 400;
     letter-spacing: 0.22em;
     text-transform: uppercase;
-    color: #8b8797;
+    color: var(--ink-3);
 }
 
 /* O selo que diz "isto e o painel, nao a loja".
@@ -248,7 +277,7 @@ a:hover {
 }
 
 .admin-nav a:hover {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--vidro-forte);
     color: var(--ink);
     text-decoration: none;
 }
@@ -257,12 +286,12 @@ a:hover {
    componente: quem sabe qual pagina esta aberta e o roteador. */
 .admin-nav a.active {
     background: var(--acao-violeta);
-    color: #fff;
+    color: var(--sobre-acao);
 }
 
 .admin-nav a.active:hover {
     background: var(--acao-violeta);
-    color: #fff;
+    color: var(--sobre-acao);
 }
 
 .chip-operador {
@@ -438,7 +467,6 @@ button.card-acao:hover {
 
 /* 44px de altura minima nao e arredondamento de gosto: e o alvo de toque
    abaixo do qual o erro de clique deixa de ser raro. O painel tambem e usado
-   em tablet no balcao. */
 .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -450,7 +478,7 @@ button.card-acao:hover {
     border: 1px solid transparent;
     border-radius: var(--raio-botao);
     background: var(--acao-azul);
-    color: #fff;
+    color: var(--sobre-acao);
     font-family: inherit;
     font-size: 15.5px;
     font-weight: 600;
@@ -471,7 +499,7 @@ button.card-acao:hover {
 .btn-primary:disabled {
     background: oklch(0.90 0.008 280);
     border-color: oklch(0.90 0.008 280);
-    color: #9a96a4;
+    color: var(--ink-3);
     cursor: not-allowed;
     filter: none;
 }
@@ -495,7 +523,7 @@ button.card-acao:hover {
 }
 
 .btn-ghost:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--vidro-forte);
     border-color: var(--line);
     color: var(--ink);
     filter: none;
@@ -966,7 +994,7 @@ input::placeholder {
     gap: 16px;
     flex-wrap: wrap;
     padding: 20px 28px;
-    background: rgba(255, 255, 255, 0.72);
+    background: var(--vidro);
     border-top: 1px solid var(--line);
 }
 
@@ -986,7 +1014,7 @@ input::placeholder {
     font-size: 11px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #8b8797;
+    color: var(--ink-3);
 }
 
 .rodape-sair {
@@ -1010,7 +1038,7 @@ input::placeholder {
     font-size: 12px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #8b8797;
+    color: var(--ink-3);
 }
 
 #blazor-error-ui {

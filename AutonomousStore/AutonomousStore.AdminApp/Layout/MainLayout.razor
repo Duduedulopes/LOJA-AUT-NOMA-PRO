@@ -1,4 +1,4 @@
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @inject AppState AppState
 @inject NavigationManager Nav
 
@@ -9,7 +9,6 @@
                 <img src="img/logo-mark-alpha.png" alt="Smart Store" />
                 <span class="marca-texto">
                     <span class="marca-nome"><b>Smart</b><i>Store</i></span>
-                    <span class="marca-tagline">Sistema Spacial SO</span>
                 </span>
             </a>
 
@@ -28,6 +27,11 @@
                     <NavLink href="/vendas">Vendas</NavLink>
                 </nav>
 
+                @* Antes do nome, e nao depois: o chip do operador e o fim
+                   natural da barra, e por um controle depois dele o olho
+                   passa a procurar o nome no meio. *@
+                <SeletorDeTema />
+
                 <span class="chip-operador">
                     <span class="chip-operador-avatar">@Inicial()</span>
                     <span class="chip-operador-nome">@AppState.AdminName</span>
@@ -42,6 +46,14 @@
             }
             @Body
         </article>
+
+        @* O gerente fica ao alcance em TODA pagina do painel, e nao numa rota
+           propria: pergunta sobre estoque costuma nascer enquanto se olha
+           outra coisa, e ter que sair da tela faz a pergunta nao ser feita. *@
+        @if (AppState.IsAuthenticated)
+        {
+            <GerenteChat />
+        }
     </main>
 
     <footer class="rodape">

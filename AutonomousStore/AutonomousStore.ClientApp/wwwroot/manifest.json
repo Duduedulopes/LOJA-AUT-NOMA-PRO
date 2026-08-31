@@ -1,6 +1,6 @@
 {
-  "name": "SmartGo Store",
-  "short_name": "SmartGo Store",
+  "name": "Smart Store",
+  "short_name": "Smart Store",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#1b1f27",

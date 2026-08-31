@@ -8,7 +8,7 @@
 {
     <div class="chat-panel">
         <div class="chat-panel-header">
-            <span>Assistente SmartGo</span>
+            <span>Assistente Smart Store</span>
         </div>
 
         <div class="chat-messages" @ref="_messagesRef">
@@ -38,7 +38,7 @@
     private ElementReference _messagesRef;
     private readonly List<ChatMessageDto> _messages = new()
     {
-        new ChatMessageDto("model", "Olá! Sou o assistente da SmartGo Store 🤖 Posso ajudar com dúvidas sobre como a loja funciona, cadastro e pagamento. Como posso ajudar?")
+        new ChatMessageDto("model", "Olá! Sou o assistente da Smart Store 🤖 Posso ajudar com dúvidas sobre como a loja funciona, cadastro e pagamento. Como posso ajudar?")
     };
 
     private void ToggleOpen() => _isOpen = !_isOpen;

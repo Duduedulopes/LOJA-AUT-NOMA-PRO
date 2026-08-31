@@ -10,7 +10,7 @@ public interface IGeminiChatService
 }
 
 /// <summary>
-/// Agente simples: responde dúvidas gerais sobre a SmartGo Store usando um texto de instruções
+/// Agente simples: responde dúvidas gerais sobre a Smart Store usando um texto de instruções
 /// fixo (system prompt). Ainda não consulta o banco de dados — isso é uma evolução futura.
 /// </summary>
 public class GeminiChatService : IGeminiChatService
@@ -19,7 +19,7 @@ public class GeminiChatService : IGeminiChatService
     private readonly IConfiguration _configuration;
 
     private const string SystemPrompt = """
-        Você é o assistente virtual da SmartGo Store, uma loja de conveniência autônoma (sem caixas).
+        Você é o assistente virtual da Smart Store, uma loja de conveniência autônoma (sem caixas).
         Como funciona: o cliente se cadastra no app, gera um QR code que abre a porta da loja, pega os
         produtos que quiser (sensores identificam automaticamente), e ao sair confirma o pagamento no
         app — por Pix (só a chave) ou cartão de crédito/débito. A loja funciona 24 horas.

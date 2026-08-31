@@ -22,6 +22,34 @@
     --surface: rgba(255, 255, 255, 0.8);
     --surface-solid: #ffffff;
 
+    /* O "vidro" das barras: painel translucido sobre o fundo colorido.
+       Era `rgba(255,255,255,0.6)` cravado em quatro lugares — e branco
+       cravado e exatamente o que continua branco quando o tema escurece. */
+    --vidro: rgba(255, 255, 255, 0.6);
+    --vidro-forte: rgba(255, 255, 255, 0.78);
+
+    /* O ambar de ACAO: marca o botao que vai MEXER na loja, em oposicao
+       aos que so consultam. Nasceu cravado dentro do chat; virou token
+       porque a distincao "isto escreve" vale para o sistema todo. */
+    --acao-ambar:       oklch(0.75 0.15 75);
+    --acao-ambar-forte: oklch(0.62 0.14 75);
+    --tint-ambar:       oklch(0.97 0.03 85);
+    --tint-ambar-alto:  oklch(0.93 0.06 85);
+
+    /* A cor do texto SOBRE o gradiente da marca (bolha da fala, botao de
+       enviar, botao flutuante).
+
+       No tema claro isto continua branco — que e o que sempre foi, e nao
+       vou mudar a aparencia do app claro sem combinar. Mas fica o registro
+       medido: branco sobre a ponta CIANO do gradiente da 2,29:1, quando o
+       minimo da WCAG para texto normal e 4,5:1. O texto da bolha ja e
+       dificil de ler hoje, na ponta esquerda. */
+    --sobre-marca: #fff;
+
+    /* Texto sobre um bloco SÓLIDO da cor da marca (aba ativa, botão
+       primário). No claro segue branco, que é o que sempre foi. */
+    --sobre-acao: #fff;
+
     --ciano: oklch(0.72 0.14 195);
     --violeta: oklch(0.60 0.19 295);
     --rosa: oklch(0.65 0.21 345);
@@ -59,9 +87,9 @@ body {
     margin: 0;
     min-height: 100vh;
     background:
-        radial-gradient(90% 70% at 8% 0%, oklch(0.95 0.045 200) 0%, rgba(255, 255, 255, 0) 60%),
-        radial-gradient(85% 75% at 100% 12%, oklch(0.95 0.05 340) 0%, rgba(255, 255, 255, 0) 58%),
-        radial-gradient(70% 60% at 55% 100%, oklch(0.96 0.04 295) 0%, rgba(255, 255, 255, 0) 62%),
+        radial-gradient(90% 70% at 8% 0%, oklch(0.95 0.045 200) 0%, transparent 60%),
+        radial-gradient(85% 75% at 100% 12%, oklch(0.95 0.05 340) 0%, transparent 58%),
+        radial-gradient(70% 60% at 55% 100%, oklch(0.96 0.04 295) 0%, transparent 62%),
         oklch(0.985 0.012 280);
     background-attachment: fixed;
     color: var(--ink);
@@ -149,7 +177,7 @@ main {
     justify-content: space-between;
     gap: 20px;
     height: 84px;
-    background: rgba(255, 255, 255, 0.6);
+    background: var(--vidro);
     backdrop-filter: saturate(1.4) blur(14px);
     -webkit-backdrop-filter: saturate(1.4) blur(14px);
     border-bottom: 1px solid var(--line);
@@ -228,7 +256,7 @@ main {
 .marca-tagline {
     font-size: 10px;
     letter-spacing: 0.22em;
-    color: #8b8797;
+    color: var(--ink-3);
     white-space: nowrap;
 }
 
@@ -254,19 +282,19 @@ main {
 }
 
 .menu-item:hover {
-    background: rgba(255, 255, 255, 0.75);
+    background: var(--vidro-forte);
     color: var(--ink);
     text-decoration: none;
 }
 
 .menu-item.active {
     background: var(--acao-violeta);
-    color: #fff;
+    color: var(--sobre-acao);
 }
 
 .menu-item.active:hover {
     background: var(--acao-violeta);
-    color: #fff;
+    color: var(--sobre-acao);
 }
 
 /* chip do usuario */
@@ -387,12 +415,11 @@ main {
     font-weight: 600;
     letter-spacing: -0.01em;
     cursor: pointer;
-    transition: filter .15s, background .15s, border-color .15s, color .15s;
-}
-
-.btn-primary {
+    transition: filter .15s, background .15s, border-c.btn-primary {
     background: var(--acao-azul);
-    color: #fff;
+    color: var(--sobre-acao);
+    width: 100%;
+}: #fff;
     width: 100%;
 }
 
@@ -402,7 +429,7 @@ main {
 
 .btn-primary:disabled {
     background: oklch(0.90 0.005 280);
-    color: #9b96a5;
+    color: var(--ink-3);
     cursor: not-allowed;
 }
 
@@ -418,7 +445,7 @@ main {
 }
 
 .btn-branco {
-    background: #fff;
+    background: var(--surface-solid);
     color: var(--violeta);
 }
 
@@ -432,7 +459,7 @@ main {
 }
 
 .btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.7);
+    background: var(--vidro-forte);
     color: var(--ink);
 }
 
@@ -1013,7 +1040,7 @@ button.card-resumo:focus-visible {
     place-items: center;
     width: 100%;
     object-fit: cover;
-    background: linear-gradient(160deg, var(--tint-ciano), rgba(255, 255, 255, 0));
+    background: linear-gradient(160deg, var(--tint-ciano), transparent);
     color: var(--ink-3);
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     font-size: 11px;
@@ -1024,12 +1051,12 @@ button.card-resumo:focus-visible {
 /* uma cor por card, alternando */
 .product-card:nth-child(3n+2) .product-image,
 .product-card:nth-child(3n+2) .product-image-placeholder {
-    background: linear-gradient(160deg, var(--tint-rosa), rgba(255, 255, 255, 0));
+    background: linear-gradient(160deg, var(--tint-rosa), transparent);
 }
 
 .product-card:nth-child(3n) .product-image,
 .product-card:nth-child(3n) .product-image-placeholder {
-    background: linear-gradient(160deg, var(--tint-violeta), rgba(255, 255, 255, 0));
+    background: linear-gradient(160deg, var(--tint-violeta), transparent);
 }
 
 .product-card > *:not(.product-image):not(.product-image-placeholder) {
@@ -1384,7 +1411,7 @@ button.card-resumo:focus-visible {
     gap: 20px;
     flex-wrap: wrap;
     padding: 22px 24px;
-    background: rgba(255, 255, 255, 0.6);
+    background: var(--vidro);
     border-top: 1px solid var(--line);
 }
 
@@ -1405,7 +1432,7 @@ button.card-resumo:focus-visible {
     font-weight: 500;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #8b8797;
+    color: var(--ink-3);
 }
 
 /* infraestrutura do Blazor */

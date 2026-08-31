@@ -9,7 +9,90 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/app.css?v=3" />
+    <link rel="stylesheet" href="css/tema.css?v=3" />
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CLARO / ESCURO
+
+         INLINE, E NÃO `<script src>`, POR DUAS RAZÕES.
+
+         1. Tem de rodar ANTES da primeira pintura. Um app Blazor
+            WebAssembly demora para subir; se o tema só fosse aplicado
+            quando o C# roda, a tela ficaria branca por um instante antes
+            de escurecer — num app escuro, uma lanterna na cara.
+
+         2. Arquivo externo pode não chegar. Foi o que aconteceu: `tema.js`
+            era novo em `wwwroot/`, e arquivo novo só entra no manifesto de
+            assets quando o `dotnet run` SOBE — com o servidor já rodando,
+            deu 404 e os botões não faziam nada. Script inline não tem como
+            dar 404.
+
+         Resolver em JavaScript, e não com `@media (prefers-color-scheme)`,
+         é o que deixa a escolha explícita vencer o sistema: com `@media`,
+         "claro" num computador escuro não funcionaria.
+         ═══════════════════════════════════════════════════════════════ -->
+    <script>
+      (function () {
+        var CHAVE = 'smartstore:tema', VALIDOS = ['claro', 'escuro'];
+
+        // DUAS ESCOLHAS, E O SISTEMA COMO PADRÃO.
+        //
+        // Havia um terceiro botão, "padrão do sistema". Ele parecia
+        // idêntico ao escuro (porque o computador estava no escuro), e um
+        // botão que não se distingue do vizinho só faz clicar para
+        // descobrir que não mudou.
+        //
+        // O comportamento não sumiu: enquanto NADA estiver guardado, o app
+        // segue o sistema, e segue ao vivo. No primeiro clique a escolha
+        // passa a valer e o sistema deixa de mandar. O padrão certo
+        // acontece sem ninguém pedir; quem quiser fixar, fixa.
+        //
+        // localStorage lança em janela anônima com cookies bloqueados, e
+        // uma exceção aqui pararia o script antes de pintar. Sempre
+        // protegido: sem memória, o app funciona seguindo o sistema.
+        function escolhido() {
+          try { var v = localStorage.getItem(CHAVE);
+                return VALIDOS.indexOf(v) >= 0 ? v : null; }
+          catch (e) { return null; }
+        }
+        function doSistema() {
+          return window.matchMedia &&
+                 window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+        }
+        function emVigor() { return escolhido() || doSistema(); }
+
+        function pintar(qual) {
+          document.documentElement.setAttribute('data-tema', qual);
+          // A cor da barra do navegador no celular. Sem isto, o topo do
+          // aparelho fica claro sobre um app escuro.
+          var m = document.querySelector('meta[name="theme-color"]');
+          if (m) m.setAttribute('content', qual === 'escuro' ? '#1c1c23' : '#f7f5fb');
+        }
+
+        window.tema = {
+          emVigor: emVigor,
+          aplicar: function (qual) {
+            if (VALIDOS.indexOf(qual) < 0) qual = doSistema();
+            try { localStorage.setItem(CHAVE, qual); } catch (e) {}
+            pintar(qual);
+            return qual;
+          }
+        };
+
+        pintar(emVigor());
+
+        // Enquanto ninguém escolheu, acompanha o sistema AO VIVO: se o
+        // computador virar escuro às 18h, o app vira junto. Depois do
+        // primeiro clique, não.
+        if (window.matchMedia) {
+          var mq = window.matchMedia('(prefers-color-scheme: dark)');
+          var aoTrocar = function () { if (!escolhido()) pintar(doSistema()); };
+          if (mq.addEventListener) mq.addEventListener('change', aoTrocar);
+          else if (mq.addListener) mq.addListener(aoTrocar);
+        }
+      })();
+    </script>
     <meta name="theme-color" content="#f7f5fb" />
 </head>
 

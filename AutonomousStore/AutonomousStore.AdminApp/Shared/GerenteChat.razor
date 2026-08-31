@@ -1,0 +1,830 @@
+@inject IGerenteService Gerente
+@inject IClassificadorDeIntencao Classificador
+
+@*
+    O GERENTE, E O RACIOCINIO DELE A MOSTRA.
+
+    O chat antigo respondia instantaneamente e a conta ficava invisivel. Duas
+    coisas se perdiam nisso.
+
+    A primeira e didatica: nao da para acreditar numa rede que voce nunca viu
+    pensar. O painel do meio desenha a conta REAL, na ordem real — as pecas da
+    frase, a media dos vetores, os 32 neuronios ocultos saturando, e as 31
+    intencoes competindo ate uma passar do limiar. Nada ali e enfeite: cada
+    numero sai do `Pensamento` que o classificador devolveu.
+
+    A segunda e pratica: quando a rede fica abaixo do limiar, a resposta certa
+    ainda esta entre os tres primeiros palpites em 77,6% das vezes (medido em
+    validacao cruzada, contra 58,1% no primeiro). Antes a tela jogava fora o
+    2o e o 3o. Agora eles viram BOTOES — e o clique nao e so uma resposta, e
+    um rotulo humano para aquela frase.
+*@
+
+<div class="gerente @(_aberto ? "aberto" : "")">
+
+    @if (_aberto)
+    {
+        <div class="gerente-janela @(_cheia ? "cheia" : "")">
+            <header class="gerente-topo">
+                <span class="gerente-marca"></span>
+                @* A FICHA TECNICA SAIU DA CARA DO GERENTE.
+                   "38 intencoes · 4291 frases · limiar 97%" e o avesso da
+                   caixa aparecendo do lado de fora: diz muito para quem
+                   desenvolve e nada para quem toca a loja. Continua a um
+                   passe de mouse, e o painel de raciocinio mostra a conta
+                   inteira para quem for atras. *@
+                <div class="gerente-nomes" title="@Assinatura()">
+                    <span class="gerente-titulo">Gerente Virtual</span>
+                </div>
+                <button type="button" class="gerente-modo @(_verPensamento ? "on" : "")"
+                        @onclick="() => _verPensamento = !_verPensamento"
+                        title="mostrar ou esconder o raciocínio">
+                    raciocínio
+                </button>
+                <button type="button" class="gerente-icone" @onclick="AlternarCheia"
+                        title="@(_cheia ? "voltar ao tamanho normal" : "tela cheia")">
+                    @(_cheia ? "⤡" : "⤢")
+                </button>
+                <button type="button" class="gerente-fechar" @onclick="Alternar" title="fechar">×</button>
+            </header>
+
+            @* ===================================================================
+               O RACIOCÍNIO — só corpos e ligações
+
+               Quatro colunas, nenhuma palavra:
+
+                 pecas da frase  →  a média  →  32 ocultos  →  31 intenções
+
+               Cada bolinha à esquerda é uma palavra que você digitou (cheia
+               se a rede a conhece, vazada se nunca viu). Todas as ligações
+               convergem para UM ponto porque a entrada da rede é mesmo a
+               média dos vetores — é por isso que a ordem das palavras não
+               muda a resposta.
+
+               À direita, as intenções: quanto maior e mais colorida, mais
+               provável. O anel marca a vencedora quando ela passa do limiar.
+
+               O mouse sobre qualquer corpo diz o que ele é. Assim o nome
+               existe para quem procura e não atrapalha quem só olha.
+               =================================================================== *@
+            @if (_verPensamento && _ultimo is not null)
+            {
+                <div class="pensamento etapa-@_etapa">
+                @{
+                    var P = _ultimo!;
+                    var palavras = P.Palavras.Take(9).ToList();
+                    var nOc = Math.Min(P.Oculta.Count, 32);
+                    var topo = P.Candidatos.Take(7).ToList();
+                    var xMedia = 176.0; var yMedia = 92.0;
+
+                    double PalY(int i, int n) => n <= 1 ? yMedia : 20 + i * (144.0 / (n - 1));
+                    double OcX(int j) => 246 + (j % 4) * 24;
+                    double OcY(int j) => 24 + (j / 4) * 20.5;
+                    double IntY(int k, int n) => n <= 1 ? yMedia : 22 + k * (140.0 / (n - 1));
+
+                    var fortes = Enumerable.Range(0, nOc)
+                        .OrderByDescending(x => P.Oculta[x]).Take(9).ToList();
+                }
+                    <svg viewBox="0 0 470 184" class="cerebro" role="img"
+                         preserveAspectRatio="xMidYMid meet"
+                         aria-label="a pergunta atravessando a rede">
+                        <defs>
+                            <linearGradient id="gFio" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stop-color="var(--ciano)" />
+                                <stop offset="100%" stop-color="var(--violeta)" />
+                            </linearGradient>
+                            <radialGradient id="gCheio">
+                                <stop offset="0%" stop-color="var(--violeta)" />
+                                <stop offset="100%" stop-color="var(--acao-violeta)" />
+                            </radialGradient>
+                            <filter id="brilho" x="-60%" y="-60%" width="220%" height="220%">
+                                <feGaussianBlur stdDeviation="3.4" result="b" />
+                                <feMerge>
+                                    <feMergeNode in="b" /><feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+
+                        @* --- 1. as palavras, e os fios até a média --- *@
+                        <g class="g-pecas">
+                            @for (var i = 0; i < palavras.Count; i++)
+                            {
+                                var y = PalY(i, palavras.Count);
+                                var pal = palavras[i];
+                                <line x1="34" y1="@y.ToString(Inv)"
+                                      x2="@xMedia.ToString(Inv)" y2="@yMedia.ToString(Inv)"
+                                      class="fio fio-entrada @(pal.Conhecida ? "" : "morto")"
+                                      style="animation-delay:@((i * 48).ToString(Inv))ms" />
+                            }
+                            @for (var i = 0; i < palavras.Count; i++)
+                            {
+                                var y = PalY(i, palavras.Count);
+                                var pal = palavras[i];
+                                <circle cx="30" cy="@y.ToString(Inv)"
+                                        r="@(pal.Conhecida ? "6.4" : "4.6")"
+                                        class="pc @(pal.Conhecida ? "sabe" : "nao-sabe")"
+                                        style="animation-delay:@((i * 48).ToString(Inv))ms">
+                                    <title>@pal.Texto@(pal.Conhecida ? "" : " — nunca vi esta palavra")</title>
+                                </circle>
+                            }
+                        </g>
+
+                        @* --- 2. a média: onde tudo vira um vetor só --- *@
+                        <g class="g-media">
+                            <circle cx="@xMedia.ToString(Inv)" cy="@yMedia.ToString(Inv)"
+                                    r="11" class="media">
+                                <title>a média dos vetores — @P.TotalPecas peças viram um vetor só</title>
+                            </circle>
+                            <circle cx="@xMedia.ToString(Inv)" cy="@yMedia.ToString(Inv)"
+                                    r="11" class="media-aro" />
+                        </g>
+
+                        @* --- 3. os 32 ocultos --- *@
+                        <g class="g-ocultos">
+                            @for (var j = 0; j < nOc; j++)
+                            {
+                                var a = Math.Clamp(P.Oculta[j], 0.0, 1.0);
+                                <line x1="@((xMedia + 11).ToString(Inv))" y1="@yMedia.ToString(Inv)"
+                                      x2="@OcX(j).ToString(Inv)" y2="@OcY(j).ToString(Inv)"
+                                      class="fio fio-oculto"
+                                      style="--forca:@((0.04 + a * 0.46).ToString("0.00", Inv));
+                                             animation-delay:@((j * 11).ToString(Inv))ms" />
+                            }
+                            @for (var j = 0; j < nOc; j++)
+                            {
+                                var a = Math.Clamp(P.Oculta[j], 0.0, 1.0);
+                                <circle cx="@OcX(j).ToString(Inv)" cy="@OcY(j).ToString(Inv)"
+                                        r="@((3.2 + a * 4.2).ToString("0.0", Inv))"
+                                        class="oc @(a > 0.72 ? "quente" : "")"
+                                        style="fill:@Tinta(a); animation-delay:@((j * 11).ToString(Inv))ms">
+                                    <title>neurônio @j — @a.ToString("P0") ativo</title>
+                                </circle>
+                            }
+                        </g>
+
+                        @* --- 4. as intenções competindo --- *@
+                        <g class="g-saida">
+                            @for (var k = 0; k < topo.Count; k++)
+                            {
+                                var c = topo[k];
+                                var y = IntY(k, topo.Count);
+                                @if (k < 3)
+                                {
+                                    foreach (var j in fortes)
+                                    {
+                                        <line x1="@((OcX(j) + 4).ToString(Inv))" y1="@OcY(j).ToString(Inv)"
+                                              x2="404" y2="@y.ToString(Inv)" class="fio fio-saida"
+                                              style="--forca:@((P.Oculta[j] * c.Probabilidade * 0.85).ToString("0.000", Inv))" />
+                                    }
+                                }
+                            }
+                            @for (var k = 0; k < topo.Count; k++)
+                            {
+                                var c = topo[k];
+                                var y = IntY(k, topo.Count);
+                                var pr = c.Probabilidade;
+                                var vence = k == 0 && P.Confiavel;
+                                @if (vence)
+                                {
+                                    <circle cx="408" cy="@y.ToString(Inv)"
+                                            r="@((5.5 + pr * 9).ToString("0.0", Inv))"
+                                            class="int-aro" />
+                                }
+                                <circle cx="408" cy="@y.ToString(Inv)"
+                                        r="@((3.0 + pr * 8.5).ToString("0.0", Inv))"
+                                        class="int @(vence ? "vence" : "")"
+                                        style="fill:@Tinta(Math.Min(1.0, pr * 1.25));
+                                               animation-delay:@((k * 60).ToString(Inv))ms">
+                                    <title>@Legivel(c.Nome) — @pr.ToString("P1")</title>
+                                </circle>
+                            }
+                        </g>
+                    </svg>
+                </div>
+            }
+
+            <div class="gerente-conversa" @ref="_conversa">
+                @foreach (var fala in _falas)
+                {
+                    <div class="fala @(fala.DoGerente ? "dele" : "sua")">
+                        <div class="fala-texto">@((MarkupString)ParaHtml(fala.Texto))</div>
+                        <div class="fala-hora">@fala.Quando.ToString("HH:mm:ss")</div>
+                    </div>
+                }
+
+                @if (_duvida is not null && _duvida.Count > 0)
+                {
+                    <div class="escolha">
+                        <span class="escolha-rotulo">o que você quis dizer?</span>
+                        @foreach (var c in _duvida)
+                        {
+                            var alvo = c;
+                            <button type="button" class="escolha-botao @(EhAcao(alvo.Nome) ? "acao" : "")"
+                                    @onclick="() => Escolher(alvo.Nome)">
+                                <span class="escolha-nome">@Legivel(alvo.Nome)</span>
+                                <span class="escolha-conf">@alvo.Probabilidade.ToString("P0")</span>
+                            </button>
+                        }
+                        <button type="button" class="escolha-nenhum" @onclick="() => Escolher(null)">
+                            nenhuma dessas
+                        </button>
+                    </div>
+                }
+
+                @if (_pensando)
+                {
+                    <div class="fala dele"><div class="fala-texto pensando">@_faseTexto</div></div>
+                }
+            </div>
+
+            @if (_falas.Count <= 1)
+            {
+                <div class="gerente-sugestoes">
+                    @foreach (var s in Gerente.Sugestoes)
+                    {
+                        var q = s;
+                        <button type="button" @onclick="() => Perguntar(q)">@q</button>
+                    }
+                </div>
+            }
+
+            <div class="gerente-entrada">
+                <input @bind="_texto" @bind:event="oninput" @onkeydown="AoTeclar"
+                       placeholder="pergunte ou mande fazer…" disabled="@_pensando" />
+                <button type="button" class="enviar" @onclick="() => Perguntar(_texto)"
+                        disabled="@(_pensando || string.IsNullOrWhiteSpace(_texto))">→</button>
+            </div>
+        </div>
+    }
+
+    <button type="button" class="gerente-botao" @onclick="Alternar"
+            title="@(_aberto ? "fechar o gerente" : "falar com o gerente")">
+        @if (_aberto)
+        {
+            <span class="botao-x">×</span>
+        }
+        else
+        {
+            <span class="botao-ponto"></span>
+            <span class="botao-texto">Gerente</span>
+        }
+    </button>
+</div>
+
+<style>
+    /* =================================================================
+       AS CORES SAIRAM DAQUI E VIRARAM VARIÁVEIS.
+
+       Antes eram 90 cores escritas na mão neste arquivo — por isso o chat
+       continuava branco quando o resto do painel tinha tema. Agora ele usa
+       os mesmos `--ciano`, `--violeta`, `--surface-solid` do `app.css`, e
+       escurece junto sem uma linha a mais.
+
+       O que ficou cravado ficou de propósito:
+
+         `color: #fff` sobre gradiente da marca — o texto sobre o roxo é
+             branco nos dois temas; trocar por `--ink` deixaria texto
+             escuro sobre roxo escuro.
+         o brilho do botão flutuante (`rgba(139,97,227,…)`) — é o halo da
+             própria cor da marca, e ela não muda.
+         os `var(--surface-alto, #F4F3FA)` — o segundo valor é o que o tema
+             claro sempre teve. Como `--surface-alto` só existe no escuro, o
+             claro continua idêntico ao que era, byte por byte.
+
+       O raciocínio usa SATURAÇÃO para mostrar
+       ativação, e não brilho — em fundo claro, "aceso" tem de ir para a
+       cor cheia; ir para o branco deixaria o neurônio mais ativo
+       invisível, que é o contrário do necessário.
+       ================================================================= */
+
+    .gerente {
+        position: fixed; right: 26px; bottom: 26px; z-index: 900;
+        display: flex; flex-direction: column; align-items: flex-end; gap: 14px;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+
+    /* ---------------------------------------------------- o botão ---- */
+    .gerente-botao {
+        border: none; cursor: pointer; border-radius: 999px;
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 17px 30px; font-size: 15.5px; font-weight: 600; letter-spacing: .01em;
+        color: var(--sobre-marca); background: linear-gradient(102deg, var(--ciano), var(--violeta));
+        box-shadow: 0 10px 34px rgba(139, 97, 227, .36);
+        transition: transform .16s ease, box-shadow .16s ease;
+    }
+    .gerente-botao:hover { transform: translateY(-3px); box-shadow: 0 16px 44px rgba(139,97,227,.46); }
+    .botao-ponto {
+        width: 9px; height: 9px; border-radius: 50%; background: var(--tint-ciano);
+        box-shadow: 0 0 0 0 rgba(185,245,244,.9); animation: pulso 2.4s infinite;
+    }
+    @@keyframes pulso {
+        0%   { box-shadow: 0 0 0 0 rgba(185,245,244,.85); }
+        70%  { box-shadow: 0 0 0 11px rgba(185,245,244,0); }
+        100% { box-shadow: 0 0 0 0 rgba(185,245,244,0); }
+    }
+    .gerente.aberto .gerente-botao { padding: 13px 20px; font-size: 21px; line-height: 1; }
+    .botao-x { line-height: 1; }
+
+    /* ---------------------------------------------------- a janela --- */
+    /* A JANELA É DO CHEFE, NÃO MINHA.
+       `resize: both` é nativo do navegador e não pede JavaScript nenhum:
+       aparece uma alça no canto e ele arrasta até onde quiser. O `min-`
+       impede encolher até virar inútil; o `max-` impede passar da tela. */
+    .gerente-janela {
+        width: min(560px, calc(100vw - 52px));
+        height: min(660px, 78vh);
+        min-width: 330px; min-height: 300px;
+        max-width: calc(100vw - 52px); max-height: calc(100vh - 120px);
+        resize: both; overflow: hidden;
+        display: flex; flex-direction: column;
+        background: var(--surface-solid); border: 1px solid var(--line); border-radius: 20px;
+        box-shadow: var(--sombra-flutuante, 0 28px 76px rgba(20, 18, 28, .19));
+    }
+    .gerente-janela.cheia {
+        position: fixed; inset: 18px; width: auto; height: auto;
+        max-width: none; max-height: none; resize: none; border-radius: 18px;
+        z-index: 950;
+    }
+    /* a alça de arrastar, visível o suficiente para se achar */
+    .gerente-janela::after {
+        content: ""; position: absolute; right: 3px; bottom: 3px;
+        width: 13px; height: 13px; pointer-events: none;
+        background:
+            linear-gradient(135deg, transparent 46%, var(--line) 46%, var(--line) 54%, transparent 54%),
+            linear-gradient(135deg, transparent 72%, var(--line) 72%, var(--line) 80%, transparent 80%);
+    }
+    .gerente-janela.cheia::after { display: none; }
+    .gerente-topo {
+        display: flex; align-items: center; gap: 11px; padding: 15px 18px;
+        border-bottom: 1px solid var(--line);
+        background: linear-gradient(102deg, var(--tint-ciano), var(--tint-violeta));
+    }
+    .gerente-marca {
+        width: 11px; height: 11px; border-radius: 3px; flex: none;
+        background: linear-gradient(135deg, var(--ciano), var(--violeta));
+    }
+    .gerente-nomes { display: flex; flex-direction: column; gap: 1px; }
+    .gerente-titulo { font-weight: 700; font-size: 15px; color: var(--ink); line-height: 1.1; }
+    .gerente-sub {
+        font-family: 'IBM Plex Mono', monospace; font-size: 9.5px;
+        letter-spacing: .06em; color: var(--texto-violeta); text-transform: uppercase;
+    }
+    .gerente-modo {
+        margin-left: auto; flex: none; border: 1px solid var(--line); cursor: pointer;
+        background: transparent; color: var(--texto-violeta); border-radius: 999px;
+        font-size: 10.5px; letter-spacing: .04em; padding: 5px 12px;
+        font-family: 'IBM Plex Mono', monospace; text-transform: uppercase;
+    }
+    .gerente-modo.on { background: var(--acao-violeta); color: #fff; border-color: var(--acao-violeta); }
+    .gerente-icone {
+        border: none; background: transparent; cursor: pointer;
+        font-size: 15px; line-height: 1; color: var(--texto-violeta); padding: 0 3px;
+    }
+    .gerente-icone:hover { color: var(--ink); }
+    .gerente-fechar {
+        border: none; background: transparent; cursor: pointer;
+        font-size: 22px; line-height: 1; color: var(--ink-3); padding: 0 2px;
+    }
+    .gerente-fechar:hover { color: var(--ink); }
+
+    /* ------------------------------------------------ o raciocínio --- */
+    .pensamento {
+        border-bottom: 1px solid var(--line); padding: 10px 14px 8px; flex: none;
+        background: var(--surface-solid);
+    }
+    .cerebro {
+        display: block; margin: 0 auto; overflow: visible;
+        width: 100%; max-width: 480px; height: 132px;
+    }
+    .gerente-janela.cheia .cerebro { max-width: 560px; height: 152px; }
+
+    .pc { opacity: 0; fill: url(#gCheio); }
+    /* explicito, mesmo sendo o padrao de .pc: sem esta linha, quem le o CSS
+       procura o estilo de "sabe" e nao acha */
+    .pc.sabe { fill: url(#gCheio); }
+    .pc.nao-sabe { fill: var(--surface-solid); stroke: var(--line); stroke-width: 1.3; stroke-dasharray: 2.4 2.4; }
+
+    .media { fill: var(--surface-solid); stroke: var(--violeta); stroke-width: 2; opacity: 0; }
+    .media-aro { fill: none; stroke: var(--ciano); stroke-width: 1.2; opacity: 0; }
+
+    .oc { opacity: 0; }
+    /* Só os muito ativos ganham halo. Se todos brilhassem, brilho deixaria
+       de significar coisa alguma. */
+    .oc.quente { filter: url(#brilho); }
+
+    .int { opacity: 0; }
+    .int-aro { fill: none; stroke: var(--ciano); stroke-width: 1.6; opacity: 0; }
+
+    .fio { stroke: url(#gFio); stroke-width: 1; opacity: 0; }
+    .fio.morto { stroke: var(--line); stroke-dasharray: 2 3; }
+    .fio-oculto, .fio-saida { stroke-width: .9; }
+
+    /* As etapas. O seletor repetido é feio e é de propósito: a `.etapa-3`
+       precisa manter aceso o que a `.etapa-2` acendeu, e "etapa >= n" não
+       existe em CSS. */
+    .etapa-1 .pc, .etapa-2 .pc, .etapa-3 .pc, .etapa-4 .pc { animation: surge .4s ease forwards; }
+    .etapa-2 .fio-entrada, .etapa-3 .fio-entrada, .etapa-4 .fio-entrada { animation: risca .45s ease forwards; }
+    .etapa-2 .media, .etapa-3 .media, .etapa-4 .media { animation: surge .34s ease .1s forwards; }
+    .etapa-2 .media-aro, .etapa-3 .media-aro, .etapa-4 .media-aro { animation: anel 1.7s ease-out .2s infinite; }
+    .etapa-3 .fio-oculto, .etapa-4 .fio-oculto { animation: fio .5s ease forwards; }
+    .etapa-3 .oc, .etapa-4 .oc { animation: surge .42s ease forwards; }
+    .etapa-4 .fio-saida { animation: fio .55s ease forwards; }
+    .etapa-4 .int { animation: surge .45s cubic-bezier(.2,.9,.3,1.2) forwards; }
+    .etapa-4 .int-aro { animation: anel 1.9s ease-out infinite; }
+
+    @@keyframes surge { from { opacity: 0; } to { opacity: 1; } }
+    @@keyframes risca { to { opacity: .5; } }
+    @@keyframes fio   { to { opacity: var(--forca, .3); } }
+    @@keyframes anel {
+        0%   { opacity: .85; transform: scale(1); }
+        70%  { opacity: 0;   transform: scale(1.55); }
+        100% { opacity: 0;   transform: scale(1.55); }
+    }
+    .media-aro, .int-aro { transform-box: fill-box; transform-origin: center; }
+
+    /* -------------------------------------------------- a conversa --- */
+    .gerente-conversa {
+        flex: 1; overflow-y: auto; padding: 16px 18px;
+        display: flex; flex-direction: column; gap: 13px; min-height: 140px;
+    }
+    .fala { display: flex; flex-direction: column; gap: 3px; max-width: 92%; }
+    .fala.sua { align-self: flex-end; align-items: flex-end; }
+    .fala-texto {
+        font-size: 14px; line-height: 1.55; padding: 10px 14px; border-radius: 14px;
+        background: var(--surface-alto, #F4F3FA); color: var(--ink); border: 1px solid var(--line);
+    }
+    .fala.sua .fala-texto {
+        background: linear-gradient(102deg, var(--ciano), var(--violeta)); color: var(--sobre-marca); border: none;
+    }
+    .fala-hora {
+        font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--ink-3);
+    }
+    .pensando { color: var(--texto-violeta); font-style: italic; }
+
+    /* ------------------------------------- os botões de desambiguação */
+    .escolha {
+        display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
+        padding: 11px 13px; border: 1px dashed var(--line); border-radius: 14px;
+        background: var(--surface-alto, #FBF9FF);
+    }
+    .escolha-rotulo {
+        width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 9.5px;
+        letter-spacing: .05em; text-transform: uppercase; color: var(--texto-violeta); margin-bottom: 2px;
+    }
+    .escolha-botao {
+        display: inline-flex; align-items: baseline; gap: 7px; cursor: pointer;
+        border: 1px solid var(--line); background: var(--surface-solid); border-radius: 999px;
+        padding: 7px 14px; font-size: 12.5px; color: var(--ink);
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        transition: background .13s, border-color .13s, transform .13s;
+    }
+    .escolha-botao:hover { background: var(--tint-violeta); border-color: var(--violeta); transform: translateY(-1px); }
+    /* ORDEM tem contorno próprio: clicar aqui muda o sistema, e a cor
+       precisa dizer isso antes do clique, não depois. */
+    .escolha-botao.acao { border-color: var(--acao-ambar); background: var(--tint-ambar); }
+    .escolha-botao.acao:hover { background: var(--tint-ambar-alto); border-color: var(--acao-ambar-forte); }
+    .escolha-botao.acao .escolha-nome::before { content: "⚙ "; }
+    .escolha-conf {
+        font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-3);
+    }
+    .escolha-nenhum {
+        border: none; background: transparent; cursor: pointer; color: var(--ink-3);
+        font-size: 11.5px; text-decoration: underline; padding: 6px 4px;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+    .escolha-nenhum:hover { color: var(--ink); }
+
+    /* ------------------------------------------------- sugestões ----- */
+    .gerente-sugestoes {
+        display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 12px;
+    }
+    .gerente-sugestoes button {
+        border: 1px solid var(--line); background: var(--surface-solid); border-radius: 999px;
+        padding: 6px 13px; font-size: 12px; cursor: pointer; color: var(--ink-2);
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+    .gerente-sugestoes button:hover { border-color: var(--violeta); color: var(--ink); }
+
+    /* --------------------------------------------------- a entrada --- */
+    .gerente-entrada {
+        display: flex; gap: 9px; padding: 13px 16px;
+        border-top: 1px solid var(--line); background: var(--surface-solid);
+    }
+    .gerente-entrada input {
+        flex: 1; border: 1px solid var(--line); border-radius: 999px;
+        padding: 11px 16px; font-size: 13.5px; outline: none; color: var(--ink);
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+    }
+    .gerente-entrada input:focus { border-color: var(--violeta); }
+    .gerente-entrada .enviar {
+        border: none; cursor: pointer; border-radius: 50%; width: 42px; height: 42px;
+        color: var(--sobre-marca); background: linear-gradient(102deg, var(--ciano), var(--violeta));
+        font-size: 17px; line-height: 1;
+    }
+    .gerente-entrada .enviar:disabled { opacity: .4; cursor: default; }
+
+    /* QUEM PEDE MENOS MOVIMENTO NAO PODE PERDER O DESENHO.
+       As animações são o que traz cada elemento de opacity 0 para 1. Desligá-las
+       sem repor a opacidade deixaria o painel em branco — e o bloco antigo fazia
+       exatamente isso, porque listava as classes do desenho anterior e nenhuma
+       das novas. Aqui tudo aparece de uma vez, parado. */
+    @@media (prefers-reduced-motion: reduce) {
+        .gerente-botao, .escolha-botao { transition: none; }
+        .botao-ponto { animation: none; }
+        .pc, .media, .oc, .int { opacity: 1; animation: none; }
+        .fio { opacity: .38; animation: none; }
+        .fio-oculto, .fio-saida { opacity: var(--forca, .3); animation: none; }
+        .media-aro, .int-aro { opacity: .5; animation: none; }
+        .oc.quente { filter: none; }
+    }
+</style>
+
+@code {
+    private bool _aberto;
+    private bool _pensando;
+    private bool _verPensamento = true;
+    private bool _cheia;
+    private string _texto = "";
+    private string _faseTexto = "";
+    private int _etapa;
+    private Pensamento? _ultimo;
+    private string _perguntaEmAberto = "";
+    private IReadOnlyList<Candidato>? _duvida;
+    private ElementReference _conversa;
+
+    private readonly List<FalaDoChat> _falas = new();
+
+    private static readonly System.Globalization.CultureInfo Inv =
+        System.Globalization.CultureInfo.InvariantCulture;
+
+    /// <summary>As intenções que MUDAM o sistema, e não só o consultam.</summary>
+    /// <remarks>
+    /// A diferença não é de grau. Consulta errada mostra um número errado e
+    /// se corrige olhando de novo; ordem errada grava no banco. Por isso
+    /// elas têm cor própria no botão, e por isso ação sempre confirma —
+    /// mesmo com 99% de confiança.
+    /// </remarks>
+    private static readonly HashSet<string> Acoes = new()
+    {
+        "adicionar_produto", "alterar_preco", "alterar_estoque", "remover_produto",
+        "configurar_camera", "configurar_sistema", "reiniciar_servico",
+    };
+
+    private static bool EhAcao(string intencao) => Acoes.Contains(intencao);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _falas.Add(FalaDoChat.Gerente(Abertura()));
+
+        if (!await Classificador.CarregarAsync())
+        {
+            _falas.Add(FalaDoChat.Gerente(
+                "⚠ Não achei o modelo em `wwwroot/modelos/intencao.json`. " +
+                "Sem ele eu não interpreto pergunta nenhuma."));
+        }
+        StateHasChanged();
+    }
+
+    private void Alternar() => _aberto = !_aberto;
+
+    private void AlternarCheia() => _cheia = !_cheia;
+
+    /// <summary>A primeira fala: cumprimento pela hora, e uma piada por vez.</summary>
+    /// <remarks>
+    /// POR QUE SORTEADA, E POR QUE COM SEMENTE NA HORA
+    ///
+    /// A mesma frase toda vez vira papel de parede: em dois dias ninguem
+    /// le mais. Trocando, a primeira linha continua sendo lida — e ler a
+    /// primeira linha e o que faz alguem se lembrar de que da para pedir
+    /// coisa ao gerente.
+    ///
+    /// O sorteio usa o TICK do relogio como semente. Sem isso, cada
+    /// recarga da pagina no mesmo segundo devolveria a mesma piada, e
+    /// abrir e fechar o chat pareceria travado.
+    ///
+    /// A MADRUGADA TEM FRASE PROPRIA porque "boa noite" as 3 da manha e
+    /// uma resposta de robo. Quem esta ali aquela hora esta resolvendo
+    /// alguma coisa, e o gerente que percebe isso parece que esta junto.
+    /// </remarks>
+    private static string Abertura()
+    {
+        var agora = DateTime.Now;
+        var h = agora.Hour;
+
+        var hora = h switch
+        {
+            >= 5 and < 12  => "Bom dia, Chefe!",
+            >= 12 and < 18 => "Boa tarde, Chefe!",
+            >= 18 and < 24 => "Boa noite, Chefe!",
+            _              => "Ainda de pé, Chefe?",
+        };
+
+        var piadas = h < 5
+            ? new[]
+              {
+                  "A loja dorme, eu não. O que houve?",
+                  "Essa hora só tem eu e as câmeras. Manda.",
+                  "Se é urgente eu tô aqui; se não for, também.",
+                  "Insônia ou inventário?",
+              }
+            : new[]
+              {
+                  "O que vamos enfrentar hoje?",
+                  "Como está a loja? Já estamos milionários?",
+                  "Estoque conferido, café não. Manda a pergunta.",
+                  "Cheguei antes de você. De novo.",
+                  "Tudo no lugar até segunda ordem — a sua.",
+                  "Pronto para trabalhar. Você também?",
+                  "As câmeras estão acordadas e eu também.",
+                  "Vamos ver o que a loja aprontou.",
+                  "Nenhum produto fugiu hoje. Que eu saiba.",
+                  "Diga o que precisa que eu procuro nos dois sistemas.",
+                  "Já contei as pessoas, o estoque e o dinheiro. Por onde começamos?",
+                  "Se der problema a culpa é minha; se der lucro, é sua.",
+              };
+
+        var piada = piadas[(int)((ulong)agora.Ticks % (ulong)piadas.Length)];
+
+        // Só o cumprimento e a piada. O parágrafo de instruções que vinha
+        // aqui repetia o que os botões de sugestão logo abaixo já mostram —
+        // e a primeira linha do chat é onde menos cabe repetição.
+        return $"{hora} {piada}";
+    }
+
+    private string Assinatura()
+    {
+        var m = Classificador.Modelo;
+        if (m is null) return "modelo não carregado";
+        var corpus = m.Medido?.Corpus ?? 0;
+        return $"{m.Intencoes.Count} intenções · {corpus} frases · limiar {m.Limiar:P0}";
+    }
+
+    private static string Legivel(string intencao) => intencao.Replace('_', ' ');
+
+    private static string Curto(string p) => p.Length <= 13 ? p : p[..12] + "…";
+
+    /// <summary>A cor de um neurônio pela sua ativação.</summary>
+    /// <remarks>
+    /// ATIVAÇÃO EM FUNDO CLARO NÃO PODE SER BRILHO.
+    ///
+    /// Num painel escuro, "neurônio aceso" é um ponto que ILUMINA. Sobre o
+    /// off-white da marca, iluminar significaria ir para o branco: quanto mais
+    /// ativo, mais invisível. O contrário do necessário.
+    ///
+    /// Então ativação vira SATURAÇÃO. Zero é o cinza do repouso; um é a cor
+    /// cheia da marca. A leitura continua sendo uma só: mais cor, mais ativo.
+    ///
+    /// O expoente 0,65 abre a faixa de baixo — a sigmoide amontoa muitos
+    /// neurônios perto de 0,5, e sem a correção metade do painel sairia da
+    /// mesma cor.
+    /// </remarks>
+    private static string Tinta(double ativacao)
+    {
+        var e = Math.Pow(Math.Clamp(ativacao, 0.0, 1.0), 0.65);
+        // do repouso #E5E7F5 ate o roxo cheio #8B61E3
+        var r = (int)Math.Round(229 + (139 - 229) * e);
+        var g = (int)Math.Round(231 + (97 - 231) * e);
+        var b = (int)Math.Round(245 + (227 - 245) * e);
+        return $"rgb({r},{g},{b})";
+    }
+
+    private async Task AoTeclar(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_texto))
+            await Perguntar(_texto);
+    }
+
+    /// <summary>
+    /// A pergunta, do jeito que a rede a resolve — em etapas visíveis.
+    /// </summary>
+    /// <remarks>
+    /// AS PAUSAS SÃO REAIS NO QUE MOSTRAM, ARTIFICIAIS NA DURAÇÃO.
+    ///
+    /// A conta leva menos de um milissegundo: são 56 mil multiplicações, e o
+    /// navegador faz isso sem suar. O que as pausas fazem é desacelerar a
+    /// EXIBIÇÃO de uma sequência que de fato acontece nessa ordem — ler as
+    /// peças, tirar a média, ativar os ocultos, deixar as intenções
+    /// competirem.
+    ///
+    /// Não é barra de progresso falsa: cada etapa mostra números que já
+    /// existem naquele ponto do cálculo. É câmera lenta, não encenação.
+    /// </remarks>
+    private async Task Perguntar(string pergunta)
+    {
+        if (_pensando || string.IsNullOrWhiteSpace(pergunta)) return;
+
+        _falas.Add(FalaDoChat.Voce(pergunta));
+        _perguntaEmAberto = pergunta;
+        _texto = "";
+        _duvida = null;
+        _pensando = true;
+        _etapa = 0;
+
+        // o pensamento inteiro, calculado de uma vez — o que vem em etapas
+        // é o desenho dele
+        _ultimo = Classificador.Pensar(pergunta);
+
+        foreach (var (etapa, texto, ms) in new[]
+        {
+            (1, "lendo as palavras…", 420),
+            (2, "juntando num vetor só…", 320),
+            (3, "ativando os 32 neurônios…", 460),
+            (4, "deixando as intenções competirem…", 520),
+        })
+        {
+            _etapa = etapa;
+            _faseTexto = texto;
+            StateHasChanged();
+            await Task.Delay(ms);
+        }
+
+        try
+        {
+            var p = _ultimo;
+
+            if (p is not null && !p.Confiavel)
+            {
+                // ABAIXO DO LIMIAR: não chuta, oferece.
+                //
+                // Medido em validação cruzada: a rede acerta 58,1% no primeiro
+                // palpite, mas a resposta certa está entre os três primeiros em
+                // 77,6%. Descartar o 2º e o 3º era jogar fora vinte pontos que
+                // ela já tinha calculado.
+                _duvida = p.Botoes(Classificador.Modelo?.Botoes ?? 3);
+                _falas.Add(FalaDoChat.Gerente(await Gerente.ResponderAsync(pergunta)));
+                await Gerente.GravarPerguntaAsync(pergunta, p.Vencedor.Nome, p.Confianca, false);
+            }
+            else
+            {
+                var resposta = await Gerente.ResponderAsync(pergunta);
+                _falas.Add(FalaDoChat.Gerente(resposta));
+                if (p is not null)
+                    await Gerente.GravarPerguntaAsync(pergunta, p.Vencedor.Nome, p.Confianca, false);
+            }
+        }
+        catch (Exception erro)
+        {
+            _falas.Add(FalaDoChat.Gerente($"Alguma coisa quebrou aqui: {erro.Message}"));
+        }
+        finally
+        {
+            _pensando = false;
+            _faseTexto = "";
+        }
+    }
+
+    /// <summary>
+    /// O administrador escolheu uma das opções — ou disse que nenhuma serve.
+    /// </summary>
+    /// <remarks>
+    /// O clique vale duas coisas de uma vez: responde agora E vira rótulo
+    /// humano para aquela frase. Rótulo humano é o dado que falta: eu posso
+    /// escrever mil frases, mas só o Eduardo sabe o que ELE quis dizer.
+    /// </remarks>
+    private async Task Escolher(string? intencao)
+    {
+        var pergunta = _perguntaEmAberto;
+        _duvida = null;
+
+        if (intencao is null)
+        {
+            _falas.Add(FalaDoChat.Gerente(
+                "Anotado que nenhuma servia — isso também é informação, e das boas: " +
+                "diz que falta uma intenção que eu ainda não tenho. Tenta escrever " +
+                "de outro jeito?"));
+            await Gerente.GravarPerguntaAsync(pergunta, "nenhuma_serve", 0, true);
+            return;
+        }
+
+        _pensando = true;
+        _faseTexto = "executando…";
+        StateHasChanged();
+
+        try
+        {
+            var resposta = await Gerente.ResponderComIntencaoAsync(intencao, pergunta);
+            _falas.Add(FalaDoChat.Gerente(resposta));
+            await Gerente.GravarPerguntaAsync(pergunta, intencao, 1.0, true);
+        }
+        catch (Exception erro)
+        {
+            _falas.Add(FalaDoChat.Gerente($"Não consegui: {erro.Message}"));
+        }
+        finally
+        {
+            _pensando = false;
+            _faseTexto = "";
+        }
+    }
+
+    private static string ParaHtml(string texto)
+    {
+        // ESCAPA PRIMEIRO, formata depois. Na ordem inversa, um `<` vindo da
+        // resposta viraria marcação de verdade no navegador.
+        var s = System.Net.WebUtility.HtmlEncode(texto ?? "");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"\*\*(.+?)\*\*", "<b>$1</b>");
+        s = System.Text.RegularExpressions.Regex.Replace(s, @"`(.+?)`", "<code>$1</code>");
+        s = s.Replace("\n", "<br />");
+        return s;
+    }
+}

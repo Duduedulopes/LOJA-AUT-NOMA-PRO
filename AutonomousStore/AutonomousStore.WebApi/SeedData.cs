@@ -22,7 +22,7 @@ public static class SeedData
             return;
 
         var company = new Company(
-            "SmartGo Store — Loja Piloto",
+            "Smart Store — Loja Piloto",
             "Loja autônoma de conveniência, aberta 24h. Produtos de exemplo pra demonstração do sistema.");
 
         await companyRepository.AddAsync(company);
