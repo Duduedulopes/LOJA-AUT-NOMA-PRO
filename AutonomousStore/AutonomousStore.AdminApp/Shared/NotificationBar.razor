@@ -1,6 +1,7 @@
-﻿@implements IAsyncDisposable
+@implements IAsyncDisposable
 @inject IProductApiService ProductApi
 @inject ISessionApiService SessionApi
+@inject IOcorrenciaApiService OcorrenciaApi
 @inject NavigationManager Nav
 
 @if (_ready)
@@ -23,14 +24,108 @@
                 @_pendingEntryCount cliente(s) aguardando entrada
             </a>
         }
+
+        <button type="button" class="sino-btn @SinoClasse()" @onclick="AbrirPainelOcorrencias" title="Alertas">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path>
+                <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path>
+            </svg>
+            @if (_naoVistas is not null && _naoVistas.Total > 0)
+            {
+                <span class="sino-contador">@_naoVistas.Total</span>
+            }
+            @if (_naoVistas is null)
+            {
+                <span class="sino-indefinido" title="Não foi possível consultar os alertas agora">?</span>
+            }
+        </button>
     </div>
 }
+
+<style>
+    .sino-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: var(--raio-pill);
+        border: 1px solid var(--line);
+        background: var(--surface-solid);
+        color: var(--ink-3);
+        cursor: pointer;
+        transition: all .15s;
+        padding: 0;
+    }
+    .sino-btn:hover { filter: brightness(0.98); }
+    .sino-btn:focus-visible {
+        outline: 2px solid var(--acao-violeta);
+        outline-offset: 2px;
+    }
+    .sino-btn.sino-ok { color: var(--texto-ciano); }
+    .sino-btn.sino-ambar {
+        background: var(--tint-ambar-alto);
+        border-color: transparent;
+        color: var(--acao-ambar-forte);
+    }
+    .sino-btn.sino-critico {
+        background: oklch(0.96 0.04 25);
+        border-color: transparent;
+        color: var(--danger);
+    }
+    [data-tema="escuro"] .sino-btn.sino-critico {
+        background: oklch(0.42 0.09 25);
+    }
+    .sino-btn.sino-indefinido {
+        color: var(--ink-3);
+        border-style: dashed;
+    }
+    .sino-contador {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        border-radius: 10px;
+        background: var(--danger);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 20px;
+        text-align: center;
+        box-shadow: 0 0 0 2px var(--surface-solid);
+    }
+    .sino-btn.sino-ambar .sino-contador {
+        background: var(--acao-ambar-forte);
+    }
+    .sino-btn.sino-ok .sino-contador {
+        background: var(--acao-azul);
+    }
+    .sino-indefinido {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        background: var(--ink-3);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 20px;
+        text-align: center;
+        box-shadow: 0 0 0 2px var(--surface-solid);
+    }
+</style>
 
 @code {
     private bool _ready;
     private int _lowStockCount;
     private bool _hasOpenSession;
     private int _pendingEntryCount;
+    private NaoVistasDto? _naoVistas;
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _cts;
 
@@ -56,7 +151,6 @@
         }
         catch (OperationCanceledException)
         {
-            // Componente foi descartado (navegou pra fora) — encerra o loop silenciosamente.
         }
     }
 
@@ -72,11 +166,33 @@
 
             var pending = await SessionApi.GetPendingEntryAsync();
             _pendingEntryCount = pending.Count;
+
+            var naoVistas = await OcorrenciaApi.NaoVistasAsync();
+            if (naoVistas is not null)
+            {
+                _naoVistas = naoVistas;
+            }
         }
         catch
         {
-            // Se a API cair momentaneamente, a barra só mantém os últimos valores conhecidos.
+            // API fora do ar: mantém os últimos valores conhecidos.
+            // Se a chamada de nao-vistas falhar, _naoVistas continua com o
+            // valor anterior — nunca é zerado. Um sino que marca 0 porque a
+            // rede caiu diz "está tudo bem" quando ninguém olhou.
         }
+    }
+
+    private string SinoClasse()
+    {
+        if (_naoVistas is null) return "sino-indefinido";
+        if (_naoVistas.Criticas > 0) return "sino-critico";
+        if (_naoVistas.Total > 0) return "sino-ambar";
+        return "sino-ok";
+    }
+
+    private void AbrirPainelOcorrencias()
+    {
+        Nav.NavigateTo("/ocorrencias");
     }
 
     public async ValueTask DisposeAsync()

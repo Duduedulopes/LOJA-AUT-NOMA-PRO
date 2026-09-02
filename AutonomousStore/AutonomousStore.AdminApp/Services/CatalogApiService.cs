@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using AutonomousStore.AdminApp.Models;
+using AutonomousStore.Gerente.Models;
 
 namespace AutonomousStore.AdminApp.Services;
 

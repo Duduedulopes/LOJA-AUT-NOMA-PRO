@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @inject AppState AppState
 @inject NavigationManager Nav
 
@@ -6,9 +6,9 @@
     <main>
         <div class="top-row px-4">
             <a class="marca" href="/">
-                <img src="img/logo-mark-alpha.png" alt="Smart Store" />
+                <img src="img/logo-mark-alpha.png" alt="AutonomousStore" />
                 <span class="marca-texto">
-                    <span class="marca-nome"><b>Smart</b><i>Store</i></span>
+                    <span class="marca-nome"><b>Autonomous</b><i>Store</i></span>
                 </span>
             </a>
 
@@ -25,13 +25,27 @@
                     <NavLink href="/produtos">Produtos</NavLink>
                     <NavLink href="/monitor-prateleira">Prateleira</NavLink>
                     <NavLink href="/vendas">Vendas</NavLink>
+                    <NavLink href="/gemeo-digital">Gêmeo Digital</NavLink>
+                    <NavLink href="/ocorrencias">Ocorrências</NavLink>
+                    <NavLink href="/suporte">Suporte</NavLink>
                 </nav>
 
+            }
+
+
+            @* SEMPRE VISIVEL, inclusive antes de entrar.
+               O tema era escolhido so DEPOIS do login — e a tela de login e
+               justamente a primeira que a pessoa encara. Quem abre isto de
+               madrugada levava um branco na cara e so podia arrumar depois
+               de digitar a senha. Preferencia de leitura nao depende de
+               credencial. *@
+            <SeletorDeTema />
+
+            @if (AppState.IsAuthenticated)
+            {
                 @* Antes do nome, e nao depois: o chip do operador e o fim
                    natural da barra, e por um controle depois dele o olho
                    passa a procurar o nome no meio. *@
-                <SeletorDeTema />
-
                 <span class="chip-operador">
                     <span class="chip-operador-avatar">@Inicial()</span>
                     <span class="chip-operador-nome">@AppState.AdminName</span>
@@ -52,14 +66,14 @@
            outra coisa, e ter que sair da tela faz a pergunta nao ser feita. *@
         @if (AppState.IsAuthenticated)
         {
-            <GerenteChat />
+            <GerenteChat Perfil="PerfilDeQuemFala.Chefe" />
         }
     </main>
 
     <footer class="rodape">
         <div class="rodape-marca">
             <img src="img/logo-mark-alpha.png" alt="" />
-            <span class="rodape-linha">Smart Store · Painel administrativo</span>
+            <span class="rodape-linha">AutonomousStore · Painel administrativo</span>
         </div>
         @if (AppState.IsAuthenticated)
         {

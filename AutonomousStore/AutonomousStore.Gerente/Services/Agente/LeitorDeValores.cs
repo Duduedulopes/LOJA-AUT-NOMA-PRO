@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using AutonomousStore.AdminApp.Models;
+using AutonomousStore.Gerente.Models;
 
-namespace AutonomousStore.AdminApp.Services.Agente;
+namespace AutonomousStore.Gerente.Services.Agente;
 
 /// <summary>
 /// Tira da frase o que ela ja carrega: qual produto, qual numero.

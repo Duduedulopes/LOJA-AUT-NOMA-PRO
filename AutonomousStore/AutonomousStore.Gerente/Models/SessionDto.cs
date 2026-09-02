@@ -1,6 +1,6 @@
 ﻿using AutonomousStore.Domain.Enums;
 
-namespace AutonomousStore.AdminApp.Models;
+namespace AutonomousStore.Gerente.Models;
 
 public record SessionItemDto(Guid ProductId, string ProductName, decimal UnitPrice, int Quantity, decimal Subtotal);
 

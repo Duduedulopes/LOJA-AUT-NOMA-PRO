@@ -1,0 +1,460 @@
+@page "/gemeo-digital"
+@implements IAsyncDisposable
+@using System.Globalization
+@inject IEspacialApiService EspacialApi
+
+@* ═══════════════════════════════════════════════════════════════════
+   O SISTEMA ESPACIAL SO, DENTRO DO PAINEL.
+
+   Duas coisas, e elas sao diferentes:
+
+   O GEMEO e dado. Vem em metros — pessoa, zona, movel, contorno do
+   chao — e e desenhado aqui, em SVG, no tema do painel. Nenhum pixel
+   de video atravessa a rede para isso.
+
+   AS CAMERAS sao imagem. O Espacial publica o ultimo quadro de cada
+   uma em `dados/ao_vivo/{papel}.jpg`, o monitor serve, e aqui elas
+   aparecem lado a lado.
+
+   FUNCIONA COM 1, 3 OU 5. Nada nesta tela sabe quantas cameras
+   existem: ela desenha o que o monitor listar. Uma instalacao com so
+   a camera do alto mostra uma caixa; com cinco, mostra cinco.
+   ═══════════════════════════════════════════════════════════════════ *@
+
+<div class="pag-gemeo">
+    <header class="pag-cabecalho">
+        <h1>Gêmeo Digital</h1>
+        <p class="pag-subtitulo">
+            @if (_estado is { Online: true, Dados: { } d })
+            {
+                <span>@(d.Loja?.Nome ?? "loja sem nome") · @d.Quadros quadros</span>
+            }
+            else
+            {
+                <span>A planta viva da loja e as câmeras do Sistema Espacial SO.</span>
+            }
+        </p>
+    </header>
+
+    @if (_estado is null)
+    {
+        @* NAO E "nao ha ninguem na loja". E "nao consegui olhar". Mostrar um
+           como o outro faz o Chefe confiar num chao que ninguem viu. *@
+        <div class="estado card erro">
+            <strong>Não estou enxergando o Sistema Espacial SO.</strong>
+            <span>
+                O monitor não respondeu. Isso não quer dizer que a loja está vazia —
+                quer dizer que ninguém está olhando.
+            </span>
+            <code>python monitor/servidor.py</code>
+        </div>
+    }
+    else if (!_estado.Online)
+    {
+        <div class="estado card erro">
+            <strong>O monitor respondeu, mas o Espacial não está rodando.</strong>
+            <span>@(_estado.Erro ?? "sem estado publicado")</span>
+            <code>python rodar.py</code>
+        </div>
+    }
+    else
+    {
+        <div class="gemeo-grade">
+
+            @* ── O GEMEO ────────────────────────────────────────────── *@
+            <section class="card gemeo">
+                <div class="secao-topo">
+                    <h2>Planta ao vivo</h2>
+                    <span class="contagem">
+                        @Pessoas.Count @(Pessoas.Count == 1 ? "pessoa" : "pessoas") no chão
+                    </span>
+                </div>
+
+                @if (_planta?.Contorno is { Count: >= 3 })
+                {
+                    <svg class="planta" viewBox="@ViewBox" preserveAspectRatio="xMidYMid meet"
+                         role="img" aria-label="Planta da loja com as pessoas rastreadas">
+
+                        @* O CONTORNO, e nao a caixa `chao`. A propria planta
+                           avisa que a caixa tem quase o dobro da area:
+                           projecao de retangulo nao volta a ser retangulo.
+                           Desenhar a caixa poria a pessoa em chao que nao
+                           existe. *@
+                        <polygon points="@PontosDoChao" class="chao" />
+
+                        @foreach (var z in _planta.Zonas ?? new())
+                        {
+                            <rect x="@N(Math.Min(z.X0, z.X1))" y="@N(-Math.Max(z.Y0, z.Y1))"
+                                  width="@N(Math.Abs(z.X1 - z.X0))" height="@N(Math.Abs(z.Y1 - z.Y0))"
+                                  class="zona" />
+                        }
+
+                        @foreach (var m in _planta.Moveis ?? new())
+                        {
+                            @* x,y do movel e o CENTRO — por isso recua metade. *@
+                            <rect x="@N(m.X - m.Largura / 2)" y="@N(-(m.Y + m.Profundidade / 2))"
+                                  width="@N(m.Largura)" height="@N(m.Profundidade)"
+                                  class="movel" />
+                        }
+
+                        @foreach (var p in Pessoas)
+                        {
+                            @* O HALO E A DUVIDA, DESENHADA. Um ponto solido
+                               diria "ela esta AQUI" com uma confianca que o
+                               sistema nao tem. Piso de 8 cm para o halo nao
+                               sumir quando a incerteza e pequena. *@
+                            <circle cx="@N(p.X)" cy="@N(-p.Y)"
+                                    r="@N(Math.Max(0.08, p.Incerteza))" class="halo" />
+
+                            @* Para onde o corpo aponta. `rumo` em radianos;
+                               o Y e invertido porque na tela ele cresce para
+                               baixo. *@
+                            <line x1="@N(p.X)" y1="@N(-p.Y)"
+                                  x2="@N(p.X + 0.35 * Math.Cos(p.Rumo))"
+                                  y2="@N(-(p.Y + 0.35 * Math.Sin(p.Rumo)))"
+                                  class="rumo" />
+
+                            <circle cx="@N(p.X)" cy="@N(-p.Y)" r="0.1" class="pessoa" />
+                        }
+                    </svg>
+
+                    <ul class="legenda">
+                        <li><span class="amostra am-chao"></span> chão calibrado</li>
+                        @foreach (var z in _planta.Zonas ?? new())
+                        {
+                            <li><span class="amostra am-zona"></span> @z.Nome</li>
+                        }
+                        @foreach (var m in _planta.Moveis ?? new())
+                        {
+                            <li><span class="amostra am-movel"></span> @m.Nome</li>
+                        }
+                        <li><span class="amostra am-pessoa"></span> pessoa · o halo é a dúvida</li>
+                    </ul>
+                }
+                else
+                {
+                    <div class="estado">
+                        Sem planta. O monitor não devolveu <code>/api/planta</code> —
+                        confira se a loja está calibrada.
+                    </div>
+                }
+
+                @if (Pessoas.Count == 0)
+                {
+                    <p class="vazio">Ninguém no chão agora. As câmeras estão olhando.</p>
+                }
+                else
+                {
+                    <ul class="lista-pessoas">
+                        @foreach (var p in Pessoas)
+                        {
+                            <li>
+                                <span class="pino">@p.Id</span>
+                                <span class="metrica">@Metros(p.X), @Metros(p.Y)</span>
+                                <span class="metrica">@p.Velocidade.ToString("0.00", Br) m/s</span>
+                                <span class="metrica duvida">± @Metros(p.Incerteza)</span>
+
+                                @* RESPONDE UMA DUVIDA ANTIGA DO CHEFE, na tela.
+                                   Em 12/08 ficou escrito no `rodar.py`: "nao
+                                   sei se as 3 cameras estao trabalhando juntas
+                                   para isso". Dizer que trabalham nao prova;
+                                   ver os nomes acesos prova. *@
+                                <span class="visto-por">
+                                    @foreach (var c in p.VistoPor ?? new())
+                                    {
+                                        <span class="chip-vista">@c</span>
+                                    }
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+
+            @* ── AS CAMERAS ─────────────────────────────────────────── *@
+            <section class="card cameras">
+                <div class="secao-topo">
+                    <h2>Câmeras</h2>
+                    <span class="contagem">
+                        @(_aoVivo is null ? "sem resposta" : $"{_aoVivo.Count} publicando")
+                    </span>
+                </div>
+
+                @if (_aoVivo is null)
+                {
+                    <div class="estado">Não consegui perguntar quais câmeras estão no ar.</div>
+                }
+                else if (_aoVivo.Count == 0)
+                {
+                    <div class="estado">
+                        Nenhuma câmera publicando quadro. O Espacial pode estar rodando
+                        com <code>--sem-janela</code>, ou a publicação ao vivo está
+                        desligada.
+                    </div>
+                }
+                else
+                {
+                    <div class="grade-cameras">
+                        @foreach (var c in _aoVivo.OrderBy(x => Ordem(x.Papel)).ThenBy(x => x.Papel))
+                        {
+                            var det = Detalhe(c.Papel);
+                            var velha = c.IdadeS > 5;
+                            <figure class="camera @(velha ? "camera-velha" : "")">
+                                <img src="@_urls.GetValueOrDefault(c.Papel)" alt="Câmera @c.Papel" />
+                                <figcaption>
+                                    <strong>@c.Papel</strong>
+                                    <span class="papel-o-que">@OQueEssaVe(c.Papel)</span>
+                                    <span class="camera-metrica">
+                                        @if (det is not null)
+                                        {
+                                            <span>@det.Fps.ToString("0.0", Br) fps · @det.Resolucao</span>
+                                        }
+                                        @if (velha)
+                                        {
+                                            @* O quadro parado e o caso perigoso: a
+                                               imagem continua ali, com cara de agora.
+                                               Sem este aviso, uma camera que caiu ha
+                                               dez minutos parece uma loja vazia. *@
+                                            <span class="alerta">parado há @c.IdadeS.ToString("0", Br)s</span>
+                                        }
+                                    </span>
+                                </figcaption>
+                            </figure>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+    }
+</div>
+
+<style>
+    .pag-gemeo { display: flex; flex-direction: column; gap: 20px; }
+    .pag-cabecalho h1 { margin: 0; font-size: 28px; }
+    .pag-subtitulo { margin: 6px 0 0; color: var(--ink-3); }
+
+    .gemeo-grade { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+    @@media (min-width: 1100px) {
+        .gemeo-grade { grid-template-columns: minmax(0, 5fr) minmax(0, 4fr); }
+    }
+
+    .secao-topo {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 12px; margin-bottom: 14px;
+    }
+    .secao-topo h2 { margin: 0; font-size: 18px; }
+    .contagem { color: var(--ink-3); font-size: 13px; }
+
+    .planta {
+        width: 100%; height: auto; max-height: 460px;
+        background: var(--surface); border-radius: 12px;
+    }
+    .chao { fill: var(--tint-ciano); stroke: var(--line); stroke-width: 0.02; }
+    .zona { fill: var(--tint-violeta); stroke: none; opacity: .8; }
+    .movel { fill: var(--panel); stroke: var(--line); stroke-width: 0.015; }
+    .halo { fill: var(--acao-violeta); opacity: .18; }
+    .pessoa { fill: var(--acao-violeta); }
+    .rumo { stroke: var(--acao-violeta); stroke-width: 0.03; stroke-linecap: round; }
+
+    /* A LEGENDA E EM HTML, e o desenho nao tem uma letra dentro.
+       Nao foi escolha de estilo: o Razor reserva para si as duas tags que
+       o SVG usa para isso — a de texto e a de dica. Nenhuma das duas
+       chega ao navegador como elemento SVG.
+       E, no fim, ficou melhor. Texto dentro do SVG tem tamanho em unidade
+       de MUNDO: o que se le num viewBox de 4 metros vira formiga num de
+       40. Legenda em HTML nao tem esse problema em loja de tamanho
+       nenhum. */
+    .legenda {
+        list-style: none; margin: 12px 0 0; padding: 0;
+        display: flex; flex-wrap: wrap; gap: 6px 16px;
+        font-size: 12px; color: var(--ink-3);
+    }
+    .legenda li { display: flex; align-items: center; gap: 6px; }
+    .amostra { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    .am-chao { background: var(--tint-ciano); border: 1px solid var(--line); }
+    .am-zona { background: var(--tint-violeta); }
+    .am-movel { background: var(--panel); border: 1px solid var(--line); }
+    .am-pessoa { background: var(--acao-violeta); border-radius: 999px; }
+
+    .vazio { color: var(--ink-3); margin: 14px 0 0; }
+
+    .lista-pessoas { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+    .lista-pessoas li {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px;
+    }
+    .pino {
+        min-width: 24px; height: 24px; display: grid; place-items: center;
+        border-radius: 999px; background: var(--acao-violeta);
+        color: var(--sobre-acao); font-size: 12px; font-weight: 700;
+    }
+    .metrica { color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+    .metrica.duvida { color: var(--ink-3); }
+    .visto-por { margin-left: auto; display: flex; gap: 4px; }
+    .chip-vista {
+        padding: 2px 8px; border-radius: 999px; font-size: 11px;
+        background: var(--tint-ciano); color: var(--texto-ciano);
+    }
+
+    .grade-cameras {
+        display: grid; gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .camera { margin: 0; }
+    .camera img {
+        width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+        border-radius: 10px; background: var(--surface); display: block;
+    }
+    .camera-velha img { filter: grayscale(1); opacity: .55; }
+    .camera figcaption {
+        display: flex; flex-direction: column; gap: 2px;
+        padding: 8px 2px 0; font-size: 13px;
+    }
+    .papel-o-que { color: var(--ink-3); font-size: 12px; }
+    .camera-metrica {
+        color: var(--ink-3); font-size: 12px;
+        font-variant-numeric: tabular-nums; display: flex; gap: 8px;
+    }
+    .alerta { color: var(--acao-ambar-forte); font-weight: 600; }
+
+    .estado {
+        display: flex; flex-direction: column; gap: 8px;
+        padding: 18px; border-radius: 12px;
+        background: var(--surface); color: var(--ink-2);
+    }
+    .estado.erro { border: 1px solid var(--danger); }
+    .estado code {
+        align-self: flex-start; padding: 4px 8px; border-radius: 6px;
+        background: var(--panel); font-size: 12px;
+    }
+</style>
+
+@code {
+    // ══════════════════════════════════════════════════════════════════
+    //  CULTURA INVARIANTE EM TODO NUMERO QUE ENTRA NO SVG.
+    //
+    //  Em pt-BR, `0.5.ToString()` devolve "0,5". SVG le "0,5" como valor
+    //  invalido e IGNORA o atributo — sem erro, sem aviso, sem nada no
+    //  console. O desenho simplesmente sai errado, ou nao sai.
+    //
+    //  E a mesma familia do R$ 300: `decimal.TryParse` sem cultura leu
+    //  "3.00" como 300 e gravou no banco. La o numero saiu errado; aqui a
+    //  figura sai errada. Nos dois casos o computador nao reclama.
+    //
+    //  `Br` e para o que a PESSOA le. `Inv` e para o que a MAQUINA le.
+    // ══════════════════════════════════════════════════════════════════
+    private static readonly CultureInfo Br = CultureInfo.GetCultureInfo("pt-BR");
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    private static string N(double v) => v.ToString("0.####", Inv);
+    private static string Metros(double v) => v.ToString("0.00", Br) + " m";
+
+    private PlantaDto? _planta;
+    private EspacialEstadoDto? _estado;
+    private List<CameraAoVivoDto>? _aoVivo;
+    private readonly Dictionary<string, string> _urls = new();
+
+    private PeriodicTimer? _relogio;
+    private CancellationTokenSource? _cts;
+
+    private List<PessoaDto> Pessoas => _estado?.Dados?.Pessoas ?? new();
+
+    private CameraEstadoDto? Detalhe(string papel)
+        => _estado?.Dados?.Cameras is { } c && c.TryGetValue(papel, out var d) ? d : null;
+
+    /// O que cada vista entrega, escrito na tela.
+    /// Vem do `rodar.py`, onde a mesma tabela existe — e existe la pelo
+    /// mesmo motivo: "um sistema que nao mostra o que usa esta pedindo para
+    /// nao ser acreditado".
+    private static string OQueEssaVe(string papel) => papel switch
+    {
+        "alto" => "posição no chão, rumo, estatura",
+        "frontal" => "braços, altura da mão",
+        "lateral" => "profundidade do alcance",
+        _ => "vista adicional",
+    };
+
+    /// As tres conhecidas primeiro, na ordem em que se explicam. Uma camera
+    /// nova entra depois, em ordem alfabetica — a tela nao precisa conhecer
+    /// o papel para mostra-lo.
+    private static int Ordem(string papel) => papel switch
+    {
+        "alto" => 0, "frontal" => 1, "lateral" => 2, _ => 9,
+    };
+
+    /// O viewBox em METROS, com uma margem para o halo e os rótulos não
+    /// serem cortados na borda.
+    private string ViewBox
+    {
+        get
+        {
+            var pts = _planta?.Contorno;
+            if (pts is not { Count: > 0 }) return "0 0 1 1";
+
+            const double margem = 0.35;
+            var xs = pts.Where(p => p.Count >= 2).Select(p => p[0]).ToList();
+            var ys = pts.Where(p => p.Count >= 2).Select(p => p[1]).ToList();
+            if (xs.Count == 0) return "0 0 1 1";
+
+            // O Y é invertido no desenho (na tela ele cresce para baixo),
+            // então o topo do viewBox é o -ymax do mundo.
+            var x0 = xs.Min() - margem;
+            var y0 = -ys.Max() - margem;
+            var w = (xs.Max() - xs.Min()) + margem * 2;
+            var h = (ys.Max() - ys.Min()) + margem * 2;
+            return $"{N(x0)} {N(y0)} {N(w)} {N(h)}";
+        }
+    }
+
+    private string PontosDoChao
+        => string.Join(" ", (_planta?.Contorno ?? new())
+            .Where(p => p.Count >= 2)
+            .Select(p => $"{N(p[0])},{N(-p[1])}"));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Atualizar();
+
+        _cts = new CancellationTokenSource();
+        // Meio segundo. O Espacial publica a ~5 Hz; pedir mais rápido só
+        // gastaria requisição para receber o mesmo quadro de novo.
+        _relogio = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+        _ = LaçoAsync(_cts.Token);
+    }
+
+    private async Task LaçoAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (_relogio is not null && await _relogio.WaitForNextTickAsync(ct))
+            {
+                await Atualizar();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Saiu da página. Encerra em silêncio.
+        }
+    }
+
+    private async Task Atualizar()
+    {
+        _planta ??= await EspacialApi.PlantaAsync();
+        _estado = await EspacialApi.EstadoAsync();
+        _aoVivo = await EspacialApi.CamerasAoVivoAsync();
+
+        // A URL de cada câmera muda a cada volta, senão o navegador serve a
+        // primeira imagem para sempre e a câmera parece congelada.
+        foreach (var c in _aoVivo ?? new())
+            _urls[c.Papel] = EspacialApi.UrlDoQuadro(c.Papel);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _cts?.Cancel();
+        _relogio?.Dispose();
+        _cts?.Dispose();
+        await Task.CompletedTask;
+    }
+}

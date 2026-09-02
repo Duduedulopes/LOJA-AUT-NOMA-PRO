@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text;
-using AutonomousStore.AdminApp.Models;
+using AutonomousStore.Gerente.Models;
 
-namespace AutonomousStore.AdminApp.Services.Agente;
+namespace AutonomousStore.Gerente.Services.Agente;
 
 /// <summary>
 /// Uma ordem em andamento: o que o Chefe pediu, o que ja se sabe, e o que
@@ -54,6 +54,14 @@ public class Conversa
 
     /// <summary>O produto do catalogo, quando ja resolvido. E o dado real.</summary>
     public ProductDto? Produto { get; set; }
+
+    /// <summary>Verdadeiro quando o produto veio da CONVERSA, e nao da frase.</summary>
+    /// <remarks>
+    /// Existe para o resumo poder avisar. Assumir o produto e util;
+    /// assumir sem dizer transforma uma pergunta a menos num engano
+    /// silencioso — e aqui engano silencioso grava no banco.
+    /// </remarks>
+    public bool AssumiuOProduto { get; set; }
 
     private readonly List<Campo> _campos;
     private int _insistencias;
@@ -112,6 +120,19 @@ public class Conversa
         {
             new("produto", "Qual produto?", TipoDeValor.Produto),
             new("preco", "Qual o novo preço?", TipoDeValor.Dinheiro),
+        },
+        // DUAS OPERACOES, DOIS NOMES.
+        //
+        // Antes as duas eram `alterar_estoque` e o codigo tratava tudo como
+        // "definir". "adicione 1 unidade de agua" com 4 em estoque definia 1
+        // — tirava 3. So nao estragou porque a API nao sabe reduzir.
+        //
+        // A pergunta que cada uma faz e diferente, e e o que evita o
+        // engano: "quantas ENTRARAM" contra "quantas tem NO TOTAL".
+        "repor_estoque" => new()
+        {
+            new("produto", "Qual produto?", TipoDeValor.Produto),
+            new("quantidade", "Quantas unidades entraram?", TipoDeValor.Inteiro),
         },
         "alterar_estoque" => new()
         {

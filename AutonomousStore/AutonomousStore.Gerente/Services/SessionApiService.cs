@@ -1,12 +1,21 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using AutonomousStore.AdminApp.Models;
+using AutonomousStore.Gerente.Models;
 
-namespace AutonomousStore.AdminApp.Services;
+namespace AutonomousStore.Gerente.Services;
 
 public interface ISessionApiService
 {
     Task<SessionDto?> GetCurrentOpenAsync();
+
+    /// <summary>A sessão em andamento DESTE cliente. Não a da loja.</summary>
+    /// <remarks>
+    /// A diferença entre esta e `GetCurrentOpenAsync` é a diferença entre "o
+    /// meu carrinho" e "o carrinho de quem estiver comprando agora". O
+    /// gerente respondia a primeira pergunta com a segunda.
+    /// </remarks>
+    Task<SessionDto?> GetActiveByCustomerAsync(Guid clienteId);
+
     Task<List<SessionDto>> GetPendingEntryAsync();
     Task<(bool Success, string? Error)> ConfirmEntryAsync(string qrCodeToken);
     Task<List<SessionDto>> GetHistoryAsync();
@@ -26,6 +35,19 @@ public class SessionApiService : ISessionApiService
         var response = await _http.GetAsync("api/sessions/current-open");
 
         if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<SessionDto>();
+    }
+
+    public async Task<SessionDto?> GetActiveByCustomerAsync(Guid clienteId)
+    {
+        var response = await _http.GetAsync($"api/sessions/active/{clienteId}");
+
+        if (response.StatusCode is HttpStatusCode.NotFound
+                                or HttpStatusCode.Forbidden
+                                or HttpStatusCode.Unauthorized)
             return null;
 
         response.EnsureSuccessStatusCode();

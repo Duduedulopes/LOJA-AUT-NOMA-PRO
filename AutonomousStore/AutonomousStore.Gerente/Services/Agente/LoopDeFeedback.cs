@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AutonomousStore.AdminApp.Services.Agente;
+namespace AutonomousStore.Gerente.Services.Agente;
 
 /// <summary>
 /// Sistema de loop de feedback inteligente para clarificação de dúvidas.

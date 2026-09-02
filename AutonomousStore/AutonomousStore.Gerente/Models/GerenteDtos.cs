@@ -1,4 +1,4 @@
-namespace AutonomousStore.AdminApp.Models;
+namespace AutonomousStore.Gerente.Models;
 
 /// <summary>
 /// O resumo espacial que vem do monitor do gerente (servidor local em Python).

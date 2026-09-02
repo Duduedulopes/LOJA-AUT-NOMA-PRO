@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace AutonomousStore.AdminApp.Services.Agente;
+namespace AutonomousStore.Gerente.Services.Agente;
 
 /// <summary>
 /// Camada de personalidade adaptativa do agente autônomo.

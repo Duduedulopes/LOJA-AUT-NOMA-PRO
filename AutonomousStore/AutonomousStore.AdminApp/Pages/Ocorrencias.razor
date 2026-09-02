@@ -1,0 +1,734 @@
+@page "/ocorrencias"
+@using System.Globalization
+@using System.Text.Json
+@inject IOcorrenciaApiService OcorrenciaApi
+@inject AppState AppState
+
+<div class="pag-ocorrencias">
+    <header class="pag-cabecalho">
+        <h1>Ocorrências</h1>
+        <p class="pag-subtitulo">Alertas e furos detectados pelo AutonomousStore, pelo Sistema Espacial SO e pelo Agente de IA.</p>
+    </header>
+
+    <section class="filtros card">
+        <div class="filtro-linha">
+            <div class="filtro">
+                <label>Período</label>
+                <div class="periodo">
+                    <input type="date" @bind-value="_filtroDesde" />
+                    <span>até</span>
+                    <input type="date" @bind-value="_filtroAte" />
+                </div>
+            </div>
+            <div class="filtro">
+                <label>Tipo</label>
+                <select @bind="_filtroTipo">
+                    <option value="">Todos</option>
+                    @foreach (var t in _tipos)
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </div>
+            <div class="filtro">
+                <label>Severidade (piso)</label>
+                <select @bind="_filtroSeveridade">
+                    <option value="">Qualquer uma</option>
+                    @foreach (var s in _severidades)
+                    {
+                        <option value="@s">@s e acima</option>
+                    }
+                </select>
+            </div>
+            <div class="filtro">
+                <label>Estado</label>
+                <select @bind="_filtroEstado">
+                    <option value="">Todos</option>
+                    @foreach (var e in _estados)
+                    {
+                        <option value="@e">@e</option>
+                    }
+                </select>
+            </div>
+            <div class="filtro acoes">
+                <button class="btn primario" @onclick="AplicarFiltro">Aplicar</button>
+                <button class="btn secundario" @onclick="LimparFiltro">Limpar</button>
+            </div>
+        </div>
+    </section>
+
+    @if (_carregando)
+    {
+        <div class="estado card">Carregando…</div>
+    }
+    else if (_lista is null)
+    {
+        <div class="estado card erro">
+            <strong>Não consegui consultar as ocorrências.</strong>
+            <span>A API pode estar fora do ar ou a sessão expirou. Tente novamente em alguns segundos.</span>
+            <button class="btn primario" @onclick="AplicarFiltro">Tentar de novo</button>
+        </div>
+    }
+    else if (_lista.Count == 0)
+    {
+        <div class="estado card ok">
+            Nenhuma ocorrência para este filtro.
+        </div>
+    }
+    else
+    {
+        <div class="lista card">
+            <table class="tabela-ocorrencias">
+                <thead>
+                    <tr>
+                        <th>Quando</th>
+                        <th>Sistema</th>
+                        <th>Tipo</th>
+                        <th>Severidade</th>
+                        <th>Estado</th>
+                        <th>Descrição</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _lista)
+                    {
+                        <tr class="@SeveridadeClasse(o.Severidade) estado-@o.Estado.ToLowerInvariant()" @onclick="() => AbrirDetalhe(o)">
+                            <td class="quando">@FormatarddMMyyyyHHmm(o.QuandoUtc)</td>
+                            <td>@o.Sistema</td>
+                            <td><span class="chip chip-tipo">@o.Tipo</span></td>
+                            <td><span class="chip chip-severidade chip-@o.Severidade.ToLowerInvariant()">@o.Severidade</span></td>
+                            <td><span class="chip chip-estado chip-@o.Estado.ToLowerInvariant()">@o.Estado</span></td>
+                            <td class="descricao">@o.Descricao</td>
+                            <td class="acao-col"><button class="btn-link" @onclick:stopPropagation @onclick="() => AbrirDetalhe(o)">Ver</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_detalhe is not null)
+{
+    <div class="modal-overlay" @onclick="FecharDetalhe">
+        <div class="modal" @onclick:stopPropagation>
+            <header class="modal-cabecalho">
+                <div>
+                    <h2>Ocorrência @_detalhe.Id.ToString("N")[..8]</h2>
+                    <div class="modal-meta">
+                        <span class="chip chip-severidade chip-@_detalhe.Severidade.ToLowerInvariant()">@_detalhe.Severidade</span>
+                        <span class="chip chip-estado chip-@_detalhe.Estado.ToLowerInvariant()">@_detalhe.Estado</span>
+                        <span class="chip chip-tipo">@_detalhe.Tipo</span>
+                    </div>
+                </div>
+                <button class="btn-fechar" @onclick="FecharDetalhe" aria-label="Fechar">×</button>
+            </header>
+
+            <div class="modal-corpo">
+                <div class="campos-grid">
+                    <div class="campo">
+                        <span class="rotulo">Quando</span>
+                        <span class="valor">@FormatarddMMyyyyHHmmss(_detalhe.QuandoUtc)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Sistema</span>
+                        <span class="valor">@_detalhe.Sistema</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Módulo</span>
+                        <span class="valor">@_detalhe.Modulo</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Operação</span>
+                        <span class="valor">@_detalhe.Operacao</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Correlação</span>
+                        <span class="valor mono">@_detalhe.CorrelationId</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Recomendação</span>
+                        <span class="valor">@OuVazio(_detalhe.Recomendacao)</span>
+                    </div>
+                </div>
+
+                <div class="bloco bloco-descricao">
+                    <div class="bloco-titulo">Fato observado</div>
+                    <div class="bloco-valor">@_detalhe.Descricao</div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_detalhe.CausaProvavel))
+                {
+                    <div class="bloco bloco-inferencia">
+                        <div class="bloco-titulo">
+                            <span class="tag-inferencia">Inferência</span>
+                            Causa provável (palpite do sistema)
+                        </div>
+                        <div class="bloco-valor">@_detalhe.CausaProvavel</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="bloco bloco-campo-vazio">
+                        <div class="bloco-titulo">Causa provável</div>
+                        <div class="bloco-valor vazio">— Não informado —</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_detalhe.CausaRaiz))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Causa raiz (confirmada)</div>
+                        <div class="bloco-valor">@_detalhe.CausaRaiz</div>
+                    </div>
+                }
+
+                <div class="campos-grid">
+                    <div class="campo">
+                        <span class="rotulo">Impacto</span>
+                        <span class="valor">@OuVazio(_detalhe.Impacto)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Ação executada</span>
+                        <span class="valor">@OuVazio(_detalhe.AcaoExecutada)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Resultado</span>
+                        <span class="valor">@OuVazio(_detalhe.Resultado)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Resolvida por</span>
+                        <span class="valor">@OuVazio(_detalhe.ResolvidaPor)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Vista em</span>
+                        <span class="valor">@(_detalhe.VistaEm is null ? "— Não vista —" : FormatarddMMyyyyHHmmss(_detalhe.VistaEm.Value))</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Resolvida em</span>
+                        <span class="valor">@(_detalhe.ResolvidaEm is null ? "— Ainda não resolvida —" : FormatarddMMyyyyHHmmss(_detalhe.ResolvidaEm.Value))</span>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_detalhe.NotaDoAdmin))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Nota do admin</div>
+                        <div class="bloco-valor">@_detalhe.NotaDoAdmin</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_detalhe.DadosEnvolvidosJson))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Dados envolvidos</div>
+                        <pre class="json-pre">@FormatarJson(_detalhe.DadosEnvolvidosJson)</pre>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_detalhe.SequenciaJson))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Sequência de eventos</div>
+                        <pre class="json-pre">@FormatarJson(_detalhe.SequenciaJson)</pre>
+                    </div>
+                }
+            </div>
+
+            <footer class="modal-rodape">
+                <div class="acoes-esquerda">
+                    @if (_detalhe.Estado == "Nova")
+                    {
+                        <button class="btn secundario" @onclick="MarcarComoVista" disabled="@_executandoAcao">Marcar como vista</button>
+                    }
+                    @if (_detalhe.Estado != "Resolvida" && _detalhe.Estado != "Ignorada")
+                    {
+                        <button class="btn primario" @onclick="AbrirResolver" disabled="@_executandoAcao">Resolver…</button>
+                    }
+                    @if (_detalhe.Estado != "NoSuporte")
+                    {
+                        <button class="btn perigo" @onclick="AbrirSuporte" disabled="@_executandoAcao">Chamar suporte técnico…</button>
+                    }
+                    else
+                    {
+                        <span class="chip chip-estado chip-nosuporte">Aguardando suporte</span>
+                    }
+                </div>
+                <button class="btn secundario" @onclick="FecharDetalhe">Fechar</button>
+            </footer>
+        </div>
+    </div>
+}
+
+@if (_mostrarResolver)
+{
+    <div class="modal-overlay" @onclick="() => _mostrarResolver = false">
+        <div class="modal modal-pequeno" @onclick:stopPropagation>
+            <header class="modal-cabecalho">
+                <h3>Resolver ocorrência</h3>
+                <button class="btn-fechar" @onclick="() => _mostrarResolver = false" aria-label="Fechar">×</button>
+            </header>
+            <div class="modal-corpo">
+                <label>Descreva o que foi feito (opcional)</label>
+                <textarea @bind="_notaResolver" rows="4" placeholder="Ex.: Verifiquei a leitora RFID e recoloquei o cabo."></textarea>
+            </div>
+            <footer class="modal-rodape">
+                <button class="btn secundario" @onclick="() => _mostrarResolver = false">Cancelar</button>
+                <button class="btn primario" @onclick="ConfirmarResolver" disabled="@_executandoAcao">Confirmar resolução</button>
+            </footer>
+        </div>
+    </div>
+}
+
+@if (_mostrarSuporte)
+{
+    <div class="modal-overlay" @onclick="() => _mostrarSuporte = false">
+        <div class="modal modal-pequeno" @onclick:stopPropagation>
+            <header class="modal-cabecalho">
+                <h3>Chamar suporte técnico</h3>
+                <button class="btn-fechar" @onclick="() => _mostrarSuporte = false" aria-label="Fechar">×</button>
+            </header>
+            <div class="modal-corpo">
+                <label>O que você já tentou? (descrita para o técnico)</label>
+                <textarea @bind="_descricaoSuporte" rows="5" placeholder="Descreva os passos já executados, o que você observou e qualquer contexto que ajude o técnico."></textarea>
+            </div>
+            <footer class="modal-rodape">
+                <button class="btn secundario" @onclick="() => _mostrarSuporte = false">Cancelar</button>
+                <button class="btn perigo" @onclick="ConfirmarSuporte" disabled="@_executandoAcao">Enviar para o suporte</button>
+            </footer>
+        </div>
+    </div>
+}
+
+<style>
+    .pag-ocorrencias { display: flex; flex-direction: column; gap: 20px; }
+    .pag-cabecalho h1 { margin: 0; font-size: 28px; }
+    .pag-subtitulo { margin: 6px 0 0; color: var(--ink-3); }
+
+    .card {
+        background: var(--surface-solid);
+        border: 1px solid var(--line);
+        border-radius: var(--raio-card);
+        padding: 20px;
+        box-shadow: var(--sombra-card);
+    }
+
+    .filtros .filtro-linha {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr auto;
+        gap: 14px;
+        align-items: end;
+    }
+    .filtro { display: flex; flex-direction: column; gap: 6px; }
+    .filtro label { font-size: 13px; color: var(--ink-3); font-weight: 600; }
+    .filtro select, .filtro input {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--raio-campo);
+        background: var(--surface-solid);
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 14px;
+    }
+    .periodo { display: flex; align-items: center; gap: 8px; }
+    .periodo span { color: var(--ink-3); font-size: 13px; }
+    .filtro.acoes { display: flex; flex-direction: row; gap: 8px; }
+
+    .btn {
+        padding: 10px 18px;
+        border-radius: var(--raio-botao);
+        border: 1px solid transparent;
+        font-weight: 600;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all .15s;
+    }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn.primario { background: var(--marca); color: var(--sobre-acao); }
+    .btn.primario:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn.secundario { background: var(--tint-violeta); color: var(--texto-violeta); }
+    .btn.secundario:hover:not(:disabled) { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .btn.perigo { background: oklch(0.96 0.04 25); color: var(--danger); }
+    .btn.perigo:hover:not(:disabled) { filter: brightness(0.98); }
+    [data-tema="escuro"] .btn.perigo { background: oklch(0.42 0.09 25); color: oklch(0.92 0.06 30); }
+
+    .btn-link {
+        background: none;
+        border: 0;
+        color: var(--acao-azul);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 14px;
+        padding: 4px 8px;
+    }
+    .btn-link:hover { text-decoration: underline; }
+
+    .estado { padding: 36px 24px; text-align: center; color: var(--ink-3); }
+    .estado.erro { display: flex; flex-direction: column; gap: 12px; align-items: center; color: var(--danger); }
+    .estado.ok { color: var(--texto-ciano); }
+
+    .tabela-ocorrencias { width: 100%; border-collapse: collapse; }
+    .tabela-ocorrencias th, .tabela-ocorrencias td {
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+        vertical-align: top;
+    }
+    .tabela-ocorrencias th {
+        color: var(--ink-3);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-weight: 700;
+    }
+    .tabela-ocorrencias tbody tr { cursor: pointer; transition: background .1s; }
+    .tabela-ocorrencias tbody tr:hover { background: var(--surface-alto, var(--tint-violeta)); }
+    .tabela-ocorrencias .quando { white-space: nowrap; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+    .tabela-ocorrencias .descricao { color: var(--ink-2); max-width: 420px; }
+    .tabela-ocorrencias .acao-col { text-align: right; }
+    .tabela-ocorrencias tr.severidade-critica { background: oklch(0.99 0.015 25); }
+    [data-tema="escuro"] .tabela-ocorrencias tr.severidade-critica { background: oklch(0.35 0.05 25); }
+
+    .chip {
+        display: inline-flex;
+        padding: 3px 10px;
+        border-radius: var(--raio-pill);
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .chip-tipo { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-severidade.chip-informativa { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-severidade.chip-baixa { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-severidade.chip-media { background: var(--tint-ambar); color: var(--acao-ambar-forte); }
+    .chip-severidade.chip-alta { background: var(--tint-rosa); color: var(--texto-rosa); }
+    .chip-severidade.chip-critica { background: oklch(0.96 0.04 25); color: var(--danger); }
+    [data-tema="escuro"] .chip-severidade.chip-critica { background: oklch(0.42 0.09 25); color: oklch(0.92 0.06 30); }
+
+    .chip-estado.chip-nova { background: var(--tint-violeta); color: var(--texto-violeta); }
+    .chip-estado.chip-vista { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-estado.chip-emanalise { background: var(--tint-ambar); color: var(--acao-ambar-forte); }
+    .chip-estado.chip-resolvida { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-estado.chip-ignorada { background: var(--tint-rosa); color: var(--texto-rosa); opacity: .7; }
+    .chip-estado.chip-nosuporte { background: var(--tint-violeta); color: var(--texto-violeta); border: 1px dashed currentColor; }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 18, 28, 0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 24px;
+    }
+    .modal {
+        background: var(--surface-solid);
+        border-radius: var(--raio-bloco);
+        border: 1px solid var(--line);
+        width: 100%;
+        max-width: 880px;
+        max-height: calc(100vh - 48px);
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--sombra-flutuante);
+        overflow: hidden;
+    }
+    .modal-pequeno { max-width: 520px; }
+    .modal-cabecalho {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 20px 24px 14px;
+        border-bottom: 1px solid var(--line);
+        gap: 16px;
+    }
+    .modal-cabecalho h2, .modal-cabecalho h3 { margin: 0 0 8px; font-size: 20px; }
+    .modal-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-fechar {
+        background: none;
+        border: 0;
+        font-size: 28px;
+        line-height: 1;
+        color: var(--ink-3);
+        cursor: pointer;
+        padding: 4px 12px;
+        border-radius: 8px;
+    }
+    .btn-fechar:hover { background: var(--tint-violeta); color: var(--ink); }
+    .modal-corpo {
+        padding: 20px 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .modal-corpo label { display: block; font-size: 13px; color: var(--ink-3); font-weight: 600; margin-bottom: 6px; }
+    .modal-corpo textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--raio-campo);
+        background: var(--surface-solid);
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 14px;
+        resize: vertical;
+        min-height: 80px;
+    }
+    .modal-rodape {
+        padding: 16px 24px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+    .acoes-esquerda { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .campos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+    }
+    .campo { display: flex; flex-direction: column; gap: 3px; }
+    .campo .rotulo { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+    .campo .valor { font-size: 14px; color: var(--ink-2); }
+    .campo .mono { font-family: var(--mono); font-size: 12px; }
+
+    .bloco {
+        border: 1px solid var(--line);
+        border-radius: var(--raio-campo);
+        padding: 14px 16px;
+        background: var(--surface);
+    }
+    .bloco-titulo {
+        font-size: 12px;
+        color: var(--ink-3);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bloco-valor { font-size: 14px; color: var(--ink); line-height: 1.55; white-space: pre-wrap; }
+    .bloco-valor.vazio { color: var(--ink-3); font-style: italic; }
+
+    .bloco-inferencia {
+        border-left: 3px solid var(--acao-ambar-forte);
+        background: var(--tint-ambar);
+    }
+    [data-tema="escuro"] .bloco-inferencia { background: oklch(0.37 0.055 80); }
+    .tag-inferencia {
+        display: inline-flex;
+        padding: 2px 8px;
+        border-radius: var(--raio-pill);
+        background: var(--acao-ambar);
+        color: var(--sobre-acao);
+        font-size: 10px;
+        letter-spacing: .06em;
+        font-weight: 800;
+    }
+
+    .json-pre {
+        margin: 0;
+        padding: 12px 14px;
+        background: oklch(0.985 0.01 285);
+        border: 1px solid var(--line);
+        border-radius: var(--raio-campo);
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--ink);
+        overflow-x: auto;
+        max-height: 420px;
+    }
+    [data-tema="escuro"] .json-pre { background: oklch(0.28 0.014 285); }
+</style>
+
+@code {
+    private static readonly string[] _tipos = { "ErroExecucao", "ErroDados", "Anomalia", "Contradicao", "FalhaApi", "FalhaWorkflow", "FalhaIntegracao", "FuroDeCobertura", "Roubo", "FuroDeSistema", "Duvida", "PedidoDeMudanca" };
+    private static readonly string[] _severidades = { "Informativa", "Baixa", "Media", "Alta", "Critica" };
+    private static readonly string[] _estados = { "Nova", "Vista", "EmAnalise", "Resolvida", "Ignorada", "NoSuporte" };
+
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+    private static readonly JsonSerializerOptions JsonIndent = new() { WriteIndented = true };
+
+    private bool _carregando = true;
+    private List<OcorrenciaDto>? _lista;
+
+    // DateTime?, NAO string. O `<input type="date">` do Blazor liga a
+    // DateTime/DateOnly, nunca a texto: com `string?` o compilador reclama
+    // nos dois sentidos (string -> DateTime na leitura, TimeOnly? -> string
+    // na escrita), que foram os 4 erros que travaram o build.
+    //
+    // E some junto a conversao manual: data que trafega como texto precisa
+    // de formato e cultura combinados nas duas pontas, e e assim que
+    // "01/02" vira fevereiro de um lado e janeiro do outro.
+    private DateTime? _filtroDesde;
+    private DateTime? _filtroAte;
+    private string _filtroTipo = "";
+    private string _filtroSeveridade = "";
+    private string _filtroEstado = "";
+
+    private OcorrenciaDto? _detalhe;
+    private bool _executandoAcao;
+
+    private bool _mostrarResolver;
+    private string _notaResolver = "";
+
+    private bool _mostrarSuporte;
+    private string _descricaoSuporte = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _filtroDesde = DateTime.Today.AddDays(-7);
+        _filtroAte = DateTime.Today.AddDays(1);
+        await AplicarFiltro();
+    }
+
+    private async Task AplicarFiltro()
+    {
+        _carregando = true;
+        DateTime? desde = _filtroDesde;
+        DateTime? ate = _filtroAte;
+        _lista = await OcorrenciaApi.BuscarAsync(
+            desde: desde,
+            ate: ate,
+            tipo: string.IsNullOrEmpty(_filtroTipo) ? null : _filtroTipo,
+            severidadeMinima: string.IsNullOrEmpty(_filtroSeveridade) ? null : _filtroSeveridade,
+            estado: string.IsNullOrEmpty(_filtroEstado) ? null : _filtroEstado,
+            limite: 500);
+        _carregando = false;
+    }
+
+    private void LimparFiltro()
+    {
+        _filtroDesde = null;
+        _filtroAte = null;
+        _filtroTipo = "";
+        _filtroSeveridade = "";
+        _filtroEstado = "";
+        _ = AplicarFiltro();
+    }
+
+
+    private static string FormatarddMMyyyyHHmm(DateTime utc)
+    {
+        return utc.ToLocalTime().ToString("dd/MM/yyyy HH:mm", PtBr);
+    }
+
+    private static string FormatarddMMyyyyHHmmss(DateTime utc)
+    {
+        return utc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", PtBr);
+    }
+
+    private static string OuVazio(string? s) => string.IsNullOrWhiteSpace(s) ? "— Não informado —" : s;
+
+    private static string SeveridadeClasse(string s) => "severidade-" + s.ToLowerInvariant();
+
+    private static string FormatarJson(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(doc.RootElement, JsonIndent);
+        }
+        catch
+        {
+            return json;
+        }
+    }
+
+    private void AbrirDetalhe(OcorrenciaDto o)
+    {
+        _detalhe = o;
+    }
+
+    private void FecharDetalhe()
+    {
+        _detalhe = null;
+        _mostrarResolver = false;
+        _mostrarSuporte = false;
+        _notaResolver = "";
+        _descricaoSuporte = "";
+    }
+
+    private async Task MarcarComoVista()
+    {
+        if (_detalhe is null || _executandoAcao) return;
+        _executandoAcao = true;
+        try
+        {
+            var atualizada = await OcorrenciaApi.MarcarVistaAsync(_detalhe.Id);
+            if (atualizada is not null)
+            {
+                _detalhe = atualizada;
+                AtualizarNaLista(atualizada);
+            }
+        }
+        finally { _executandoAcao = false; }
+    }
+
+    private void AbrirResolver()
+    {
+        _mostrarResolver = true;
+        _notaResolver = "";
+    }
+
+    private async Task ConfirmarResolver()
+    {
+        if (_detalhe is null || _executandoAcao) return;
+        _executandoAcao = true;
+        try
+        {
+            var atualizada = await OcorrenciaApi.ResolverAsync(_detalhe.Id, string.IsNullOrWhiteSpace(_notaResolver) ? null : _notaResolver);
+            if (atualizada is not null)
+            {
+                _detalhe = atualizada;
+                AtualizarNaLista(atualizada);
+                _mostrarResolver = false;
+                _notaResolver = "";
+            }
+        }
+        finally { _executandoAcao = false; }
+    }
+
+    private void AbrirSuporte()
+    {
+        _mostrarSuporte = true;
+        _descricaoSuporte = "";
+    }
+
+    private async Task ConfirmarSuporte()
+    {
+        if (_detalhe is null || _executandoAcao) return;
+        _executandoAcao = true;
+        try
+        {
+            var atualizada = await OcorrenciaApi.EnviarAoSuporteAsync(_detalhe.Id, string.IsNullOrWhiteSpace(_descricaoSuporte) ? null : _descricaoSuporte);
+            if (atualizada is not null)
+            {
+                _detalhe = atualizada;
+                AtualizarNaLista(atualizada);
+                _mostrarSuporte = false;
+                _descricaoSuporte = "";
+            }
+        }
+        finally { _executandoAcao = false; }
+    }
+
+    private void AtualizarNaLista(OcorrenciaDto atualizada)
+    {
+        if (_lista is null) return;
+        var i = _lista.FindIndex(o => o.Id == atualizada.Id);
+        if (i >= 0) _lista[i] = atualizada;
+    }
+}

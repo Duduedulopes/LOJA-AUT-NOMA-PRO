@@ -1,8 +1,8 @@
 using System.Net.Http;
 using System.Net.Http.Json;
-using AutonomousStore.AdminApp.Models;
+using AutonomousStore.Gerente.Models;
 
-namespace AutonomousStore.AdminApp.Services;
+namespace AutonomousStore.Gerente.Services;
 
 public interface IGerenteEspacialService
 {
@@ -16,7 +16,7 @@ public interface IGerenteEspacialService
 /// ESTE SERVICO NAO MANDA CREDENCIAL NENHUMA, E ISSO E DELIBERADO.
 ///
 /// Ele usa um HttpClient PROPRIO, sem o AuthHeaderHandler. O token de admin
-/// vale para a WebApi do Smart Store e para mais nada — mandar ele a um segundo
+/// vale para a WebApi do AutonomousStore e para mais nada — mandar ele a um segundo
 /// servidor so aumentaria a superficie de vazamento sem resolver problema
 /// nenhum, porque o monitor so devolve dado anonimo.
 ///

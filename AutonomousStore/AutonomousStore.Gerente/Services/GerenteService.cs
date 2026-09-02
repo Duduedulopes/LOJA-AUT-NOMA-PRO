@@ -1,14 +1,25 @@
 using System.Globalization;
 using System.Net.Http.Json;
 using System.Text;
-using AutonomousStore.AdminApp.Models;
-using AutonomousStore.AdminApp.Services.Agente;
+using AutonomousStore.Gerente.Models;
+using AutonomousStore.Gerente.Services.Agente;
 using AutonomousStore.Domain.Enums;
 
-namespace AutonomousStore.AdminApp.Services;
+using AutonomousStore.Gerente;
+
+namespace AutonomousStore.Gerente.Services;
 
 public interface IGerenteService
 {
+    /// <summary>Com quem o gerente está falando. Ver PerfilDeQuemFala.</summary>
+    /// <remarks>
+    /// Na interface, e não só na classe, porque quem define isto é a TELA —
+    /// e a tela só conhece a interface. Deixá-lo de fora obrigaria o chat a
+    /// fazer cast para a implementação, que é o tipo de remendo que depois
+    /// ninguém entende por que existe.
+    /// </remarks>
+    PerfilDeQuemFala Perfil { get; set; }
+
     Task<string> ResponderAsync(string pergunta);
 
     /// <summary>Responde uma intencao que o ADMINISTRADOR escolheu num botao.</summary>
@@ -44,7 +55,7 @@ public interface IGerenteService
 /// NAO virou fallback: um fallback silencioso esconderia a rede caindo, e
 /// ninguem saberia que o chat voltou a ser um `if`.
 ///
-/// TODO NUMERO DESTE MODELO VIVE EM `wwwroot/modelos/intencao.json`
+/// TODO NUMERO DESTE MODELO VIVE EM `AutonomousStore.Gerente/wwwroot/modelos/intencao.json`
 ///
 /// Quantas intencoes, quantas frases, qual limiar, quanto ela acerta. Nao
 /// os repita aqui — este comentario ja teve "13 intencoes", "66,7%" e
@@ -72,6 +83,7 @@ public class GerenteService : IGerenteService
     private readonly IClassificadorDeIntencao _classificador;
     private readonly AgenteAutonomo _agente;
     private readonly IHttpClientFactory _fabrica;
+    private readonly IOcorrenciaApiService? _ocorrencias;
 
     private static readonly CultureInfo Br = new("pt-BR");
 
@@ -95,19 +107,42 @@ public class GerenteService : IGerenteService
     /// </remarks>
     private List<ProductDto>? _catalogoEmMemoria;
 
+    /// <summary>O ultimo produto de que se falou nesta conversa.</summary>
+    /// <remarks>
+    /// "temos agua?" ... "adicione mais 1 unidade" — a segunda frase nao
+    /// diz de que produto, e ate agora o gerente nao tinha como saber. Ele
+    /// nascia sem passado a cada mensagem.
+    ///
+    /// Guarda-se UMA coisa so, e de proposito: o ultimo produto citado.
+    /// Quanto mais ele assume sozinho, mais chance de assumir errado — e
+    /// um sistema que grava no banco erra caro. Um produto e o minimo que
+    /// resolve o caso real, e o maximo que da para prever.
+    ///
+    /// E ele sempre DIZ qual assumiu, no resumo. Assumir calado seria
+    /// trocar uma pergunta a mais por um engano silencioso.
+    /// </remarks>
+    private ProductDto? _ultimoProduto;
+
     /// <summary>Toda pergunta feita, para virar treino do classificador depois.</summary>
     public List<(DateTime Quando, string Pergunta, string Intencao, double Confianca)> PerguntasFeitas { get; } = new();
 
     public GerenteService(IProductApiService produtos, ISessionApiService sessoes,
                           IGerenteEspacialService espacial,
                           IClassificadorDeIntencao classificador,
-                          IHttpClientFactory fabrica)
+                          IHttpClientFactory fabrica,
+                          IOcorrenciaApiService? ocorrencias = null)
     {
         _produtos = produtos;
         _sessoes = sessoes;
         _espacial = espacial;
         _classificador = classificador;
         _fabrica = fabrica;
+        // OPCIONAL DE PROPOSITO, E SO ENQUANTO A MIGRACAO NAO FOR APLICADA.
+        // Sem a tabela de ocorrencia no banco, o gerente ainda responde sobre
+        // furo — deduzindo das sessoes canceladas, que e o que ele ja fazia. O
+        // parametro vira obrigatorio quando a tabela existir em toda
+        // instalacao.
+        _ocorrencias = ocorrencias;
         _agente = new AgenteAutonomo();
     }
 
@@ -130,10 +165,17 @@ public class GerenteService : IGerenteService
     /// </remarks>
     public async Task<string> ResponderComIntencaoAsync(string intencao, string pergunta)
     {
-        if (Conversa.CamposDe(intencao) is { } campos)
-            return ComoChefe(await AbrirAsync(pergunta, intencao, campos), momentoBom: true);
+        // A BARREIRA FICA AQUI, E NÃO NA TELA.
+        //
+        // Filtrar só os botões de sugestão deixaria a porta aberta: basta o
+        // cliente digitar a frase certa e a rede classificar sozinha. A
+        // recusa tem de estar no caminho por onde TODA resposta passa.
+        if (!Perfil.Pode(intencao)) return Perfil.Recusa();
 
-        return ComoChefe(await ExecutarAsync(intencao, Normalizar(pergunta)),
+        if (Conversa.CamposDe(intencao) is { } campos)
+            return Tratando(await AbrirAsync(pergunta, intencao, campos), momentoBom: true);
+
+        return Tratando(await ExecutarAsync(intencao, Normalizar(pergunta)),
                          momentoBom: EhOperacaoDeAgente(intencao));
     }
 
@@ -170,26 +212,82 @@ public class GerenteService : IGerenteService
         }
     }
 
-    public IReadOnlyList<string> Sugestoes { get; } = new[]
+    /// <summary>Uma sugestão de pergunta, e a intenção que ela dispara.</summary>
+    /// <remarks>
+    /// A INTENÇÃO VEM JUNTO PORQUE SEM ELA NÃO DÁ PARA FILTRAR.
+    ///
+    /// Antes isto era uma lista de `string` solta. Toda a barreira do perfil
+    /// ficou de pé — o serviço recusa, os botões de dúvida saem filtrados —
+    /// e mesmo assim o cliente abria o chat e via "quanto faturamos hoje?",
+    /// "como estão as câmeras?" e "alterar preço do produto" à sua espera,
+    /// porque texto solto não tem como ser julgado. Ele clicaria e levaria
+    /// uma recusa; pior, ficaria sabendo que a loja tem tudo aquilo.
+    ///
+    /// Com o par (texto, intenção) a regra é uma só e vale para sempre:
+    /// sugestão nova de intenção proibida nasce escondida do cliente, sem
+    /// ninguém precisar lembrar.
+    /// </remarks>
+    public enum Publico { Cliente, Admin, Ambos }
+
+    public readonly record struct Sugestao(string Texto, string Intencao, Publico Para);
+
+    /// <summary>Todas as sugestões que existem, das duas plateias.</summary>
+    /// <remarks>
+    /// PLATEIA E PERMISSÃO SÃO COISAS DIFERENTES, e por isso são dois campos.
+    ///
+    /// `Pode` responde "seria seguro?"; `Para` responde "faz sentido para
+    /// esta pessoa?". Filtrar só por permissão encheria o painel do Chefe
+    /// com "como eu pago?" e "tem chocolate?" — seguro, e inútil: ele passou
+    /// de 16 para 22 sugestões, mexendo numa tela que ninguém pediu para
+    /// mexer.
+    ///
+    /// A permissão continua valendo por cima da plateia. Se alguém marcar
+    /// `faturamento` como `Ambos` por engano, o filtro de permissão segura
+    /// mesmo assim — errar a plateia dá sugestão boba, nunca vazamento.
+    /// </remarks>
+    private static readonly Sugestao[] TodasAsSugestoes =
     {
-        "quantas pessoas estão na loja agora?",
-        "o que está acabando?",
-        "quanto faturamos hoje?",
-        "o que tem no carrinho agora?",
-        "como estão as câmeras?",
-        "o que mais sai?",
-        "vendemos mais que ontem?",
-        "como funciona o rfid?",
-        "os sistemas estão sincronizados?",
-        "pessoas vs carrinhos",
-        "status da api",
-        "entrar na loja",
-        // Sugestões do agente autônomo
-        "adiciona um produto novo",
-        "alterar preço do produto",
-        "adicionar câmera nova",
-        "configurar sistema"
+        // ── do comprador ──────────────────────────────────────────────
+        new("quanto custa a água?",       "preco",           Publico.Cliente),
+        new("o que tem na prateleira?",   "listar_produtos", Publico.Cliente),
+        new("tem chocolate?",             "estoque",         Publico.Cliente),
+        new("o que tem no meu carrinho?", "meu_carrinho",    Publico.Cliente),
+        new("como eu pago?",              "pagamento",       Publico.Cliente),
+        new("como eu entro na loja?",     "entrada_loja",    Publico.Cliente),
+        new("o que você faz?",            "ajuda",           Publico.Cliente),
+
+        // Serve aos dois sem reescrever: o dono pergunta para conferir o que
+        // a loja responde, o cliente porque quer saber mesmo.
+        new("como funciona o rfid?",      "duvida_sistema",  Publico.Ambos),
+
+        // ── da administração ──────────────────────────────────────────
+        new("quantas pessoas estão na loja agora?", "pessoas_na_loja",     Publico.Admin),
+        new("o que está acabando?",                 "estoque_baixo",       Publico.Admin),
+        new("quanto faturamos hoje?",               "faturamento",         Publico.Admin),
+        new("o que tem no carrinho agora?",         "carrinho",            Publico.Admin),
+        new("como estão as câmeras?",               "cameras",             Publico.Admin),
+        new("o que mais sai?",                      "mais_vendidos",       Publico.Admin),
+        new("vendemos mais que ontem?",             "relatorio_periodo",   Publico.Admin),
+        new("os sistemas estão sincronizados?",     "integracao_sistemas", Publico.Admin),
+        new("pessoas vs carrinhos",                 "analise_combinada",   Publico.Admin),
+        new("status da api",                        "status_api",          Publico.Admin),
+        new("entrar na loja",                       "entrada_loja",        Publico.Admin),
+
+        // ── as que escrevem ───────────────────────────────────────────
+        new("adiciona um produto novo",  "adicionar_produto",  Publico.Admin),
+        new("alterar preço do produto",  "alterar_preco",      Publico.Admin),
+        new("adicionar câmera nova",     "configurar_camera",  Publico.Admin),
+        new("configurar sistema",        "configurar_sistema", Publico.Admin),
     };
+
+    /// <summary>As que ESTA pessoa vê.</summary>
+    public IReadOnlyList<string> Sugestoes =>
+        TodasAsSugestoes
+            .Where(s => s.Para == Publico.Ambos
+                     || s.Para == (Perfil.PodeEscrever ? Publico.Admin : Publico.Cliente))
+            .Where(s => Perfil.Pode(s.Intencao))   // a permissão manda por cima
+            .Select(s => s.Texto)
+            .ToList();
 
     // ------------------------------------------------------------------
 
@@ -248,7 +346,7 @@ public class GerenteService : IGerenteService
 
         if (!_classificador.Pronto && !await _classificador.CarregarAsync())
             return "O classificador de intenção não carregou " +
-                   "(`wwwroot/modelos/intencao.json`). Sem ele eu não sei interpretar " +
+                   "(`AutonomousStore.Gerente/wwwroot/modelos/intencao.json`). Sem ele eu não sei interpretar " +
                    "a pergunta — e prefiro dizer isso a adivinhar.";
 
         // A REDE FALA PRIMEIRO, SEMPRE — inclusive com dialogo aberto.
@@ -263,10 +361,38 @@ public class GerenteService : IGerenteService
 
         // ...mas quem RESPONDE, com ordem em andamento, e o dialogo.
         if (_conversa is not null)
-            return ComoChefe(await ContinuarAsync(pergunta, intencao));
+            return Tratando(await ContinuarAsync(pergunta, intencao));
 
         if (!intencao.Confiavel)
-            return ComoChefe(NaoEntendi(intencao));
+            return Tratando(NaoEntendi(intencao));
+
+        // ══════════════════════════════════════════════════════════════
+        //  A BARREIRA. E ela quase ficou só do outro lado.
+        //
+        //  Eu tinha posto a trava só em `ResponderComIntencaoAsync` — o
+        //  caminho do BOTÃO — e escrito, com todas as letras, que ela
+        //  estava "no caminho por onde toda resposta passa". Não estava.
+        //  Cliente não clica em botão de intenção: ele DIGITA. E este é o
+        //  caminho de quem digita.
+        //
+        //  A prova rodou antes da correção e devolveu o que faltava:
+        //
+        //     você> quanto faturamos hoje?
+        //     ele > **R$ 1.234,56** hoje (15/08/2026), em 1 venda.
+        //
+        //     você> muda o preço da água para 0,01
+        //     ele > entendi assim: preço novo R$ 0,01. Posso fazer?
+        //     você> sim
+        //     ele > ✅ Preço alterado com sucesso, Maria!
+        //
+        //  Um comprador acabava de mudar o preço da água para um centavo.
+        //
+        //  DEPOIS DO `Confiavel`, DE PROPÓSITO. Se a rede não tem certeza
+        //  do que a frase quer dizer, recusar por causa do palpite seria
+        //  acusar a pessoa com base num chute de 60%. Abaixo do limiar ele
+        //  diz que não entendeu; o clique no botão cai na outra barreira.
+        // ══════════════════════════════════════════════════════════════
+        if (!Perfil.Pode(intencao.Nome)) return Perfil.Recusa();
 
         // "SIM" SEM NADA PENDENTE NAO EXECUTA NADA.
         //
@@ -278,19 +404,19 @@ public class GerenteService : IGerenteService
         // Esta guarda e o que torna aquilo seguro. Se ela sair, um "ok"
         // perdido no meio da conversa vira uma gravacao no banco.
         if (intencao.Nome is "confirmar_acao" or "cancelar_operacao")
-            return ComoChefe("Não tem nenhuma alteração esperando resposta agora. " +
+            return Tratando("Não tem nenhuma alteração esperando resposta agora. " +
                              "Se quiser mudar alguma coisa, é só pedir — por exemplo " +
                              "\"muda o preço da água para 5,50\".");
 
         // Ordem que mexe no sistema e que tem dados a coletar.
         if (Conversa.CamposDe(intencao.Nome) is { } campos)
-            return ComoChefe(await AbrirAsync(pergunta, intencao.Nome, campos), momentoBom: true);
+            return Tratando(await AbrirAsync(pergunta, intencao.Nome, campos), momentoBom: true);
 
         if (EhOperacaoDeAgente(intencao.Nome))
-            return ComoChefe(await ProcessarComoAgenteAsync(pergunta, intencao.Nome),
+            return Tratando(await ProcessarComoAgenteAsync(pergunta, intencao.Nome),
                              momentoBom: true);
 
-        return ComoChefe(await ExecutarAsync(intencao.Nome, Normalizar(pergunta)),
+        return Tratando(await ExecutarAsync(intencao.Nome, Normalizar(pergunta)),
                          momentoBom: intencao.Nome is "saudacao" or "ajuda");
     }
 
@@ -309,14 +435,35 @@ public class GerenteService : IGerenteService
     private int _respostas;
     private int _ultimoTratamento = -9;
 
-    private string ComoChefe(string resposta, bool momentoBom = false)
+    /// <summary>Com quem ele está falando. Padrão: o Chefe.</summary>
+    /// <remarks>
+    /// PADRÃO SEGURO É O CONTRÁRIO DO INTUITIVO AQUI. O padrão devia ser o
+    /// perfil MAIS restrito, para que esquecer de configurar não vazasse
+    /// nada. Mas o painel do admin já existe e funciona sem saber deste
+    /// campo; se o padrão fosse o cliente, ele emudeceria sem avisar.
+    ///
+    /// Então o padrão é o Chefe e a proteção é outra: o app do cliente NÃO
+    /// PODE esquecer de definir, porque o `GerenteChat` exige o perfil como
+    /// parâmetro obrigatório. Quem esquecer não compila.
+    /// </remarks>
+    public PerfilDeQuemFala Perfil { get; set; } = PerfilDeQuemFala.Chefe;
+
+    private string Tratando(string resposta, bool momentoBom = false)
     {
         if (string.IsNullOrWhiteSpace(resposta)) return resposta;
         _respostas++;
 
         var comeco = resposta.Length > 60 ? resposta[..60] : resposta;
-        if (comeco.Contains("Chefe", StringComparison.OrdinalIgnoreCase)) return resposta;
+        if (comeco.Contains(Perfil.Tratamento, StringComparison.OrdinalIgnoreCase)) return resposta;
         if (resposta.StartsWith("⚠")) return resposta;
+
+        // RESPOSTA QUE COMECA EM LISTA OU TITULO NAO LEVA TRATAMENTO.
+        // "Chefe, - **Água Mineral 500ml** — 12 un" gruda a saudacao no
+        // primeiro item e quebra a marcacao da lista. A cortesia so cabe
+        // onde ha frase para ela abrir.
+        if (resposta.StartsWith("- ") || resposta.StartsWith("**") ||
+            resposta.StartsWith("#") || resposta.StartsWith("|"))
+            return resposta;
 
         var primeira = _respostas == 1;
         var faz_tempo = _respostas - _ultimoTratamento >= 4;
@@ -325,7 +472,7 @@ public class GerenteService : IGerenteService
 
         _ultimoTratamento = _respostas;
 
-        var aberturas = new[] { "Chefe, ", "Pois não, Chefe. ", "Olha só, Chefe. ", "Deixa comigo, Chefe. " };
+        var aberturas = new[] { $"{Perfil.Tratamento}, ", $"Pois não, {Perfil.Tratamento}. ", $"Olha só, {Perfil.Tratamento}. ", $"Deixa comigo, {Perfil.Tratamento}. " };
         var abre = aberturas[(_respostas / 4) % aberturas.Length];
 
         // Depois de "Chefe, " a frase segue em minuscula; depois de ponto,
@@ -353,6 +500,15 @@ public class GerenteService : IGerenteService
     private async Task<string> AbrirAsync(string pergunta, string operacao,
                                           List<Conversa.Campo> campos)
     {
+        // SEGUNDA TRAVA, E DE PROPÓSITO REDUNDANTE.
+        //
+        // Hoje ninguém chega aqui sem passar pela barreira lá em cima — as
+        // duas checaram. Mas abrir uma conversa é o que arma o "sim" que
+        // grava: se um dia alguém acrescentar um caminho novo até aqui e
+        // esquecer da barreira, o estrago é uma escrita no banco feita por
+        // quem não podia. Uma linha é barato demais para não pagar.
+        if (!Perfil.PodeEscrever) return Perfil.Recusa();
+
         var conversa = new Conversa(operacao, pergunta, campos);
 
         var catalogo = await SegurarAsync(() => _produtos.GetAllAsync(), null!);
@@ -369,6 +525,18 @@ public class GerenteService : IGerenteService
             {
                 conversa.Produto = achado;
                 conversa.Guardar("produto", achado.Name);
+            }
+            else if (varios.Count == 0 && _ultimoProduto is not null)
+            {
+                // A ORDEM NAO DISSE O PRODUTO, MAS A CONVERSA JA TINHA UM.
+                //
+                // "temos agua?" ... "adicione mais 1 unidade" — assumir a
+                // agua e o que qualquer pessoa faria. O que nao se pode e
+                // assumir CALADO: o resumo abaixo diz qual foi, e o Chefe
+                // corrige antes de gravar se eu errei.
+                conversa.Produto = _ultimoProduto;
+                conversa.Guardar("produto", _ultimoProduto.Name);
+                conversa.AssumiuOProduto = true;
             }
             else if (varios.Count > 1)
             {
@@ -420,6 +588,13 @@ public class GerenteService : IGerenteService
     {
         var sb = new StringBuilder();
 
+        // Se o produto foi assumido da conversa e nao da frase, isso vai
+        // dito ANTES do resumo — e a linha que permite o Chefe perceber
+        // que eu peguei o produto errado.
+        if (c.AssumiuOProduto && c.Produto is not null)
+            sb.AppendLine($"Você não disse o produto, então peguei o último de que " +
+                          $"falamos: **{c.Produto.Name}**.\n");
+
         switch (c.Operacao)
         {
             case "alterar_preco":
@@ -440,6 +615,17 @@ public class GerenteService : IGerenteService
                         sb.AppendLine($"\n⚠ Isso é uma mudança grande. Confere se não " +
                                       $"faltou ou sobrou um dígito.");
                 }
+                break;
+            }
+            case "repor_estoque":
+            {
+                var p = c.Produto!;
+                var entram = int.Parse(c.Dados["quantidade"], CultureInfo.InvariantCulture);
+                sb.AppendLine($"Entendi assim:\n");
+                sb.AppendLine($"**{p.Name}**");
+                sb.AppendLine($"- estoque hoje: {p.StockQuantity} unidades");
+                sb.AppendLine($"- **entram {entram}**");
+                sb.AppendLine($"- fica com: **{p.StockQuantity + entram} unidades**");
                 break;
             }
             case "alterar_estoque":
@@ -612,7 +798,8 @@ public class GerenteService : IGerenteService
     /// </summary>
     private bool EhOperacaoDeAgente(string intencao)
     {
-        return intencao is "adicionar_produto" or "alterar_preco" or "alterar_estoque" or 
+        return intencao is "adicionar_produto" or "alterar_preco" or "alterar_estoque" or
+               "repor_estoque" or 
                "remover_produto" or "configurar_camera" or "configurar_sistema" or 
                "reiniciar_servico" or "confirmar_acao" or "cancelar_operacao" or 
                "escolher_solucao";
@@ -675,6 +862,7 @@ public class GerenteService : IGerenteService
         {
             "adicionar_produto" => await AdicionarProdutoAgenteAsync(parametros),
             "alterar_preco" => await AlterarPrecoAgenteAsync(parametros),
+            "repor_estoque" => await ReporEstoqueAgenteAsync(parametros),
             "alterar_estoque" => await AlterarEstoqueAgenteAsync(parametros),
             "remover_produto" => await RemoverProdutoAgenteAsync(parametros),
             "configurar_camera" => ConfigurarCameraAgente(parametros),
@@ -699,10 +887,26 @@ public class GerenteService : IGerenteService
             var tipo = parametros.GetValueOrDefault("tipo", "produto")?.ToString() ?? "produto";
 
             // Valida e converte os parâmetros
-            if (!decimal.TryParse(precoStr.Replace("R$", "").Trim(), out var preco))
+            // CULTURA INVARIANTE, E ISTO NAO E DETALHE.
+            //
+            // O valor foi GRAVADO em cultura invariante (`Conversa` guarda
+            // "3.00"). Lido sem cultura, `TryParse` usa a do navegador — em
+            // pt-BR o ponto e separador de MILHAR, entao "3.00" vira 300.
+            //
+            // Foi exatamente o que aconteceu: o resumo mostrou R$ 3,00
+            // (linha 428, que le invariante) e o banco recebeu R$ 300,00.
+            // O mesmo texto, lido de dois jeitos, e a confirmacao deixando
+            // de valer — ela mostra um numero e grava outro.
+            //
+            // Quem escreve e quem le TEM de combinar a cultura. Como o
+            // formato de gravacao e invariante, a leitura tambem e.
+            if (!decimal.TryParse(precoStr.Replace("R$", "").Trim(),
+                                  NumberStyles.Number, CultureInfo.InvariantCulture,
+                                  out var preco))
                 return "Preço inválido. Por favor, forneça um valor numérico válido (ex: 5.50).";
 
-            if (!int.TryParse(quantidadeStr, out var quantidade))
+            if (!int.TryParse(quantidadeStr, NumberStyles.Integer,
+                              CultureInfo.InvariantCulture, out var quantidade))
                 return "Quantidade inválida. Por favor, forneça um número inteiro válido (ex: 50).";
 
             if (string.IsNullOrWhiteSpace(nome))
@@ -733,7 +937,7 @@ public class GerenteService : IGerenteService
 
             if (sucesso && produto is not null)
             {
-                return $"✅ Produto adicionado com sucesso, Chefe!\n\n" +
+                return $"✅ Produto adicionado com sucesso, {Perfil.Tratamento}!\n\n" +
                        $"**{produto.Name}**\n" +
                        $"- ID: {produto.Id}\n" +
                        $"- Preço: {Moeda(produto.Price)}\n" +
@@ -759,7 +963,9 @@ public class GerenteService : IGerenteService
             var nomeProduto = parametros.GetValueOrDefault("nome", "")?.ToString() ?? "";
             var novoPrecoStr = parametros.GetValueOrDefault("preco", "0")?.ToString() ?? "0";
 
-            if (!decimal.TryParse(novoPrecoStr.Replace("R$", "").Trim(), out var novoPreco))
+            if (!decimal.TryParse(novoPrecoStr.Replace("R$", "").Trim(),
+                                  NumberStyles.Number, CultureInfo.InvariantCulture,
+                                  out var novoPreco))
                 return "Preço inválido. Por favor, forneça um valor numérico válido.";
 
             // Busca o produto pelo nome
@@ -774,7 +980,7 @@ public class GerenteService : IGerenteService
 
             if (sucesso)
             {
-                return $"✅ Preço alterado com sucesso, Chefe!\n\n" +
+                return $"✅ Preço alterado com sucesso, {Perfil.Tratamento}!\n\n" +
                        $"**{produto.Name}**\n" +
                        $"- Preço anterior: {Moeda(produto.Price)}\n" +
                        $"- Novo preço: {Moeda(novoPreco)}\n\n" +
@@ -791,6 +997,49 @@ public class GerenteService : IGerenteService
         }
     }
 
+    /// <summary>SOMA ao estoque. Nao define total — quem define e o outro.</summary>
+    /// <remarks>
+    /// Este metodo existe porque "adicione 1 unidade" com 4 em estoque
+    /// virava "define 1" e tirava 3. Aqui o numero e o que ENTRA, e vai
+    /// direto para `RestockAsync`, sem calcular diferenca nenhuma —
+    /// diferenca e conta do outro caso, e era a conta que estava errada.
+    /// </remarks>
+    private async Task<string> ReporEstoqueAgenteAsync(Dictionary<string, object> parametros)
+    {
+        try
+        {
+            var nomeProduto = parametros.GetValueOrDefault("nome", "")?.ToString() ?? "";
+            var entramStr = parametros.GetValueOrDefault("quantidade", "0")?.ToString() ?? "0";
+
+            // Cultura invariante, como quem gravou. Ver a nota em
+            // AlterarPrecoAgenteAsync: sem isto "1.000" viraria 1000 em
+            // pt-BR... e "3.00" virou R$ 300,00 no banco do Chefe uma vez.
+            if (!int.TryParse(entramStr, NumberStyles.Integer,
+                              CultureInfo.InvariantCulture, out var entram) || entram <= 0)
+                return "Preciso de um número inteiro maior que zero — quantas unidades entraram?";
+
+            var todos = await _produtos.GetAllAsync();
+            var produto = todos.FirstOrDefault(p => Normalizar(p.Name) == Normalizar(nomeProduto))
+                       ?? ProcurarProduto(todos, Normalizar(nomeProduto));
+
+            if (produto is null)
+                return $"Não encontrei o produto '{nomeProduto}'. Quer que eu liste os produtos?";
+
+            var (sucesso, erro) = await _produtos.RestockAsync(produto.Id, entram);
+            if (!sucesso) return $"❌ Não consegui repor: {erro}";
+
+            return $"✅ Estoque reposto, {Perfil.Tratamento}!\n\n" +
+                   $"**{produto.Name}**\n" +
+                   $"- antes: {produto.StockQuantity} unidades\n" +
+                   $"- entraram: {entram}\n" +
+                   $"- agora: **{produto.StockQuantity + entram} unidades**";
+        }
+        catch (Exception ex)
+        {
+            return $"❌ Erro ao repor estoque: {ex.Message}";
+        }
+    }
+
     private async Task<string> AlterarEstoqueAgenteAsync(Dictionary<string, object> parametros)
     {
         try
@@ -798,7 +1047,8 @@ public class GerenteService : IGerenteService
             var nomeProduto = parametros.GetValueOrDefault("nome", "")?.ToString() ?? "";
             var novaQuantidadeStr = parametros.GetValueOrDefault("quantidade", "0")?.ToString() ?? "0";
 
-            if (!int.TryParse(novaQuantidadeStr, out var novaQuantidade))
+            if (!int.TryParse(novaQuantidadeStr, NumberStyles.Integer,
+                              CultureInfo.InvariantCulture, out var novaQuantidade))
                 return "Quantidade inválida. Por favor, forneça um número inteiro válido.";
 
             // Busca o produto pelo nome
@@ -821,7 +1071,7 @@ public class GerenteService : IGerenteService
 
                 if (sucesso)
                 {
-                    return $"✅ Estoque atualizado com sucesso, Chefe!\n\n" +
+                    return $"✅ Estoque atualizado com sucesso, {Perfil.Tratamento}!\n\n" +
                            $"**{produto.Name}**\n" +
                            $"- Estoque anterior: {produto.StockQuantity} unidades\n" +
                            $"- Adicionado: {diferenca} unidades\n" +
@@ -836,7 +1086,7 @@ public class GerenteService : IGerenteService
             else
             {
                 // Estoque negativo - não suportado diretamente, sugere alternativa
-                return $"⚠ Não posso reduzir o estoque diretamente, Chefe.\n\n" +
+                return $"⚠ Não posso reduzir o estoque diretamente, {Perfil.Tratamento}.\n\n" +
                        $"**{produto.Name}**\n" +
                        $"- Estoque atual: {produto.StockQuantity} unidades\n" +
                        $"- Solicitado: {novaQuantidade} unidades\n" +
@@ -869,7 +1119,7 @@ public class GerenteService : IGerenteService
 
             // ⚠️ ATENÇÃO: A API não tem endpoint de remoção direta
             // Vou simular sugerindo inativação
-            return $"⚠️ A API atual não suporta remoção direta de produtos, Chefe.\n\n" +
+            return $"⚠️ A API atual não suporta remoção direta de produtos, {Perfil.Tratamento}.\n\n" +
                    $"**{produto.Name}** encontrado (ID: {produto.Id})\n\n" +
                    $"Como alternativa, posso:\n" +
                    $"1. Zerar o estoque para torná-lo indisponível\n" +
@@ -895,7 +1145,7 @@ public class GerenteService : IGerenteService
 
             // ⚠️ ATENÇÃO: Configuração de câmera envolve o SO Espacial
             // Vou simular a resposta
-            return $"⚠️ A configuração de câmeras envolve o SO Espacial, Chefe.\n\n" +
+            return $"⚠️ A configuração de câmeras envolve o SO Espacial, {Perfil.Tratamento}.\n\n" +
                    $"**Câmera a ser configurada:**\n" +
                    $"- IP: {ip}\n" +
                    $"- Tipo: {tipo}\n" +
@@ -918,7 +1168,7 @@ public class GerenteService : IGerenteService
         {
             var configuracao = parametros.GetValueOrDefault("configuracao", "")?.ToString() ?? "";
 
-            return $"⚠️ A configuração do sistema requer acesso direto aos arquivos, Chefe.\n\n" +
+            return $"⚠️ A configuração do sistema requer acesso direto aos arquivos, {Perfil.Tratamento}.\n\n" +
                    $"**Configuração solicitada:** {configuracao}\n\n" +
                    $"Para segurança, alterações de configuração do sistema:\n" +
                    $"1. Devem ser feitas diretamente nos arquivos\n" +
@@ -938,7 +1188,7 @@ public class GerenteService : IGerenteService
         {
             var servico = parametros.GetValueOrDefault("servico", "")?.ToString() ?? "";
 
-            return $"⚠️ Reinício de serviços é uma operação crítica, Chefe.\n\n" +
+            return $"⚠️ Reinício de serviços é uma operação crítica, {Perfil.Tratamento}.\n\n" +
                    $"**Serviço solicitado:** {servico}\n\n" +
                    $"Por segurança, reinícios de serviço:\n" +
                    $"1. Requerem aprovação explícita\n" +
@@ -970,6 +1220,20 @@ public class GerenteService : IGerenteService
         // numero medido sobreviveu ao que o gerou. Agora ele vem do arquivo.
         var limiar = _classificador.Modelo?.Limiar ?? 0.74;
         var corpus = _classificador.Modelo?.Medido?.Corpus ?? 0;
+
+        // NÃO NOMEIA O PALPITE QUE ELE NÃO PODERIA OUVIR.
+        //
+        // A prova pegou isto: "quais os produtos mais vendidos?" ficava em
+        // 63% e a tela respondia "meu palpite foi **o que mais sai**". A
+        // barreira teria recusado a resposta — mas a frase de recusa já
+        // contava que existe um relatório de mais vendidos aqui dentro.
+        // Vazar o nome do cômodo é vazar menos que a chave, e ainda assim
+        // é vazar.
+        if (!Perfil.Pode(intencao.Nome))
+            return "Não entendi bem o que você quis dizer. Aqui eu ajudo com preço, "
+                 + "o que tem à venda, o seu carrinho e como a loja funciona.\n\n"
+                 + "Se for outra coisa, o suporte responde: é só abrir um chamado "
+                 + "em **Suporte**, no menu de cima.";
         // UMA CASA DECIMAL, E NAO ZERO.
         //
         // Com {:P0} apareceu na tela "96,8% de confianca — abaixo dos 97%"
@@ -1010,6 +1274,19 @@ public class GerenteService : IGerenteService
         // Novas intenções de API
         "status_api"     => await StatusApiAsync(),
         "logs_sistema"   => LogsSistemaAsync(),
+        // A REDE JA SABIA E O GERENTE NAO USAVA. Estas quatro tinham 505
+        // frases treinadas — 10,3% do corpus — e caiam todas no `_ =>
+        // Ajuda()`. "adicionar camera" ja estava em `configurar_camera`
+        // desde sempre; faltava alguem do lado de ca fazer alguma coisa
+        // com a resposta.
+        "configurar_camera"  => await ConfigurarCameraAsync(),
+        "status_sistema"     => await StatusSistemaAsync(),
+        "configurar_sistema" => ConfigurarSistema(),
+        // As tres treinadas nesta rodada.
+        "listar_produtos"    => await ListarProdutosAsync(),
+        "furo_sistema"       => await FuroAsync(t),
+        "relatorio_periodo"  => await RelatorioAsync(t),
+        "reiniciar_servico"  => ReiniciarServico(),
         _                 => Ajuda(),
     };
 
@@ -1079,6 +1356,19 @@ public class GerenteService : IGerenteService
                string.Join("\n", linhas);
     }
 
+    /// <summary>
+    /// O relogio do gerente. Entra por propriedade para o teste poder
+    /// congelar o dia — "ontem" precisa significar a mesma coisa em toda
+    /// rodada, senao a prova so vale na data em que foi escrita.
+    /// </summary>
+    internal Func<DateTime> Agora { get; set; } = () => DateTime.Now;
+
+    /// <summary>
+    /// O ultimo recorte de tempo respondido, para o "quer ver em grafico?"
+    /// saber sobre o que desenhar.
+    /// </summary>
+    private List<Periodo> _ultimosPeriodos = new();
+
     private async Task<string> FaturamentoAsync(string t)
     {
         var historico = await SegurarAsync(() => _sessoes.GetHistoryAsync(), null!);
@@ -1087,35 +1377,33 @@ public class GerenteService : IGerenteService
                    "confira se a sua sessão do painel não expirou.";
 
         var pagas = historico.Where(s => s.PaymentConfirmedAt is not null).ToList();
-        var hoje = pagas.Where(s => s.PaymentConfirmedAt!.Value.Date == DateTime.Today).ToList();
 
-        var querTudo = Tem(t, "total", "sempre", "geral", "tudo", "historico");
-        var alvo = querTudo ? pagas : hoje;
-        var quando = querTudo ? "no total" : "hoje";
-
-        if (alvo.Count == 0)
-            return $"Nenhuma venda paga {quando}." +
-                   (querTudo ? "" : $" No total já foram {pagas.Count}, somando {Moeda(pagas.Sum(s => s.Total))}.");
-
-        var soma = alvo.Sum(s => s.Total);
-        var ticket = soma / alvo.Count;
-
-        var maisVendidos = alvo
-            .SelectMany(s => s.Items)
-            .GroupBy(i => i.ProductName)
-            .Select(g => new { Nome = g.Key, Qtd = g.Sum(i => i.Quantity) })
-            .OrderByDescending(x => x.Qtd)
-            .Take(3)
-            .ToList();
+        // UM ERRO QUE NAO DAVA ERRO. Antes daqui so existiam dois recortes:
+        // hoje e total. Nao achando as palavras de "total", respondia HOJE —
+        // entao "quanto faturamos este mes?" devolvia o dia, com numero e
+        // ponto final. Agora o recorte e lido de verdade, e quando a frase
+        // nao diz quando, o gerente DIZ que assumiu hoje.
+        var periodos = LeitorDePeriodo.Todos(t, Agora());
+        var assumiuHoje = periodos.Count == 0;
+        if (assumiuHoje)
+        {
+            var hoje = Agora().Date;
+            periodos = new List<Periodo> { new(hoje, hoje.AddDays(1), "hoje") };
+        }
+        _ultimosPeriodos = periodos;
 
         var sb = new StringBuilder();
-        sb.Append($"**{Moeda(soma)}** {quando}, em {alvo.Count} ");
-        sb.Append(alvo.Count == 1 ? "venda" : "vendas");
-        sb.Append($". Ticket médio {Moeda(ticket)}.");
+        foreach (var periodo in periodos)
+        {
+            if (sb.Length > 0) sb.Append("\n\n");
+            // "Mais sairam" so quando ha UM recorte. Com tres, a mesma lista
+            // se repete tres vezes e a resposta vira parede.
+            sb.Append(UmPeriodo(pagas, periodo, comCampeoes: periodos.Count == 1));
+        }
 
-        if (maisVendidos.Count > 0)
-            sb.Append("\n\nMais saíram: " +
-                      string.Join(", ", maisVendidos.Select(x => $"{x.Nome} ({x.Qtd})")));
+        if (assumiuHoje)
+            sb.Append("\n\n*Você não disse de quando, então respondi de hoje. " +
+                      "Pode pedir da semana, do mês, de agosto, dos últimos 7 dias.*");
 
         // Honestidade sobre o que NAO esta na conta.
         var abertas = historico.Count(s => s.Status == SessionStatus.Aberta ||
@@ -1126,16 +1414,94 @@ public class GerenteService : IGerenteService
         return sb.ToString();
     }
 
+    /// <summary>Uma linha de faturamento, com as datas sempre a vista.</summary>
+    private string UmPeriodo(List<SessionDto> pagas, Periodo periodo, bool comCampeoes)
+    {
+        var alvo = pagas.Where(s => periodo.Contem(s.PaymentConfirmedAt!.Value)).ToList();
+
+        // AS DATAS SEMPRE. E o que faz um erro de leitura aparecer na hora,
+        // em vez de virar um numero errado com cara de certo.
+        var etiqueta = periodo.Tudo ? "no total" : $"{periodo.Nome} ({periodo.Datas})";
+
+        if (alvo.Count == 0)
+            return $"Nenhuma venda paga {etiqueta}." +
+                   (periodo.Tudo || pagas.Count == 0
+                       ? ""
+                       : $" No total já foram {pagas.Count}, somando {Moeda(pagas.Sum(s => s.Total))}.");
+
+        var soma = alvo.Sum(s => s.Total);
+        var ticket = soma / alvo.Count;
+
+        var sb = new StringBuilder();
+        sb.Append($"**{Moeda(soma)}** {etiqueta}, em {alvo.Count} ");
+        sb.Append(alvo.Count == 1 ? "venda" : "vendas");
+        sb.Append($". Ticket médio {Moeda(ticket)}.");
+
+        if (comCampeoes)
+        {
+            var maisVendidos = alvo
+                .SelectMany(s => s.Items)
+                .GroupBy(i => i.ProductName)
+                .Select(g => new { Nome = g.Key, Qtd = g.Sum(i => i.Quantity) })
+                .OrderByDescending(x => x.Qtd)
+                .Take(3)
+                .ToList();
+
+            if (maisVendidos.Count > 0)
+                sb.Append("\n\nMais saíram: " +
+                          string.Join(", ", maisVendidos.Select(x => $"{x.Nome} ({x.Qtd})")));
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>O carrinho — e de quem ele é depende de quem perguntou.</summary>
+    /// <remarks>
+    /// A PERGUNTA DO DONO E A DO CLIENTE SÃO DIFERENTES, E CAÍAM AQUI IGUAIS.
+    ///
+    /// `carrinho` (do Chefe) é "o que está no carrinho de quem está comprando
+    /// agora" — a sessão aberta da loja, sem dono definido, que é justamente o
+    /// que o painel precisa ver. `meu_carrinho` (do cliente) é outra coisa
+    /// inteiramente: é o carrinho DELE.
+    ///
+    /// As duas intenções apontavam para este mesmo método, com um comentário
+    /// dizendo "reutiliza carrinho existente". Reutilizar o código estava
+    /// certo; reutilizar a PERGUNTA não. Um cliente perguntando do próprio
+    /// carrinho recebia o de quem estivesse comprando naquele instante — o
+    /// nome dos produtos, as quantidades e o total de outra pessoa.
+    /// </remarks>
     private async Task<string> CarrinhoAsync()
     {
-        var sessao = await SessaoAbertaAsync();
-        if (sessao is null) return "Nenhuma sessão aberta agora — carrinho nenhum.";
-        if (sessao.Items.Count == 0) return "Sessão aberta, carrinho ainda vazio.";
+        var meu = !Perfil.PodeEscrever;
+
+        // Sem o Id não dá para saber qual sessão é dele, e chutar aqui é
+        // exatamente o erro que este método está corrigindo. Prefere não
+        // responder a responder com o carrinho errado.
+        if (meu && Perfil.ClienteId is null)
+            return $"{Perfil.Tratamento}, não consegui identificar a sua visita para ver o carrinho. "
+                 + "Abre o **Carrinho** no menu que ele mostra o que já entrou.";
+
+        var sessao = meu
+            ? await SegurarAsync(() => _sessoes.GetActiveByCustomerAsync(Perfil.ClienteId!.Value), null)
+            : await SessaoAbertaAsync();
+
+        if (sessao is null)
+            return meu
+                ? $"{Perfil.Tratamento}, você não tem nenhuma visita em andamento agora. "
+                + "Gere o QR code na tela inicial para entrar na loja."
+                : "Nenhuma sessão aberta agora — carrinho nenhum.";
+
+        if (sessao.Items.Count == 0)
+            return meu
+                ? "Seu carrinho ainda está vazio. Pegue os produtos da prateleira que eles entram sozinhos."
+                : "Sessão aberta, carrinho ainda vazio.";
 
         var linhas = sessao.Items.Select(i =>
             $"- {i.Quantity}× **{i.ProductName}** — {Moeda(i.Subtotal)}");
 
-        return $"Carrinho da sessão aberta ({sessao.Status}):\n" +
+        var titulo = meu ? "No seu carrinho" : $"Carrinho da sessão aberta ({sessao.Status})";
+
+        return $"{titulo}:\n" +
                string.Join("\n", linhas) +
                $"\n\nTotal: **{Moeda(sessao.Total)}**";
     }
@@ -1162,6 +1528,390 @@ public class GerenteService : IGerenteService
         return sb.ToString();
     }
 
+    /// <summary>"Quais sao os produtos?" — a lista, sem estatistica na frente.</summary>
+    /// <remarks>
+    /// O Chefe fez esta pergunta tres vezes seguidas e recebeu "3 produtos,
+    /// 17 unidades, R$ 92,70" nas tres. Uma soma nao responde "quais".
+    /// </remarks>
+    private async Task<string> ListarProdutosAsync()
+    {
+        var todos = await SegurarAsync(() => _produtos.GetAllAsync(), null!);
+        if (todos is null) return "Não consegui ler o catálogo: a WebApi não respondeu.";
+        if (todos.Count == 0) return "Nenhum produto cadastrado.";
+
+        var linhas = todos.OrderBy(p => p.Name).Select(p =>
+            $"- **{p.Name}** — {p.StockQuantity} un, {Moeda(p.Price)}" +
+            (p.IsLowStock ? "  ⚠ acabando" : ""));
+
+        var total = todos.Sum(p => p.StockQuantity);
+        var valor = todos.Sum(p => p.StockQuantity * p.Price);
+
+        return string.Join("\n", linhas) +
+               $"\n\n**{todos.Count}** produtos, **{total}** unidades, {Moeda(valor)} em estoque.";
+    }
+
+    /// <summary>"Tivemos algum furo no sistema?" — furo e ESTOQUE QUE NAO BATE.</summary>
+    /// <remarks>
+    /// A DEFINICAO E DELE, NAO MINHA. Furo podia ser quatro coisas — saiu
+    /// sem pagar, entrou e sumiu, camera cega, estoque nao bate. O Chefe
+    /// escolheu a ultima, e e so dela que esta resposta trata.
+    ///
+    /// O QUE DA PARA MEDIR HOJE, E O QUE NAO DA.
+    ///
+    /// Da: sessao CANCELADA que ainda tem item. O estoque baixa quando o
+    /// produto entra no carrinho (`AddItem`), o `RemoveItem` devolve — e o
+    /// `Cancel` NAO devolve. Entao toda sessao cancelada com item e um
+    /// vazamento do tamanho exato daqueles itens: o produto esta na
+    /// prateleira e o sistema jura que saiu. E um bug da WebApi, nao uma
+    /// suspeita; enquanto ele existir, isto conta o estrago.
+    ///
+    /// Nao da: a tag que passa pela porta sem compra. O `VerifyExit`
+    /// detecta, devolve "ALARME" para a leitora e nao grava em lugar
+    /// nenhum. Sem tabela de ocorrencia, o alarme evapora — e sobre isso
+    /// aqui se diz que nao se sabe, em vez de responder "nenhum furo" e
+    /// deixar o Chefe achar que foi conferido.
+    /// </remarks>
+    private async Task<string> FuroAsync(string t)
+    {
+        // PRIMEIRO O QUE FOI GRAVADO. Desde que a tabela de ocorrência
+        // existe, furo não é mais deduzido na hora: o `VerifyExit`, a câmera
+        // e o `Cancel` gravam quando acontece, e aqui a gente só lê. Deduzir
+        // ao vivo só enxerga o que ainda está no histórico de sessões — o
+        // alarme da porta, que evaporava, nunca entrou nessa conta.
+        if (_ocorrencias is not null && await OcorrenciasAsync(t) is { } daTabela)
+            return daTabela;
+
+        var historico = await SegurarAsync(() => _sessoes.GetHistoryAsync(), null!);
+        if (historico is null)
+            return "Não consegui ler o histórico de sessões — sem ele eu não tenho " +
+                   "como conferir se o estoque bate.";
+
+        var periodo = LeitorDePeriodo.Ler(t, Agora());
+        var alvo = periodo is { } p
+            ? historico.Where(s => p.Contem(s.ClosedAt ?? s.EntryConfirmedAt ?? DateTime.MinValue)).ToList()
+            : historico;
+
+        var vazando = alvo
+            .Where(s => s.Status == SessionStatus.Cancelada && s.Items.Count > 0)
+            .ToList();
+
+        var quando = periodo is { } q && !q.Tudo ? $" {q.Nome} ({q.Datas})" : "";
+        var sb = new StringBuilder();
+
+        if (vazando.Count == 0)
+        {
+            sb.Append($"Não achei estoque fora do lugar{quando}.");
+        }
+        else
+        {
+            var porProduto = vazando
+                .SelectMany(s => s.Items)
+                .GroupBy(i => i.ProductName)
+                .Select(g => new { Nome = g.Key, Qtd = g.Sum(i => i.Quantity), Valor = g.Sum(i => i.Subtotal) })
+                .OrderByDescending(x => x.Qtd)
+                .ToList();
+
+            sb.Append($"**Sim, tem furo{quando}.**\n\n");
+            sb.Append($"{vazando.Count} sessão(ões) cancelada(s) que ainda tinham produto no " +
+                      "carrinho. O estoque baixou quando o produto saiu da prateleira e " +
+                      "**o cancelamento não devolveu** — então o sistema está contando " +
+                      "a menos do que existe:\n\n");
+            sb.Append(string.Join("\n", porProduto.Select(x =>
+                $"- **{x.Nome}** — faltam {x.Qtd} un no sistema ({Moeda(x.Valor)})")));
+            sb.Append("\n\nIsso é um defeito do `Cancel` na WebApi, não roubo. " +
+                      "Enquanto ele não for corrigido, cada cancelamento com carrinho " +
+                      "cheio abre um buraco novo.");
+        }
+
+        // O QUE EU NAO SEI, DITO. Um "nenhum furo" que na verdade quer
+        // dizer "nao ha onde olhar" e pior que nao responder.
+        sb.Append("\n\n*Só sei conferir o que fica gravado. Produto que sai pela porta " +
+                  "sem compra dispara o alarme na leitora e não é registrado em lugar " +
+                  "nenhum — esse eu não tenho como contar.*");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Le a tabela de ocorrencia. `null` quando nao deu para ler — e ai quem
+    /// chama cai na deducao ao vivo.
+    /// </summary>
+    /// <remarks>
+    /// `null` NAO E "nao ha furo". A API pode estar fora, a migracao pode nao
+    /// ter sido aplicada, a sessao de admin pode ter expirado. Nos tres
+    /// casos, responder "está tudo certo" seria dizer que conferiu sem ter
+    /// conferido — o pior erro que uma resposta sobre furo pode cometer.
+    /// </remarks>
+    private async Task<string?> OcorrenciasAsync(string t)
+    {
+        var periodo = LeitorDePeriodo.Ler(t, Agora());
+        var achadas = await _ocorrencias!.BuscarAsync(
+            desde: periodo is { Tudo: false } p ? p.Inicio : null,
+            ate: periodo is { Tudo: false } p2 ? p2.Fim : null);
+
+        if (achadas is null) return null;   // nao deu para olhar: cai na deducao
+
+        var quando = periodo is { } q && !q.Tudo ? $" {q.Nome} ({q.Datas})" : "";
+
+        // Furo, para esta loja, e ESTOQUE QUE NAO BATE — foi a escolha do
+        // Chefe entre quatro definicoes. Erro de execucao e falha de API sao
+        // ocorrencia, mas nao sao furo, e nao entram nesta resposta.
+        var doFuro = new[] { "Roubo", "FuroDeSistema", "FuroDeCobertura" };
+        var furos = achadas.Where(o => doFuro.Contains(o.Tipo)).ToList();
+
+        if (furos.Count == 0)
+            return $"Nada de estoque fora do lugar{quando}. " +
+                   $"Conferi {achadas.Count} ocorrência(s) registrada(s) no período.";
+
+        var sb = new StringBuilder();
+        var roubos = furos.Where(o => o.Tipo == "Roubo").ToList();
+        var sistema = furos.Where(o => o.Tipo == "FuroDeSistema").ToList();
+        var cobertura = furos.Where(o => o.Tipo == "FuroDeCobertura").ToList();
+
+        sb.Append($"**{furos.Count} ocorrência(s) de estoque{quando}.**\n");
+
+        // O ROUBO VEM PRIMEIRO, sempre. E o unico que precisa de alguem hoje.
+        if (roubos.Count > 0)
+        {
+            sb.Append($"\n🔴 **Saída sem pagamento — {roubos.Count}**\n");
+            foreach (var o in roubos.Take(5))
+                sb.Append($"- {o.QuandoUtc.ToLocalTime():dd/MM HH:mm} — {o.Descricao}\n");
+            if (roubos.Count > 5) sb.Append($"- *(e mais {roubos.Count - 5})*\n");
+        }
+
+        if (sistema.Count > 0)
+        {
+            sb.Append($"\n⚠ **O sistema perdeu a conta — {sistema.Count}**\n");
+            foreach (var o in sistema.Take(5))
+                sb.Append($"- {o.QuandoUtc.ToLocalTime():dd/MM HH:mm} — {o.Descricao}\n");
+            sb.Append("*Defeito de software, não roubo.*\n");
+        }
+
+        if (cobertura.Count > 0)
+            sb.Append($"\n👁 **A câmera não viu — {cobertura.Count}**. " +
+                      "Não é crime: é onde faltam olhos.\n");
+
+        return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>"Puxe todas as informacoes sobre &lt;periodo&gt;".</summary>
+    /// <remarks>
+    /// Nao e faturamento com outro nome: faturamento e dinheiro, isto e
+    /// tudo — vendas, movimento, estoque e furo no mesmo recorte de tempo.
+    /// Quando a frase nao diz o periodo, ele PERGUNTA em vez de escolher
+    /// sozinho: o Chefe pediu que o sistema perguntasse o que falta.
+    /// </remarks>
+    private async Task<string> RelatorioAsync(string t)
+    {
+        var periodo = LeitorDePeriodo.Ler(t, Agora());
+        if (periodo is null)
+            return "Relatório de quando? Pode ser hoje, ontem, esta semana, o mês, " +
+                   "agosto, os últimos 7 dias, ou uma data — é só dizer.";
+
+        var p = periodo.Value;
+        var historico = await SegurarAsync(() => _sessoes.GetHistoryAsync(), null!);
+        var produtos = await SegurarAsync(() => _produtos.GetAllAsync(), null!);
+
+        var cabeca = p.Tudo ? "**Relatório — tudo**" : $"**Relatório {p.Nome}** ({p.Datas})";
+        var sb = new StringBuilder(cabeca + "\n");
+
+        if (historico is null)
+        {
+            sb.Append("\nNão consegui ler as sessões.");
+        }
+        else
+        {
+            var noPeriodo = historico
+                .Where(s => p.Contem(s.PaymentConfirmedAt ?? s.ClosedAt ?? s.EntryConfirmedAt ?? DateTime.MinValue))
+                .ToList();
+            var pagas = noPeriodo.Where(s => s.PaymentConfirmedAt is not null).ToList();
+            var soma = pagas.Sum(s => s.Total);
+
+            sb.Append($"\n**Vendas** — {pagas.Count} paga(s), {Moeda(soma)}");
+            if (pagas.Count > 0) sb.Append($", ticket médio {Moeda(soma / pagas.Count)}");
+            sb.Append('\n');
+
+            var abertas = noPeriodo.Count(s => s.Status == SessionStatus.Aberta ||
+                                               s.Status == SessionStatus.AguardandoPagamento);
+            var canceladas = noPeriodo.Count(s => s.Status == SessionStatus.Cancelada);
+            sb.Append($"**Movimento** — {noPeriodo.Count} sessão(ões) no total");
+            if (abertas > 0) sb.Append($", {abertas} sem pagamento confirmado");
+            if (canceladas > 0) sb.Append($", {canceladas} cancelada(s)");
+            sb.Append('\n');
+
+            var itens = pagas.SelectMany(s => s.Items)
+                .GroupBy(i => i.ProductName)
+                .Select(g => new { Nome = g.Key, Qtd = g.Sum(i => i.Quantity) })
+                .OrderByDescending(x => x.Qtd).Take(3).ToList();
+            if (itens.Count > 0)
+                sb.Append("**Mais saíram** — " +
+                          string.Join(", ", itens.Select(x => $"{x.Nome} ({x.Qtd})")) + "\n");
+
+            var vazando = noPeriodo.Count(s => s.Status == SessionStatus.Cancelada && s.Items.Count > 0);
+            if (vazando > 0)
+                sb.Append($"**Furo** — {vazando} cancelamento(s) com carrinho cheio deixaram " +
+                          "o estoque contando a menos. Pergunte \"tivemos algum furo?\" " +
+                          "que eu detalho.\n");
+        }
+
+        // O ESTOQUE E DE AGORA, NAO DO PERIODO. Nao ha historico de
+        // estoque no sistema — dizer "o estoque em julho era X" seria
+        // invencao. Entao a linha vem marcada como hoje.
+        if (produtos is { Count: > 0 })
+        {
+            var baixos = produtos.Count(x => x.IsLowStock);
+            sb.Append($"**Estoque hoje** — {produtos.Count} produtos, " +
+                      $"{produtos.Sum(x => x.StockQuantity)} unidades");
+            if (baixos > 0) sb.Append($", {baixos} acabando");
+            sb.Append("  *(posição de agora; não guardo histórico de estoque)*");
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// "Pode adicionar mais uma camera ao sistema?"
+    /// </summary>
+    /// <remarks>
+    /// O GERENTE NAO INSTALA CAMERA. Nao existe endpoint para isso, e
+    /// prometer que existe e pior que dizer que nao — a demonstracao bate
+    /// no muro na frente de quem esta assistindo. Aqui ele orienta, e diz
+    /// que orienta.
+    ///
+    /// E SAO DOIS SISTEMAS DE CAMERA, NAO UM. Confundir os dois e o erro
+    /// caro, porque o preco de cada um e completamente diferente:
+    ///
+    ///   Sistema Espacial SO — alto, frontal, lateral. Tres vistas do MESMO
+    ///   chao, para triangular pessoa e altura de mao. Uma quarta vista
+    ///   invalida `homografia.json`, `escala.json` e `rumo.json`, que foram
+    ///   medidos contra este conjunto. E invalida tambem `prateleiras.json`:
+    ///   a assinatura de cada prateleira guarda `viu_frontal` e
+    ///   `viu_lateral` — QUAIS cameras enxergaram o gesto faz parte do que
+    ///   foi aprendido. Os 66% de acerto fora do treino voltam a zero e
+    ///   precisam ser remedidos.
+    ///
+    ///   Camera de prateleira — manda par de fotos antes/depois para
+    ///   `/api/vision/detect-shelf-change`, e o Gemini diz qual produto
+    ///   mexeu. Nao entra em calibracao nenhuma; so precisa dos ids dos
+    ///   produtos daquela prateleira.
+    ///
+    /// Por isso a pergunta de volta nao e "prateleira ou gemeo digital?" —
+    /// que e jargao — e sim VER GENTE OU VER PRODUTO, que e a pergunta que
+    /// de fato separa os dois custos.
+    /// </remarks>
+    private async Task<string> ConfigurarCameraAsync()
+    {
+        var espacial = await _espacial.ObterAsync();
+        var sb = new StringBuilder();
+
+        sb.Append("Dá pra adicionar — mas quem instala é você.\n\n");
+
+        if (espacial is { Online: true, Cameras: { } c } && c.Total > 0)
+        {
+            var nomes = (c.Detalhe ?? new List<CameraDetalheDto>()).Select(d => d.Papel);
+            sb.Append($"Hoje são **{c.Online}/{c.Total}** no Sistema Espacial");
+            if (nomes.Any()) sb.Append($" ({string.Join(", ", nomes)})");
+            sb.Append(".\n\n");
+        }
+
+        sb.Append("**Pra que ela vai olhar — gente ou produto?**\n\n");
+        sb.Append("**Ver gente** — entra no Sistema Espacial SO.\n");
+        sb.Append("**Ver produto** — é câmera de prateleira.\n\n");
+        sb.Append("Me diz qual e eu te falo o que configurar.");
+        return sb.ToString();
+    }
+
+    /// <summary>"Ta rodando tudo?" — conferencia de verdade, nao lista fixa.</summary>
+    /// <remarks>
+    /// 332 frases treinadas nesta intencao, e ate agora todas caiam no menu
+    /// de ajuda. A resposta so vale se cada linha for MEDIDA na hora: um
+    /// "tudo certo" escrito a mao mente exatamente quando mais importa.
+    /// </remarks>
+    private async Task<string> StatusSistemaAsync()
+    {
+        var produtos = await SegurarAsync(() => _produtos.GetAllAsync(), null!);
+        var espacial = await _espacial.ObterAsync();
+        var historico = await SegurarAsync(() => _sessoes.GetHistoryAsync(), null!);
+
+        var linhas = new List<string>();
+        var problemas = 0;
+
+        if (produtos is not null)
+            linhas.Add($"✓ **WebApi** respondendo — {produtos.Count} produtos no catálogo");
+        else { linhas.Add("✗ **WebApi** não respondeu"); problemas++; }
+
+        if (historico is not null)
+            linhas.Add($"✓ **Sessões** legíveis — {historico.Count} no histórico");
+        else { linhas.Add("✗ **Sessões** fora de alcance (sessão de admin expirada?)"); problemas++; }
+
+        if (espacial is { Online: true })
+        {
+            linhas.Add($"✓ **Sistema Espacial SO** online — {espacial.Pessoas} pessoa(s) rastreada(s)");
+            if (espacial.Cameras is { Total: > 0 } c)
+            {
+                if (c.Online == c.Total) linhas.Add($"✓ **Câmeras** {c.Online}/{c.Total} no ar");
+                else { linhas.Add($"⚠ **Câmeras** {c.Online}/{c.Total} — falta vista"); problemas++; }
+            }
+        }
+        else
+        {
+            linhas.Add("✗ **Sistema Espacial SO** offline" +
+                       (espacial?.Erro is { Length: > 0 } e ? $" ({e})" : ""));
+            problemas++;
+        }
+
+        // Carrega antes de reportar. `CarregarAsync` sai na hora se ja
+        // estiver pronto; sem esta linha, uma conferencia que chegasse por
+        // um caminho que ainda nao tocou a rede diria "sem modelo" — e nao
+        // seria por o modelo faltar, mas por ninguem ter pedido ainda.
+        await _classificador.CarregarAsync();
+
+        var m = _classificador.Modelo;
+        if (_classificador.Pronto && m is not null)
+            linhas.Add($"✓ **Eu** carregado — {m.Intencoes.Count} intenções, limiar {m.Limiar:P0}");
+        else { linhas.Add("✗ **Eu** sem o modelo (`AutonomousStore.Gerente/wwwroot/modelos/intencao.json`)"); problemas++; }
+
+        var cabeca = problemas == 0
+            ? "**Tudo no ar.**"
+            : problemas == 1 ? "**Uma coisa fora do lugar.**"
+            : $"**{problemas} coisas fora do lugar.**";
+
+        return cabeca + "\n\n" + string.Join("\n", linhas);
+    }
+
+    /// <summary>Onde mora cada configuracao. O gerente nao edita nenhuma.</summary>
+    private static string ConfigurarSistema() =>
+        "Configuração eu não altero — mexer nesses arquivos com a loja rodando " +
+        "quebra calibração. Mas te digo onde cada coisa mora:\n\n" +
+        "**Loja (AutonomousStore)**\n" +
+        "- `AutonomousStore.WebApi/appsettings.json` — banco, JWT, e-mail, chaves\n" +
+        "- estoque mínimo de cada produto: por aqui mesmo, é só pedir\n\n" +
+        "**Sistema Espacial SO**\n" +
+        "- `config/cameras.json` — quais câmeras e de onde vem a imagem\n" +
+        "- `config/homografia.json` — o chão visto de cima\n" +
+        "- `config/escala.json` — metro por pixel\n" +
+        "- `config/rumo.json` — pra que lado o corpo aponta\n" +
+        "- `config/prateleiras.json` — a assinatura de cada prateleira\n\n" +
+        "**Eu**\n" +
+        "- `AutonomousStore.Gerente/wwwroot/modelos/intencao.json` — a rede treinada. Sai do " +
+        "`Rede-Neural`, não se edita à mão: um campo mudado aqui some no " +
+        "próximo treino.\n\n" +
+        "Me diz o que você quer mudar e eu te falo qual arquivo e o que muda junto.";
+
+    /// <summary>Reiniciar servico: nao e comigo, e digo por que.</summary>
+    private static string ReiniciarServico() =>
+        "Reiniciar eu não consigo — eu rodo **dentro** do painel, no navegador. " +
+        "Derrubar o serviço me derrubaria junto, e eu não teria como te avisar " +
+        "que voltou.\n\n" +
+        "No terminal:\n\n" +
+        "- **WebApi** — `dotnet run` em `AutonomousStore.WebApi`\n" +
+        "- **Painel** — `dotnet run` em `AutonomousStore.AdminApp`\n" +
+        "- **Sistema Espacial SO** — `python rodar.py`\n" +
+        "- **Monitor** (a ponte entre os dois) — `python monitor/servidor.py`\n\n" +
+        "Se for arquivo novo em `wwwroot/`, o painel só enxerga depois de " +
+        "reiniciar — ele monta a lista de recursos na partida. " +
+        "Pergunte \"está tudo rodando?\" quando voltar, que eu confiro cada um.";
+
     private async Task<string> EstoqueAsync(string t, string original)
     {
         var todos = await SegurarAsync(() => _produtos.GetAllAsync(), null!);
@@ -1175,18 +1925,41 @@ public class GerenteService : IGerenteService
                 .Any(palavra => t.Contains(palavra, StringComparison.Ordinal)));
 
         if (achado is not null)
+        {
+            _ultimoProduto = achado;
             return $"**{achado.Name}**: {achado.StockQuantity} em estoque" +
                    (achado.MinimumStockThreshold is int m ? $" (mínimo {m})" : "") +
                    $", {Moeda(achado.Price)}." +
                    (achado.IsLowStock ? "\n\n⚠ Está abaixo do mínimo." : "");
+        }
 
         var total = todos.Sum(p => p.StockQuantity);
         var baixos = todos.Count(p => p.IsLowStock);
         var valor = todos.Sum(p => p.StockQuantity * p.Price);
+        var resumo = $"**{todos.Count}** produtos cadastrados, **{total}** unidades no total, " +
+                     $"valendo {Moeda(valor)}.";
 
-        return $"**{todos.Count}** produtos cadastrados, **{total}** unidades no total, " +
-               $"valendo {Moeda(valor)}." +
-               (baixos > 0 ? $"\n\n{baixos} em baixa — pergunte \"o que está acabando\"." : "");
+        // LOJA PEQUENA NAO PRECISA DE RESUMO: PRECISA DA LISTA.
+        //
+        // Com 3 produtos, responder "3 produtos, 17 unidades, R$ 92,70" e
+        // esconder a resposta atras de uma estatistica. O Chefe perguntou
+        // "quais sao os produtos?" tres vezes seguidas e recebeu a soma
+        // nas tres.
+        //
+        // Ate uma duzia cabe na tela e a lista e sempre mais util. Acima
+        // disso ela vira parede de texto, e ai o resumo volta a ser a
+        // resposta certa — com a lista oferecida, nao imposta.
+        if (todos.Count <= 12)
+        {
+            var linhas = todos.OrderBy(p => p.Name).Select(p =>
+                $"- **{p.Name}** — {p.StockQuantity} un, {Moeda(p.Price)}" +
+                (p.IsLowStock ? "  ⚠ acabando" : ""));
+            return resumo + "\n\n" + string.Join("\n", linhas);
+        }
+
+        return resumo +
+               (baixos > 0 ? $"\n\n{baixos} em baixa — pergunte \"o que está acabando\"." : "") +
+               "\n\nQuer a lista de todos? É só pedir.";
     }
 
 
@@ -1198,8 +1971,11 @@ public class GerenteService : IGerenteService
 
         var achado = ProcurarProduto(todos, t);
         if (achado is not null)
+        {
+            _ultimoProduto = achado;
             return $"**{achado.Name}** custa {Moeda(achado.Price)}." +
                    (achado.StockQuantity == 0 ? "\n\n⚠ Mas está zerado no estoque." : "");
+        }
 
         var linhas = todos.OrderBy(p => p.Name)
             .Select(p => $"- {p.Name} — **{Moeda(p.Price)}**");
@@ -1423,7 +2199,7 @@ public class GerenteService : IGerenteService
 
     /// <summary>A loja inteira em cinco parágrafos, sem uma palavra técnica.</summary>
     private static string VisaoGeral() =>
-        "A Smart Store é uma loja que funciona **sem caixa e sem atendente**. " +
+        "A AutonomousStore é uma loja que funciona **sem caixa e sem atendente**. " +
         "Na prática, para o cliente é assim:\n\n" +
         "**1. Ele entra** apontando o celular para um QR code na porta.\n\n" +
         "**2. Ele pega o que quer.** Cada produto tem uma etiqueta que a prateleira lê " +
@@ -1441,15 +2217,30 @@ public class GerenteService : IGerenteService
         "Quer que eu detalhe alguma parte? Pergunte sobre as **câmeras**, as " +
         "**etiquetas**, a **entrada do cliente**, os **alertas** ou sobre **mim**.";
 
-    private static string Saudacao() =>
-        "Olá. Estou lendo os sistemas da loja em tempo real. Pergunte o que quiser sobre " +
-        "estoque, faturamento, quem está na loja ou como o sistema funciona.";
+    /// <summary>A resposta a um "oi".</summary>
+    /// <remarks>
+    /// O "Chefe," ja vem escrito no texto de proposito: `Tratando` nao
+    /// acrescenta o tratamento quando ele ja aparece no comeco da frase,
+    /// entao isto garante o cumprimento sem risco de sair "Chefe, Chefe,
+    /// ola".
+    /// </remarks>
+    private string Saudacao() =>
+        $"{Perfil.Tratamento}, olá. Estou lendo os sistemas da loja em tempo real.";
 
-    private static string ForaDeEscopo() =>
-        "Essa não é comigo — eu só sei da loja. Estoque, vendas, clientes no salão, " +
-        "câmeras e como o sistema funciona.\n\nSe você acha que deveria ser comigo, " +
-        "pergunte de novo de outro jeito: eu guardo o que não entendo, e é assim que " +
-        "o meu treino cresce.";
+    /// <summary>Assunto que não é da loja.</summary>
+    /// <remarks>
+    /// Mesmo problema do `Ajuda()`, em escala menor: "estoque, vendas,
+    /// clientes no salão, câmeras" é a lista do painel dita a quem só queria
+    /// comprar uma água.
+    /// </remarks>
+    private string ForaDeEscopo() => Perfil.PodeEscrever
+        ? "Essa não é comigo — eu só sei da loja. Estoque, vendas, clientes no salão, "
+        + "câmeras e como o sistema funciona.\n\nSe você acha que deveria ser comigo, "
+        + "pergunte de novo de outro jeito: eu guardo o que não entendo, e é assim que "
+        + "o meu treino cresce."
+        : "Essa não é comigo — eu só sei desta loja: os produtos, o preço deles e como "
+        + "a compra funciona.\n\nSe for sobre uma compra sua ou algum problema no app, "
+        + "o suporte responde: é só abrir um chamado em **Suporte**, no menu de cima.";
 
     /// <summary>`alterar_preco` -> `alterar preço`, para o Chefe ler.</summary>
     private static string Legivel(string intencao) => intencao switch
@@ -1487,7 +2278,43 @@ public class GerenteService : IGerenteService
     /// existindo e continua honesto — mas mora no painel de raciocinio e
     /// no comando `conferir`, para quem for atras.
     /// </remarks>
-    private static string Ajuda() =>
+    /// <summary>O cardápio do que ele faz — e o cardápio depende de quem lê.</summary>
+    /// <remarks>
+    /// ESTE ERA O PIOR VAZAMENTO DOS QUATRO, E FUI EU QUE APONTEI PARA ELE.
+    ///
+    /// `Ajuda()` era `static`, então não tinha como enxergar o perfil. E
+    /// `ajuda` está na lista do cliente — é uma pergunta legítima dele. O
+    /// resultado: um comprador digitava "o que você faz?" e recebia o painel
+    /// inteiro descrito em português claro: quantas pessoas há na loja, se as
+    /// câmeras funcionam, quanto entrou hoje, o que mais sai, cadastrar
+    /// produto, corrigir preço, tirar do catálogo.
+    ///
+    /// Pior: eu tinha acabado de pôr "o que você faz?" na lista de sugestões
+    /// do cliente. A barreira não bloqueava porque a pergunta era permitida —
+    /// ela decide SE ele responde, nunca olhou O QUE a resposta diz.
+    ///
+    /// E o `_ => Ajuda()` no fim do switch faz deste texto a resposta padrão
+    /// de toda intenção sem tratamento: "obrigado", "não sei o que perguntar"
+    /// e qualquer intenção nova caíam aqui. Uma porta que ninguém tinha visto.
+    /// </remarks>
+    private string Ajuda() => Perfil.PodeEscrever ? AjudaDoChefe() : AjudaDoCliente();
+
+    private static string AjudaDoCliente() =>
+        "Posso te ajudar com:\n\n" +
+        "**Os produtos**\n" +
+        "- quanto custa qualquer item\n" +
+        "- se tem na prateleira, e quanto tem\n" +
+        "- o que a loja vende\n\n" +
+        "**A sua compra**\n" +
+        "- o que já entrou no seu carrinho\n" +
+        "- como funciona o pagamento\n" +
+        "- como entrar na loja com o QR code\n\n" +
+        "**Como a loja funciona**\n" +
+        "- o RFID, as câmeras da prateleira, a saída sem fila\n\n" +
+        "Pode falar do seu jeito, abreviado ou com pressa — eu me viro. " +
+        "Se for problema com uma compra ou com o app, abra um chamado em **Suporte**.";
+
+    private static string AjudaDoChefe() =>
         "É só perguntar. Eu dou conta de:\n\n" +
         "**Olhar a loja agora**\n" +
         "- quantas pessoas estão lá dentro\n" +

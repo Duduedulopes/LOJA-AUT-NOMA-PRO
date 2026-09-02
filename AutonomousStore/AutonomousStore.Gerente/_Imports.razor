@@ -1,0 +1,22 @@
+@* ═══════════════════════════════════════════════════════════════════════
+   POR QUE ESTA BIBLIOTECA PRECISA DO SEU PRÓPRIO _Imports.
+
+   O `_Imports.razor` de um aplicativo vale só para os componentes DAQUELE
+   aplicativo. Um componente que mora numa biblioteca é compilado junto com
+   a biblioteca, muito antes de o AdminApp existir na conta — então nada do
+   que o AdminApp importa chega até aqui.
+
+   Sem este arquivo, o `GerenteChat` não acharia nem o `ElementReference`.
+   ═══════════════════════════════════════════════════════════════════════ *@
+
+@using System.Net.Http
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@using AutonomousStore.Gerente.Componentes
+@using AutonomousStore.Gerente.Models
+@using AutonomousStore.Gerente.Services
+@using AutonomousStore.Gerente.Services.Aprendizado

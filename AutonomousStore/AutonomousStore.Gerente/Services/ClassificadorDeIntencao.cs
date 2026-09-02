@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace AutonomousStore.AdminApp.Services;
+namespace AutonomousStore.Gerente.Services;
 
 /// <summary>O modelo treinado, como ele sai do Python.</summary>
 public record ModeloIntencao(
@@ -43,7 +43,28 @@ public record ModeloIntencao(
     [property: JsonPropertyName("limiar_confirmacao")] double? LimiarConfirmacao,
 
     [property: JsonPropertyName("botoes")] int Botoes,
-    [property: JsonPropertyName("medido")] MedidoJson? Medido)
+    [property: JsonPropertyName("medido")] MedidoJson? Medido,
+
+    /// <summary>Os 7 tons. Estavam no arquivo desde sempre e o C# ignorava.</summary>
+    /// <remarks>
+    /// POR QUE ISTO PRECISOU ENTRAR.
+    ///
+    /// O tronco é COMPARTILHADO entre a cabeça de intenção e a de tom. O
+    /// treino em Python soma os dois gradientes nele de propósito — nas
+    /// palavras do `classificador_duplo.py`, "é o que faz as duas tarefas
+    /// aprenderem juntas em vez de uma desfazer a outra".
+    ///
+    /// Enquanto o C# só lia, ignorar metade do modelo era só desperdício.
+    /// A partir do momento em que ele TREINA, deixar o tom de fora é mexer
+    /// no tronco sem saber o que a outra cabeça esperava dele — e devolver
+    /// ao Python um modelo com as duas metades desalinhadas.
+    ///
+    /// Opcionais para trás: um `intencao.json` antigo, sem estes campos,
+    /// continua carregando.
+    /// </remarks>
+    [property: JsonPropertyName("tons")] List<string>? Tons = null,
+
+    [property: JsonPropertyName("camada_tom")] CamadaJson? CamadaTom = null)
 {
     /// <summary>O corte do "sim", ou 1.0 se o modelo for velho demais para ter um.</summary>
     public double CorteDoSim => LimiarConfirmacao ?? 1.0;
@@ -129,6 +150,19 @@ public interface IClassificadorDeIntencao
     Intencao Classificar(string pergunta);
     Pensamento Pensar(string pergunta);
     Task<string> ConferirContraOPythonAsync();
+
+    /// <summary>As peças de uma frase, do jeito exato que a rede as vê.</summary>
+    IReadOnlyList<int> PecasDe(string texto);
+
+    /// <summary>Troca os pesos que respondem pelos que a loja aprendeu.</summary>
+    /// <remarks>
+    /// SEM ISTO O APRENDIZADO NÃO APARECE. O `Aprendiz` treina uma cópia; se
+    /// ninguém trouxer essa cópia para cá, o Chefe corrige, o sistema aprende
+    /// de verdade — e o chat continua errando a mesma frase. É a forma mais
+    /// rápida de ele parar de clicar, e a mais difícil de diagnosticar,
+    /// porque tudo "funciona".
+    /// </remarks>
+    void UsarRede(Aprendizado.RedeTreinavel rede);
 }
 
 /// <summary>
@@ -155,6 +189,30 @@ public interface IClassificadorDeIntencao
 public class ClassificadorDeIntencao : IClassificadorDeIntencao
 {
     private const int TamanhoNgrama = 3;
+
+    /// <summary>Onde o modelo treinado mora, visto de dentro de qualquer app.</summary>
+    /// <remarks>
+    /// O `_content/AutonomousStore.Gerente/` NÃO é uma pasta que alguém criou:
+    /// é o endereço que o SDK do Razor dá ao `wwwroot` de uma biblioteca dentro
+    /// de todo aplicativo que a referencia. O arquivo existe uma vez só, aqui —
+    /// e tanto o painel do admin quanto o do suporte o enxergam nesse caminho.
+    ///
+    /// Antes ele morava no `wwwroot` do AdminApp. Dar uma cópia ao suporte
+    /// seria a mesma armadilha das duas cópias de código, com um agravante:
+    /// um retreino atualizaria uma cópia e a outra ficaria para trás, e aí os
+    /// dois gerentes passariam a discordar sobre a mesma pergunta.
+    /// </remarks>
+    private const string Pasta = "_content/AutonomousStore.Gerente/modelos/";
+
+    /// <summary>
+    /// O cliente HTTP que aponta para a própria origem do aplicativo.
+    /// </summary>
+    /// <remarks>
+    /// Chamava-se "AdminAppEstatico" de quando o gerente morava lá dentro.
+    /// Nome de app dentro da biblioteca é dívida: o suporte teria de registrar
+    /// um cliente chamado "AdminApp" para o chat funcionar.
+    /// </remarks>
+    public const string ClienteEstatico = "GerenteEstatico";
 
     private readonly IHttpClientFactory _fabrica;
     private double[][]? _tabela;
@@ -222,6 +280,30 @@ public class ClassificadorDeIntencao : IClassificadorDeIntencao
     }
 
     private List<int> Indices(string texto) => Ler(texto).Indices;
+
+    /// <summary>As peças de uma frase, do jeito exato que a rede as vê.</summary>
+    /// <remarks>
+    /// O treino precisa disto. E precisa que seja ESTA função, não uma cópia:
+    /// duas tokenizações que discordam em um acento produzem duas redes
+    /// diferentes usando a mesma tabela — o defeito mais difícil de enxergar
+    /// que este arquivo poderia ter.
+    /// </remarks>
+    public IReadOnlyList<int> PecasDe(string texto) => Indices(texto);
+
+    /// <summary>Passa a responder com os pesos que a loja aprendeu.</summary>
+    /// <remarks>
+    /// Sem cópia: o `Aprendiz` já é dono destes vetores e só entrega os que
+    /// passaram na trava. Copiar aqui dobraria 725 KB na memória da aba a
+    /// cada correção aceita, sem proteger nada — quem protege é a trava.
+    /// </remarks>
+    public void UsarRede(Aprendizado.RedeTreinavel rede)
+    {
+        _tabela = rede.Tabela;
+        _pesos0 = rede.TroncoPesos;
+        _vies0 = rede.TroncoVies;
+        _pesos1 = rede.IntencaoPesos;
+        _vies1 = rede.IntencaoVies;
+    }
 
     /// <summary>O que a rede enxergou na frase, alem dos indices.</summary>
     private (List<int> Indices, List<PecaLida> Palavras, int Total) Ler(string texto)
@@ -323,8 +405,8 @@ public class ClassificadorDeIntencao : IClassificadorDeIntencao
         if (Pronto) return true;
         try
         {
-            var http = _fabrica.CreateClient("AdminAppEstatico");
-            var m = await http.GetFromJsonAsync<ModeloIntencao>("modelos/intencao.json");
+            var http = _fabrica.CreateClient(ClienteEstatico);
+            var m = await http.GetFromJsonAsync<ModeloIntencao>(Pasta + "intencao.json");
             if (m is null) return false;
 
             Modelo = m;
@@ -371,12 +453,12 @@ public class ClassificadorDeIntencao : IClassificadorDeIntencao
         List<CasoDeConferencia>? casos;
         try
         {
-            var http = _fabrica.CreateClient("AdminAppEstatico");
-            casos = await http.GetFromJsonAsync<List<CasoDeConferencia>>("modelos/conferencia.json");
+            var http = _fabrica.CreateClient(ClienteEstatico);
+            casos = await http.GetFromJsonAsync<List<CasoDeConferencia>>(Pasta + "conferencia.json");
         }
         catch
         {
-            return "Não achei `wwwroot/modelos/conferencia.json`.";
+            return "Não achei `AutonomousStore.Gerente/wwwroot/modelos/conferencia.json`.";
         }
         if (casos is null || casos.Count == 0) return "Nenhum caso de conferência.";
 

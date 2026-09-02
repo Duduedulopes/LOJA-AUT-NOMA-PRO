@@ -1,4 +1,4 @@
-namespace AutonomousStore.AdminApp.Models;
+namespace AutonomousStore.Gerente.Models;
 
 public record ProductDto(
     Guid Id,

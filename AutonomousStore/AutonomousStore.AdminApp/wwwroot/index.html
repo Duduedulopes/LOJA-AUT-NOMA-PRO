@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Store — Painel administrativo</title>
+    <title>AutonomousStore — Painel administrativo</title>
     <base href="/" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -104,8 +104,168 @@
     <div id="blazor-error-ui">
         Ocorreu um erro inesperado.
         <a href="" class="reload">Recarregar</a>
+        <button type="button" class="reportar" hidden>Reportar ao suporte</button>
+        <span class="codigo"></span>
         <a class="dismiss">🗙</a>
     </div>
+
+    <script>
+        // ══════════════════════════════════════════════════════════════════
+        //  O RELATOR DE ERROS.
+        //
+        //  INLINE, PELO MESMO MOTIVO DO TEMA — E COM MAIS FORÇA AINDA.
+        //
+        //  Um relator de erros que mora num `<script src>` não consegue
+        //  relatar a falha que impediu o arquivo dele de carregar. Ele
+        //  precisa estar aqui, no HTML, e rodar antes do Blazor: boa parte
+        //  dos erros que importam acontecem antes de o WebAssembly subir.
+        //
+        //  O PREÇO, DITO EM VOZ ALTA: são três cópias, uma por app, e a
+        //  única linha diferente entre elas é a do `APP`. Não é o desenho
+        //  bonito; é o desenho que funciona quando o resto não funciona.
+        //
+        //  O QUE ELE CAPTURA
+        //
+        //  Erro solto de JS, promessa rejeitada, e a barra vermelha do
+        //  Blazor acendendo — que é o único sinal que o Blazor dá quando uma
+        //  exceção do C# não foi tratada. Ele escreve no console e acende a
+        //  barra, e não avisa ninguém; então a gente guarda o que passou pelo
+        //  console e observa a barra.
+        // ══════════════════════════════════════════════════════════════════
+        (function () {
+            var APP = 'AdminApp';
+            var API = 'https://localhost:7167/';
+
+            var barra = document.getElementById('blazor-error-ui');
+            var botao = barra.querySelector('.reportar');
+            var codigo = barra.querySelector('.codigo');
+
+            // Teto POR CARREGAMENTO de página. O servidor já tem freio, mas
+            // mandar mil requisições para levar mil 429 gasta a máquina de
+            // quem já está com a tela quebrada. O corte útil é aqui.
+            var TETO = 8;
+            var enviados = 0;
+            var jaVistos = {};        // mensagem -> correlationId
+            var ultimo = null;        // o que o botão vai escalar
+            var ultimoConsole = '';
+            var ultimoEnvioEm = 0;
+
+            function uuid() {
+                if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    var r = Math.random() * 16 | 0;
+                    return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+                });
+            }
+
+            function relatar(mensagem, pilha, paraOSuporte) {
+                mensagem = String(mensagem || '(erro sem mensagem)').slice(0, 2000);
+
+                if (!paraOSuporte) {
+                    if (jaVistos[mensagem]) return Promise.resolve(null);
+                    if (enviados >= TETO) return Promise.resolve(null);
+                    enviados++;
+                }
+
+                var correlacao = jaVistos[mensagem] || uuid();
+                jaVistos[mensagem] = correlacao;
+                ultimo = { mensagem: mensagem, pilha: pilha, correlacao: correlacao };
+                ultimoEnvioEm = Date.now();
+
+                return fetch(API + 'api/ocorrencias/navegador', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        app: APP,
+                        pagina: location.pathname + location.search,
+                        mensagem: mensagem,
+                        pilha: pilha ? String(pilha).slice(0, 8000) : null,
+                        navegador: navigator.userAgent.slice(0, 300),
+                        correlationId: correlacao,
+                        paraOSuporte: !!paraOSuporte
+                    })
+                }).then(function (r) {
+                    return r.ok ? r.json() : null;
+                }).catch(function () {
+                    // ENGOLE, SEMPRE. API fora do ar, rede caída, CORS: não há
+                    // nada a fazer, e um erro dentro do relator de erros vira
+                    // laço infinito.
+                    return null;
+                });
+            }
+
+            // ACENDER A BARRA TAMBÉM PARA ERRO QUE O BLAZOR NÃO PEGA.
+            //
+            // A barra vermelha é do Blazor: ela só sobe quando uma exceção do
+            // C# escapa. Um erro de JS puro — ou uma chamada de API que
+            // rejeitou — deixava a tela travada em silêncio, sem nada na
+            // frente do Eduardo dizendo que quebrou. Era o pior caso: a tela
+            // parada e nenhuma pista.
+            //
+            // O `relatar` já corta repetição, então acender aqui não vira
+            // pisca-pisca: a mesma mensagem só passa uma vez.
+            function acender() {
+                if (barra.style.display !== 'block') barra.style.display = 'block';
+            }
+
+            window.addEventListener('error', function (e) {
+                relatar(e.message, e.error && e.error.stack);
+                acender();
+            });
+
+            window.addEventListener('unhandledrejection', function (e) {
+                var r = e.reason;
+                relatar('Promessa rejeitada: ' + (r && r.message ? r.message : r),
+                        r && r.stack);
+                acender();
+            });
+
+            var erroDoConsole = console.error;
+            console.error = function () {
+                try {
+                    ultimoConsole = Array.prototype.map.call(arguments, String)
+                        .join(' ').slice(0, 2000);
+                } catch (x) { /* nunca atrapalhar o console de verdade */ }
+                erroDoConsole.apply(console, arguments);
+            };
+
+            new MutationObserver(function () {
+                if (barra.style.display !== 'block') return;
+
+                botao.hidden = false;
+                botao.disabled = false;
+                codigo.textContent = '';
+
+                // Se o `window.onerror` acabou de relatar este mesmo estouro,
+                // não manda de novo: seria a mesma falha contada duas vezes,
+                // com dois textos diferentes e sem jeito de juntar depois.
+                if (Date.now() - ultimoEnvioEm < 1500) return;
+
+                relatar(ultimoConsole || 'Exceção não tratada no Blazor (o console não deixou texto).', null);
+            }).observe(barra, { attributes: true, attributeFilter: ['style'] });
+
+            botao.addEventListener('click', function () {
+                botao.disabled = true;
+                codigo.textContent = 'enviando…';
+
+                relatar(ultimo ? ultimo.mensagem : (ultimoConsole || 'Reportado pelo usuário, sem texto de erro.'),
+                        ultimo && ultimo.pilha,
+                        true)
+                    .then(function (r) {
+                        if (r && r.correlationId) {
+                            // O código curto é o que a pessoa lê no telefone
+                            // para o técnico. O suporte cola no filtro do
+                            // histórico e puxa o rastro inteiro.
+                            codigo.textContent = '✓ enviado ao suporte · código ' +
+                                String(r.correlationId).slice(0, 8);
+                        } else {
+                            codigo.textContent = '✗ não consegui enviar — a API está no ar?';
+                            botao.disabled = false;
+                        }
+                    });
+            });
+        })();
+    </script>
 
     <!-- O ?v= existe para o navegador NAO servir a versao velha do cache.
          Sem ele, editar este .js e recompilar nao muda nada na tela: o Chrome

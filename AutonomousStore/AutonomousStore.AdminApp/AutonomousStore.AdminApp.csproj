@@ -17,4 +17,15 @@
 		<ProjectReference Include="..\AutonomousStore.Domain\AutonomousStore.Domain.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<ProjectReference Include="..\AutonomousStore.Gerente\AutonomousStore.Gerente.csproj" />
+	</ItemGroup>
+
+	<!-- A conversa de suporte: DTOs, serviço e o componente das bolhas.
+	     Magra de propósito — o app do cliente também depende dela. -->
+	<ItemGroup>
+		<ProjectReference Include="..\AutonomousStore.Comum\AutonomousStore.Comum.csproj" />
+	</ItemGroup>
+
+
 </Project>

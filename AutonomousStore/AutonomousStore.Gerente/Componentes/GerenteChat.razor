@@ -1,5 +1,6 @@
 @inject IGerenteService Gerente
 @inject IClassificadorDeIntencao Classificador
+@inject IServicoDeAprendizado Aprendizado
 
 @*
     O GERENTE, E O RACIOCINIO DELE A MOSTRA.
@@ -540,6 +541,16 @@
 </style>
 
 @code {
+    /// <summary>Com quem ele está falando. Obrigatório de propósito.</summary>
+    /// <remarks>
+    /// `EditorRequired` para que o app do cliente NÃO CONSIGA esquecer. O
+    /// padrão do `GerenteService` é o Chefe — seguro para o painel, péssimo
+    /// para o cliente. Quem esquecer aqui leva aviso do compilador em vez de
+    /// descobrir com o faturamento na tela de um comprador.
+    /// </remarks>
+    [Parameter, EditorRequired]
+    public PerfilDeQuemFala Perfil { get; set; } = PerfilDeQuemFala.Chefe;
+
     private bool _aberto;
     private bool _pensando;
     private bool _verPensamento = true;
@@ -572,14 +583,28 @@
 
     private static bool EhAcao(string intencao) => Acoes.Contains(intencao);
 
+    /// <summary>Mantém o serviço sabendo com quem ele fala, sempre.</summary>
+    /// <remarks>
+    /// EM `OnParametersSet` E NÃO SÓ NO `OnInitialized`. O init roda uma vez;
+    /// o parâmetro pode mudar depois — o nome do cliente chega quando a
+    /// sessão termina de restaurar, e trocar de conta sem recarregar a página
+    /// reaproveita o componente. Com a atribuição só no init, o gerente
+    /// continuaria falando com quem saiu.
+    /// </remarks>
+    protected override void OnParametersSet() => Gerente.Perfil = Perfil;
+
     protected override async Task OnInitializedAsync()
     {
+        // ANTES DA PRIMEIRA FALA. Se o perfil chegasse depois, a saudação já
+        // teria saído tratando um comprador por "Chefe".
+        Gerente.Perfil = Perfil;
+
         _falas.Add(FalaDoChat.Gerente(Abertura()));
 
         if (!await Classificador.CarregarAsync())
         {
             _falas.Add(FalaDoChat.Gerente(
-                "⚠ Não achei o modelo em `wwwroot/modelos/intencao.json`. " +
+                "⚠ Não achei o modelo em `AutonomousStore.Gerente/wwwroot/modelos/intencao.json`. " +
                 "Sem ele eu não interpreto pergunta nenhuma."));
         }
         StateHasChanged();
@@ -606,18 +631,32 @@
     /// uma resposta de robo. Quem esta ali aquela hora esta resolvendo
     /// alguma coisa, e o gerente que percebe isso parece que esta junto.
     /// </remarks>
-    private static string Abertura()
+    private string Abertura()
     {
         var agora = DateTime.Now;
         var h = agora.Hour;
 
+        var quem = Perfil.Tratamento;
+
         var hora = h switch
         {
-            >= 5 and < 12  => "Bom dia, Chefe!",
-            >= 12 and < 18 => "Boa tarde, Chefe!",
-            >= 18 and < 24 => "Boa noite, Chefe!",
-            _              => "Ainda de pé, Chefe?",
+            >= 5 and < 12  => $"Bom dia, {quem}!",
+            >= 12 and < 18 => $"Boa tarde, {quem}!",
+            >= 18 and < 24 => $"Boa noite, {quem}!",
+            _              => $"Ainda de pé, {quem}?",
         };
+
+        // O COMPRADOR NÃO QUER PIADA DE PLANTÃO. As frases abaixo foram
+        // escritas para quem administra a loja de madrugada — "insônia ou
+        // inventário?" dito a quem entrou para comprar uma água é ruído.
+        //
+        // E TAMBÉM NÃO QUER O CARDÁPIO. A versão anterior emendava "posso te
+        // ajudar com preço, o que tem na prateleira e como a loja funciona" —
+        // três coisas listadas antes de a pessoa ter dito qualquer coisa, e
+        // ainda por cima repetindo o que os botões logo abaixo mostram. Quem
+        // chega numa loja ouve "boa tarde, em que posso ajudar?", não um menu.
+        if (!Perfil.PodeEscrever)
+            return $"{hora} Em que posso ajudar?";
 
         var piadas = h < 5
             ? new[]
@@ -633,7 +672,7 @@
                   "Como está a loja? Já estamos milionários?",
                   "Estoque conferido, café não. Manda a pergunta.",
                   "Cheguei antes de você. De novo.",
-                  "Tudo no lugar até segunda ordem — a sua.",
+                  "Tudo no ar até segunda ordem sua.",
                   "Pronto para trabalhar. Você também?",
                   "As câmeras estão acordadas e eu também.",
                   "Vamos ver o que a loja aprontou.",
@@ -750,7 +789,15 @@
                 // palpite, mas a resposta certa está entre os três primeiros em
                 // 77,6%. Descartar o 2º e o 3º era jogar fora vinte pontos que
                 // ela já tinha calculado.
-                _duvida = p.Botoes(Classificador.Modelo?.Botoes ?? 3);
+                // ...mas só o que esta pessoa pode escolher.
+                //
+                // Um botão "o faturamento" oferecido ao cliente é duas
+                // coisas ruins de uma vez: conta que existe faturamento
+                // aqui dentro, e convida para um clique que só vai levar
+                // recusa. A barreira do serviço já seguraria o clique — o
+                // botão nem devia aparecer.
+                _duvida = p.Botoes(Classificador.Modelo?.Botoes ?? 3)
+                           .Where(c => Perfil.Pode(c.Nome)).ToList();
                 _falas.Add(FalaDoChat.Gerente(await Gerente.ResponderAsync(pergunta)));
                 await Gerente.GravarPerguntaAsync(pergunta, p.Vencedor.Nome, p.Confianca, false);
             }
@@ -805,6 +852,22 @@
             var resposta = await Gerente.ResponderComIntencaoAsync(intencao, pergunta);
             _falas.Add(FalaDoChat.Gerente(resposta));
             await Gerente.GravarPerguntaAsync(pergunta, intencao, 1.0, true);
+
+            // ── AQUI A REDE APRENDE ───────────────────────────────────
+            //
+            // Até esta linha existir, o clique era só um registro: ia para um
+            // arquivo e o modelo continuava exatamente o mesmo. Agora ele é
+            // um passo de gradiente de verdade — no tronco, na cabeça de
+            // intenção e na tabela de embutimento.
+            //
+            // Depois da resposta, de propósito. Ensinar primeiro atrasaria o
+            // que o Chefe pediu por causa de uma conta que ele não pediu.
+            var palpite = _ultimo?.Vencedor.Nome ?? "";
+            var confianca = _ultimo?.Confianca ?? 0;
+            var v = await Aprendizado.EnsinarAsync(pergunta, intencao, confianca, palpite, Perfil);
+
+            if (Contar(v) is { Length: > 0 } recado)
+                _falas.Add(FalaDoChat.Gerente(recado));
         }
         catch (Exception erro)
         {
@@ -816,6 +879,32 @@
             _faseTexto = "";
         }
     }
+
+    /// <summary>O que o Chefe lê depois de ensinar.</summary>
+    /// <remarks>
+    /// APRENDIZADO CALADO NÃO SERVE. Se o clique muda a rede e nada aparece
+    /// na tela, o Chefe não tem como saber se ensinou ou se falou sozinho —
+    /// e um sistema que aprende sem dizer que aprendeu é indistinguível de
+    /// um que não aprende.
+    ///
+    /// A recusa também é dita, e com o motivo. "Não aprendi porque ia piorar
+    /// o resto" é uma resposta que ele consegue julgar; silêncio não é.
+    /// </remarks>
+    private string Contar(AutonomousStore.Gerente.Services.Aprendizado.Aprendiz.Veredito v)
+        => v.Resultado switch
+        {
+            Aprendiz.Resultado.Aceito =>
+                $"🧠 **Aprendi.** Para essa frase eu dava {v.ConfiancaAntes:P1} à leitura certa; "
+                + $"agora dou **{v.ConfiancaDepois:P1}**. Conferi nas frases do meu conjunto de guarda "
+                + $"({v.AcertoDepois:P1} de acerto) — não estraguei nada do que eu já sabia.",
+
+            Aprendiz.Resultado.Recusado =>
+                "📌 Anotei, mas **não aprendi**: todo ajuste que eu tentei ia piorar frases que eu já " +
+                "acertava, e não vale trocar uma certa por outra. Fica registrado para o retreino no Python, " +
+                "que tem o corpus inteiro e consegue acomodar as duas.",
+
+            _ => "",
+        };
 
     private static string ParaHtml(string texto)
     {

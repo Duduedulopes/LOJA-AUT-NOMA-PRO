@@ -1,0 +1,3822 @@
+[
+ {
+  "pergunta": "cadastra chocolate ao keite",
+  "intencao": "adicionar_produto",
+  "base": "cadastra chocolate ao leite"
+ },
+ {
+  "pergunta": "novo prod: suco dr uva",
+  "intencao": "adicionar_produto",
+  "base": "novo produto: suco de uva"
+ },
+ {
+  "pergunta": "tem prod novo cadastrar",
+  "intencao": "adicionar_produto",
+  "base": "tem um produto novo pra cadastrar"
+ },
+ {
+  "pergunta": "cria produto",
+  "intencao": "adicionar_produto",
+  "base": "cria um produto"
+ },
+ {
+  "pergunta": "da pra criar um prod",
+  "intencao": "adicionar_produto",
+  "base": "da pra criar um produto?"
+ },
+ {
+  "pergunta": "cadastrar produto",
+  "intencao": "adicionar_produto",
+  "base": "cadastrar produto"
+ },
+ {
+  "pergunta": "prciso adivionar mais um item",
+  "intencao": "adicionar_produto",
+  "base": "preciso adicionar mais um item"
+ },
+ {
+  "pergunta": "inclui a agua com gas no sist",
+  "intencao": "adicionar_produto",
+  "base": "inclui a agua com gas no sistema"
+ },
+ {
+  "pergunta": "regisrra um item novo",
+  "intencao": "adicionar_produto",
+  "base": "registra um item novo"
+ },
+ {
+  "pergunta": "criar novo produto",
+  "intencao": "adicionar_produto",
+  "base": "criar novo produto"
+ },
+ {
+  "pergunta": "cou cadastrar uma bebida nova",
+  "intencao": "adicionar_produto",
+  "base": "vou cadastrar uma bebida nova"
+ },
+ {
+  "pergunta": "cadastra ai um aalgadinho novo",
+  "intencao": "adicionar_produto",
+  "base": "cadastra ai um salgadinho novo"
+ },
+ {
+  "pergunta": "novo item no estoque",
+  "intencao": "adicionar_produto",
+  "base": "novo item no estoque"
+ },
+ {
+  "pergunta": "adiciona oroduto novo",
+  "intencao": "adicionar_produto",
+  "base": "adiciona um produto novo"
+ },
+ {
+  "pergunta": "quero por item novo catalogo",
+  "intencao": "adicionar_produto",
+  "base": "quero por um item novo no catalogo"
+ },
+ {
+  "pergunta": "poe esse prod no catalgo",
+  "intencao": "adicionar_produto",
+  "base": "poe esse produto no catalogo"
+ },
+ {
+  "pergunta": "insere um prod no sist",
+  "intencao": "adicionar_produto",
+  "base": "insere um produto no sistema"
+ },
+ {
+  "pergunta": "agora entendi valeu",
+  "intencao": "agradecimento",
+  "base": "agora entendi valeu"
+ },
+ {
+  "pergunta": "tá muito melhor obrigado",
+  "intencao": "agradecimento",
+  "base": "tá muito melhor obrigado"
+ },
+ {
+  "pergunta": "ipces",
+  "intencao": "ajuda",
+  "base": "opcoes"
+ },
+ {
+  "pergunta": "me diz tudo que vc faz",
+  "intencao": "ajuda",
+  "base": "me diz tudo que voce faz"
+ },
+ {
+  "pergunta": "agora, urgente preciso saber usar",
+  "intencao": "ajuda",
+  "base": "urgente preciso saber usar"
+ },
+ {
+  "pergunta": "me explica",
+  "intencao": "ajuda",
+  "base": "me explica"
+ },
+ {
+  "pergunta": "voce e so consult?",
+  "intencao": "ajuda",
+  "base": "voce e so consulta?"
+ },
+ {
+  "pergunta": "cliente esperando preciso resolver já",
+  "intencao": "ajuda",
+  "base": "cliente esperando preciso resolver já"
+ },
+ {
+  "pergunta": "bom dia Eduardo, me ajuda",
+  "intencao": "ajuda",
+  "base": "bom dia Eduardo, me ajuda"
+ },
+ {
+  "pergunta": "ajua",
+  "intencao": "ajuda",
+  "base": "ajuda"
+ },
+ {
+  "pergunta": "ola chefe, me ajuda",
+  "intencao": "ajuda",
+  "base": "ola chefe, me ajuda"
+ },
+ {
+  "pergunta": "sinto que não consigo usar direito",
+  "intencao": "ajuda",
+  "base": "sinto que não consigo usar direito"
+ },
+ {
+  "pergunta": "será que é seguro",
+  "intencao": "ajuda",
+  "base": "será que é seguro"
+ },
+ {
+  "pergunta": "não entendo nada disso",
+  "intencao": "ajuda",
+  "base": "não entendo nada disso"
+ },
+ {
+  "pergunta": "você me salvou hoje",
+  "intencao": "ajuda",
+  "base": "você me salvou hoje"
+ },
+ {
+  "pergunta": "como conersar com voce",
+  "intencao": "ajuda",
+  "base": "como conversar com voce"
+ },
+ {
+  "pergunta": "bom dia Eduardo, o que você faz",
+  "intencao": "ajuda",
+  "base": "bom dia Eduardo, o que você faz"
+ },
+ {
+  "pergunta": "ola tudo bem, o que você faz",
+  "intencao": "ajuda",
+  "base": "ola tudo bem, o que você faz"
+ },
+ {
+  "pergunta": "excelente, que bom você ajuda",
+  "intencao": "ajuda",
+  "base": "que bom você ajuda"
+ },
+ {
+  "pergunta": "da pra você mudar preco",
+  "intencao": "ajuda",
+  "base": "da pra voce mudar preco"
+ },
+ {
+  "pergunta": "tá difícil me ajuda por favor",
+  "intencao": "ajuda",
+  "base": "tá difícil me ajuda por favor"
+ },
+ {
+  "pergunta": "quais peguntas voce entende",
+  "intencao": "ajuda",
+  "base": "quais perguntas voce entende"
+ },
+ {
+  "pergunta": "quais informacies voce tem",
+  "intencao": "ajuda",
+  "base": "quais informacoes voce tem"
+ },
+ {
+  "pergunta": "ola chefe, quais comandos",
+  "intencao": "ajuda",
+  "base": "ola chefe, quais comandos"
+ },
+ {
+  "pergunta": "não posso esperar muito tempo",
+  "intencao": "ajuda",
+  "base": "não posso esperar muito tempo"
+ },
+ {
+  "pergunta": "bom dia chefe, o que você faz",
+  "intencao": "ajuda",
+  "base": "bom dia chefe, o que você faz"
+ },
+ {
+  "pergunta": "que tipo de perguna",
+  "intencao": "ajuda",
+  "base": "que tipo de pergunta"
+ },
+ {
+  "pergunta": "me mostra fazer",
+  "intencao": "ajuda",
+  "base": "me mostra o que da pra fazer"
+ },
+ {
+  "pergunta": "opa tudo bom, o que você faz",
+  "intencao": "ajuda",
+  "base": "opa tudo bom, o que você faz"
+ },
+ {
+  "pergunta": "ei chefe, quais comandos",
+  "intencao": "ajuda",
+  "base": "ei chefe, quais comandos"
+ },
+ {
+  "pergunta": "ola tudo bem, quais comandos",
+  "intencao": "ajuda",
+  "base": "ola tudo bem, quais comandos"
+ },
+ {
+  "pergunta": "o que da pra peguntar",
+  "intencao": "ajuda",
+  "base": "o que da pra perguntar"
+ },
+ {
+  "pergunta": "corrge estoque 12",
+  "intencao": "alterar_estoque",
+  "base": "corrige o estoque para 12"
+ },
+ {
+  "pergunta": "poe 50 unidades agua",
+  "intencao": "alterar_estoque",
+  "base": "poe 50 unidades de agua"
+ },
+ {
+  "pergunta": "ajusta a qtd pra 60",
+  "intencao": "alterar_estoque",
+  "base": "ajusta a quantidade para 60"
+ },
+ {
+  "pergunta": "arualiza o estoque do salgadinho",
+  "intencao": "alterar_estoque",
+  "base": "atualiza o estoque do salgadinho"
+ },
+ {
+  "pergunta": "muda a qtd do baly",
+  "intencao": "alterar_estoque",
+  "base": "muda a quantidade do baly"
+ },
+ {
+  "pergunta": "tiea 5 estoque",
+  "intencao": "alterar_estoque",
+  "base": "tira 5 do estoque"
+ },
+ {
+  "pergunta": "eepoe o estoque do salgadinho",
+  "intencao": "alterar_estoque",
+  "base": "repoe o estoque do salgadinho"
+ },
+ {
+  "pergunta": "entou mercadoria nova, atualiza",
+  "intencao": "alterar_estoque",
+  "base": "entrou mercadoria nova, atualiza"
+ },
+ {
+  "pergunta": "alterar estoque",
+  "intencao": "alterar_estoque",
+  "base": "alterar estoque"
+ },
+ {
+  "pergunta": "estoque certo agua e 25",
+  "intencao": "alterar_estoque",
+  "base": "o estoque certo da agua e 25"
+ },
+ {
+  "pergunta": "conta de novo o esoque do baly",
+  "intencao": "alterar_estoque",
+  "base": "conta de novo o estoque do baly"
+ },
+ {
+  "pergunta": "deixa estoque 50",
+  "intencao": "alterar_estoque",
+  "base": "deixa o estoque em 50"
+ },
+ {
+  "pergunta": "baixa 3 aguas",
+  "intencao": "alterar_estoque",
+  "base": "da baixa em 3 aguas"
+ },
+ {
+  "pergunta": "baixa 2 uidadrs de agua",
+  "intencao": "alterar_estoque",
+  "base": "baixa 2 unidades de agua"
+ },
+ {
+  "pergunta": "estq coca deveria ser 40",
+  "intencao": "alterar_estoque",
+  "base": "o estoque da coca deveria ser 40"
+ },
+ {
+  "pergunta": "define estoque baly 18",
+  "intencao": "alterar_estoque",
+  "base": "define o estoque do baly em 18"
+ },
+ {
+  "pergunta": "corrigir estoque",
+  "intencao": "alterar_estoque",
+  "base": "corrigir estoque"
+ },
+ {
+  "pergunta": "estoque coca ta errado",
+  "intencao": "alterar_estoque",
+  "base": "o estoque da coca ta errado"
+ },
+ {
+  "pergunta": "mudar quantidade",
+  "intencao": "alterar_estoque",
+  "base": "mudar quantidade"
+ },
+ {
+  "pergunta": "muda a qtd do baly pra 15",
+  "intencao": "alterar_estoque",
+  "base": "muda a quantidade do baly para 15"
+ },
+ {
+  "pergunta": "atualizar quantidade",
+  "intencao": "alterar_estoque",
+  "base": "atualizar quantidade"
+ },
+ {
+  "pergunta": "corrie estoque agua 30",
+  "intencao": "alterar_estoque",
+  "base": "corrige o estoque da agua para 30"
+ },
+ {
+  "pergunta": "qtd certa e 44",
+  "intencao": "alterar_estoque",
+  "base": "quantidade certa e 44"
+ },
+ {
+  "pergunta": "invensrio deu 33 de chocolate",
+  "intencao": "alterar_estoque",
+  "base": "inventario deu 33 de chocolate"
+ },
+ {
+  "pergunta": "fiz inventario, agua tem 9",
+  "intencao": "alterar_estoque",
+  "base": "fiz o inventario, agua tem 9"
+ },
+ {
+  "pergunta": "acrescebta 10 estoque chocolate",
+  "intencao": "alterar_estoque",
+  "base": "acrescenta 10 no estoque do chocolate"
+ },
+ {
+  "pergunta": "chegaram mais 20 choclates",
+  "intencao": "alterar_estoque",
+  "base": "chegaram mais 20 chocolates"
+ },
+ {
+  "pergunta": "preciso ajustar a qtd de um prod",
+  "intencao": "alterar_estoque",
+  "base": "preciso ajustar a quantidade de um produto"
+ },
+ {
+  "pergunta": "arrma a quantidade que ta errads",
+  "intencao": "alterar_estoque",
+  "base": "arruma a quantidade que ta errada"
+ },
+ {
+  "pergunta": "diinui a quamtidade da coca",
+  "intencao": "alterar_estoque",
+  "base": "diminui a quantidade da coca"
+ },
+ {
+  "pergunta": "quero mudar o preco do chocolate",
+  "intencao": "alterar_preco",
+  "base": "quero mudar o preco do chocolate"
+ },
+ {
+  "pergunta": "preciso corigir o preco de um produto",
+  "intencao": "alterar_preco",
+  "base": "preciso corrigir o preco de um produto"
+ },
+ {
+  "pergunta": "deixa baly mais barato",
+  "intencao": "alterar_preco",
+  "base": "deixa o baly mais barato"
+ },
+ {
+  "pergunta": "atualiza o valor do salgadinho",
+  "intencao": "alterar_preco",
+  "base": "atualiza o valor do salgadinho"
+ },
+ {
+  "pergunta": "modificar preço",
+  "intencao": "alterar_preco",
+  "base": "modificar preço"
+ },
+ {
+  "pergunta": "cloca baly por 7 reais",
+  "intencao": "alterar_preco",
+  "base": "coloca o baly por 7 reais"
+ },
+ {
+  "pergunta": "coerige o preco que ta errado",
+  "intencao": "alterar_preco",
+  "base": "corrige o preco que ta errado"
+ },
+ {
+  "pergunta": "alera o valor do baly",
+  "intencao": "alterar_preco",
+  "base": "altera o valor do baly"
+ },
+ {
+  "pergunta": "poe a agua a 4,50",
+  "intencao": "alterar_preco",
+  "base": "poe a agua a 4,50"
+ },
+ {
+  "pergunta": "muda o preco da água para 5 reais",
+  "intencao": "alterar_preco",
+  "base": "muda o preco da agua para 5 reais"
+ },
+ {
+  "pergunta": "trca o preco do chocolate para 590",
+  "intencao": "alterar_preco",
+  "base": "troca o preco do chocolate para 5,90"
+ },
+ {
+  "pergunta": "alterar preço do produto",
+  "intencao": "alterar_preco",
+  "base": "alterar preço do produto"
+ },
+ {
+  "pergunta": "reajusta o preco da agua",
+  "intencao": "alterar_preco",
+  "base": "reajusta o preco da agua"
+ },
+ {
+  "pergunta": "aumenta o preco do refeigerante",
+  "intencao": "alterar_preco",
+  "base": "aumenta o preco do refrigerante"
+ },
+ {
+  "pergunta": "abaixa o calor do salgadinho",
+  "intencao": "alterar_preco",
+  "base": "abaixa o valor do salgadinho"
+ },
+ {
+  "pergunta": "mudar valor",
+  "intencao": "alterar_preco",
+  "base": "mudar valor"
+ },
+ {
+  "pergunta": "atualizar preço",
+  "intencao": "alterar_preco",
+  "base": "atualizar preço"
+ },
+ {
+  "pergunta": "o peco da coca ta errado, arruma",
+  "intencao": "alterar_preco",
+  "base": "o preco da coca ta errado, arruma"
+ },
+ {
+  "pergunta": "conflio enyre rastros e sessões",
+  "intencao": "analise_combinada",
+  "base": "conflito entre rastros e sessões"
+ },
+ {
+  "pergunta": "pessas vs carrinhos",
+  "intencao": "analise_combinada",
+  "base": "pessoas vs carrinhos"
+ },
+ {
+  "pergunta": "pessoas sem sessão",
+  "intencao": "analise_combinada",
+  "base": "pessoas sem sessão"
+ },
+ {
+  "pergunta": "tenta explicar de outro jeito",
+  "intencao": "aprendizado",
+  "base": "tenta explicar de outro jeito"
+ },
+ {
+  "pergunta": "estou perdido não sei como resolver",
+  "intencao": "aprendizado",
+  "base": "estou perdido não sei como resolver"
+ },
+ {
+  "pergunta": "me ensina de novo",
+  "intencao": "aprendizado",
+  "base": "me ensina de novo"
+ },
+ {
+  "pergunta": "deixa eu tentar entender",
+  "intencao": "aprendizado",
+  "base": "deixa eu tentar entender"
+ },
+ {
+  "pergunta": "qual a resolucao da camera alta",
+  "intencao": "cameras",
+  "base": "qual a resolucao da camera alta"
+ },
+ {
+  "pergunta": "me da od detalhes das cameras",
+  "intencao": "cameras",
+  "base": "me da os detalhes das cameras"
+ },
+ {
+  "pergunta": "cameras conectadas",
+  "intencao": "cameras",
+  "base": "cameras conectadas"
+ },
+ {
+  "pergunta": "cameraa pe",
+  "intencao": "cameras",
+  "base": "cameras de pe"
+ },
+ {
+  "pergunta": "cam frontal ok",
+  "intencao": "cameras",
+  "base": "camera frontal ok"
+ },
+ {
+  "pergunta": "camera lateral caiu",
+  "intencao": "cameras",
+  "base": "camera lateral caiu"
+ },
+ {
+  "pergunta": "algua camera offline",
+  "intencao": "cameras",
+  "base": "alguma camera offline"
+ },
+ {
+  "pergunta": "como estao as cameras",
+  "intencao": "cameras",
+  "base": "como estao as cameras"
+ },
+ {
+  "pergunta": "fps das cameras",
+  "intencao": "cameras",
+  "base": "fps das cameras"
+ },
+ {
+  "pergunta": "o rastreamento ta funcionando",
+  "intencao": "cameras",
+  "base": "o rastreamento ta funcionando"
+ },
+ {
+  "pergunta": "as vistas estao ativas",
+  "intencao": "cameras",
+  "base": "as vistas estao ativas"
+ },
+ {
+  "pergunta": "as cameras",
+  "intencao": "cameras",
+  "base": "as cameras"
+ },
+ {
+  "pergunta": "tudo onlie?",
+  "intencao": "cameras",
+  "base": "tudo online?"
+ },
+ {
+  "pergunta": "fps da camera lateral",
+  "intencao": "cameras",
+  "base": "fps da camera lateral"
+ },
+ {
+  "pergunta": "as cameras estao ok",
+  "intencao": "cameras",
+  "base": "as cameras estao ok"
+ },
+ {
+  "pergunta": "qual o fps da cam alta",
+  "intencao": "cameras",
+  "base": "qual o fps da camera alta"
+ },
+ {
+  "pergunta": "a cam alta wsta boa",
+  "intencao": "cameras",
+  "base": "a camera alta esta boa"
+ },
+ {
+  "pergunta": "sistema de vidao ok?",
+  "intencao": "cameras",
+  "base": "sistema de visao ok?"
+ },
+ {
+  "pergunta": "problema de camera",
+  "intencao": "cameras",
+  "base": "problema de camera"
+ },
+ {
+  "pergunta": "quanto de latencia a camera frontal tem",
+  "intencao": "cameras",
+  "base": "quanto de latencia a camera frontal tem"
+ },
+ {
+  "pergunta": "o sisema espacial ta ok",
+  "intencao": "cameras",
+  "base": "o sistema espacial ta ok"
+ },
+ {
+  "pergunta": "quantas cameras olime",
+  "intencao": "cameras",
+  "base": "quantas cameras online"
+ },
+ {
+  "pergunta": "a viao ta boa",
+  "intencao": "cameras",
+  "base": "a visao ta boa"
+ },
+ {
+  "pergunta": "alguma cam reconectou",
+  "intencao": "cameras",
+  "base": "alguma camera reconectou"
+ },
+ {
+  "pergunta": "o sistema espacial responde",
+  "intencao": "cameras",
+  "base": "o sistema espacial responde"
+ },
+ {
+  "pergunta": "status das caeras",
+  "intencao": "cameras",
+  "base": "status das cameras"
+ },
+ {
+  "pergunta": "as webcams estao boas",
+  "intencao": "cameras",
+  "base": "as webcams estao boas"
+ },
+ {
+  "pergunta": "qual o fps da camera frontal",
+  "intencao": "cameras",
+  "base": "qual o fps da camera frontal"
+ },
+ {
+  "pergunta": "saude das cameras",
+  "intencao": "cameras",
+  "base": "saude das cameras"
+ },
+ {
+  "pergunta": "cameras ligadas",
+  "intencao": "cameras",
+  "base": "cameras ligadas"
+ },
+ {
+  "pergunta": "melhor deixar",
+  "intencao": "cancelar_operacao",
+  "base": "melhor deixar"
+ },
+ {
+  "pergunta": "nao e bem iaso",
+  "intencao": "cancelar_operacao",
+  "base": "nao e bem isso"
+ },
+ {
+  "pergunta": "NÃO ESSE",
+  "intencao": "cancelar_operacao",
+  "base": "nao esse"
+ },
+ {
+  "pergunta": "PARA AGORA",
+  "intencao": "cancelar_operacao",
+  "base": "para agora"
+ },
+ {
+  "pergunta": "eereii",
+  "intencao": "cancelar_operacao",
+  "base": "errei"
+ },
+ {
+  "pergunta": "pode deiar pra la",
+  "intencao": "cancelar_operacao",
+  "base": "pode deixar pra la"
+ },
+ {
+  "pergunta": "pode nao fazer",
+  "intencao": "cancelar_operacao",
+  "base": "pode nao fazer"
+ },
+ {
+  "pergunta": "PODE DEIXARR",
+  "intencao": "cancelar_operacao",
+  "base": "pode deixar"
+ },
+ {
+  "pergunta": "deixa eu perguntar oura coisa",
+  "intencao": "cancelar_operacao",
+  "base": "deixa eu perguntar outra coisa"
+ },
+ {
+  "pergunta": "pare",
+  "intencao": "cancelar_operacao",
+  "base": "pare"
+ },
+ {
+  "pergunta": "nao faca",
+  "intencao": "cancelar_operacao",
+  "base": "nao faca"
+ },
+ {
+  "pergunta": "mdaa de assunto",
+  "intencao": "cancelar_operacao",
+  "base": "muda de assunto"
+ },
+ {
+  "pergunta": "pode voltar aras",
+  "intencao": "cancelar_operacao",
+  "base": "pode voltar atras"
+ },
+ {
+  "pergunta": "asim nao obrigado",
+  "intencao": "cancelar_operacao",
+  "base": "assim nao obrigado"
+ },
+ {
+  "pergunta": "prefieo não",
+  "intencao": "cancelar_operacao",
+  "base": "prefiro nao"
+ },
+ {
+  "pergunta": "prduti errado",
+  "intencao": "cancelar_operacao",
+  "base": "produto errado"
+ },
+ {
+  "pergunta": "cancelar operação",
+  "intencao": "cancelar_operacao",
+  "base": "cancelar operação"
+ },
+ {
+  "pergunta": "pderia nao fazee",
+  "intencao": "cancelar_operacao",
+  "base": "poderia nao fazer"
+ },
+ {
+  "pergunta": "PODE TROAR",
+  "intencao": "cancelar_operacao",
+  "base": "pode trocar"
+ },
+ {
+  "pergunta": "esse valir nao",
+  "intencao": "cancelar_operacao",
+  "base": "esse valor nao"
+ },
+ {
+  "pergunta": "pode esqucer",
+  "intencao": "cancelar_operacao",
+  "base": "pode esquecer"
+ },
+ {
+  "pergunta": "ESQUECR",
+  "intencao": "cancelar_operacao",
+  "base": "esquece"
+ },
+ {
+  "pergunta": "para com issi",
+  "intencao": "cancelar_operacao",
+  "base": "para com isso"
+ },
+ {
+  "pergunta": "pode cacelár",
+  "intencao": "cancelar_operacao",
+  "base": "pode cancelar"
+ },
+ {
+  "pergunta": "outeo por favor",
+  "intencao": "cancelar_operacao",
+  "base": "outro por favor"
+ },
+ {
+  "pergunta": "valor eerado",
+  "intencao": "cancelar_operacao",
+  "base": "valor errado"
+ },
+ {
+  "pergunta": "ME ENGANEI",
+  "intencao": "cancelar_operacao",
+  "base": "me enganei"
+ },
+ {
+  "pergunta": "rcusa",
+  "intencao": "cancelar_operacao",
+  "base": "recusa"
+ },
+ {
+  "pergunta": "opa não",
+  "intencao": "cancelar_operacao",
+  "base": "opa nao"
+ },
+ {
+  "pergunta": "nao obrgado",
+  "intencao": "cancelar_operacao",
+  "base": "nao obrigado"
+ },
+ {
+  "pergunta": "o que tem na sacola",
+  "intencao": "carrinho",
+  "base": "o que tem na sacola"
+ },
+ {
+  "pergunta": "quais itens cliente pegou",
+  "intencao": "carrinho",
+  "base": "quais itens o cliente pegou"
+ },
+ {
+  "pergunta": "prods escilhidos agr",
+  "intencao": "carrinho",
+  "base": "produtos escolhidos agora"
+ },
+ {
+  "pergunta": "caerinho atual",
+  "intencao": "carrinho",
+  "base": "carrinho atual"
+ },
+ {
+  "pergunta": "quamtos itns no carrinho",
+  "intencao": "carrinho",
+  "base": "quantos itens no carrinho"
+ },
+ {
+  "pergunta": "itens da sessao",
+  "intencao": "carrinho",
+  "base": "itens da sessao"
+ },
+ {
+  "pergunta": "sedsao atual",
+  "intencao": "carrinho",
+  "base": "sessao atual"
+ },
+ {
+  "pergunta": "toal do carrinho",
+  "intencao": "carrinho",
+  "base": "total do carrinho"
+ },
+ {
+  "pergunta": "compra atal",
+  "intencao": "carrinho",
+  "base": "compra atual"
+ },
+ {
+  "pergunta": "foi pego",
+  "intencao": "carrinho",
+  "base": "o que foi pego"
+ },
+ {
+  "pergunta": "mostra carrinho",
+  "intencao": "carrinho",
+  "base": "mostra o carrinho"
+ },
+ {
+  "pergunta": "qianto ta o carrinho",
+  "intencao": "carrinho",
+  "base": "quanto ta o carrinho"
+ },
+ {
+  "pergunta": "itens em maos do cliene",
+  "intencao": "carrinho",
+  "base": "itens em maos do cliente"
+ },
+ {
+  "pergunta": "o cliente ja pegou o que",
+  "intencao": "carrinho",
+  "base": "o cliente ja pegou o que"
+ },
+ {
+  "pergunta": "o cliente pegou quantos itens",
+  "intencao": "carrinho",
+  "base": "o cliente pegou quantos itens"
+ },
+ {
+  "pergunta": "dealhe da sessao aberta",
+  "intencao": "carrinho",
+  "base": "detalhe da sessao aberta"
+ },
+ {
+  "pergunta": "ver carrinho",
+  "intencao": "carrinho",
+  "base": "ver carrinho"
+ },
+ {
+  "pergunta": "itens compados agora",
+  "intencao": "carrinho",
+  "base": "itens comprados agora"
+ },
+ {
+  "pergunta": "o qie tem na compra",
+  "intencao": "carrinho",
+  "base": "o que tem na compra"
+ },
+ {
+  "pergunta": "o que a pesoa comprou",
+  "intencao": "carrinho",
+  "base": "o que a pessoa comprou"
+ },
+ {
+  "pergunta": "o que o cliente colocou no carrinho",
+  "intencao": "carrinho",
+  "base": "o que o cliente colocou no carrinho"
+ },
+ {
+  "pergunta": "compra aberta",
+  "intencao": "carrinho",
+  "base": "compra aberta"
+ },
+ {
+  "pergunta": "quano ta a compra",
+  "intencao": "carrinho",
+  "base": "quanto ta a compra"
+ },
+ {
+  "pergunta": "o que ta sendo comprado",
+  "intencao": "carrinho",
+  "base": "o que ta sendo comprado"
+ },
+ {
+  "pergunta": "sacola arual",
+  "intencao": "carrinho",
+  "base": "sacola atual"
+ },
+ {
+  "pergunta": "sesao em andamento",
+  "intencao": "carrinho",
+  "base": "sessao em andamento"
+ },
+ {
+  "pergunta": "quais prods no carrinho",
+  "intencao": "carrinho",
+  "base": "quais produtos no carrinho"
+ },
+ {
+  "pergunta": "mostra a compra em andamento",
+  "intencao": "carrinho",
+  "base": "mostra a compra em andamento"
+ },
+ {
+  "pergunta": "itens compra atual",
+  "intencao": "carrinho",
+  "base": "itens da compra atual"
+ },
+ {
+  "pergunta": "sessao aberta tem",
+  "intencao": "carrinho",
+  "base": "sessao aberta tem o que"
+ },
+ {
+  "pergunta": "melhorou em relacao a ontem",
+  "intencao": "comparar",
+  "base": "melhorou em relacao a ontem"
+ },
+ {
+  "pergunta": "vendas aubiram",
+  "intencao": "comparar",
+  "base": "vendas subiram"
+ },
+ {
+  "pergunta": "tendencia de venas",
+  "intencao": "comparar",
+  "base": "tendencia de vendas"
+ },
+ {
+  "pergunta": "diferenca de hj pra ontem",
+  "intencao": "comparar",
+  "base": "diferenca de hoje pra ontem"
+ },
+ {
+  "pergunta": "movimento aumentou",
+  "intencao": "comparar",
+  "base": "o movimento aumentou"
+ },
+ {
+  "pergunta": "vendemos mais que ontem",
+  "intencao": "comparar",
+  "base": "vendemos mais que ontem"
+ },
+ {
+  "pergunta": "faturamemto de hoje contra ontem",
+  "intencao": "comparar",
+  "base": "faturamento de hoje contra ontem"
+ },
+ {
+  "pergunta": "como foi ontem",
+  "intencao": "comparar",
+  "base": "como foi ontem"
+ },
+ {
+  "pergunta": "cmparar com o mes passado",
+  "intencao": "comparar",
+  "base": "comparar com o mes passado"
+ },
+ {
+  "pergunta": "esta semana foi melhor",
+  "intencao": "comparar",
+  "base": "esta semana foi melhor"
+ },
+ {
+  "pergunta": "caiu moimento",
+  "intencao": "comparar",
+  "base": "caiu o movimento"
+ },
+ {
+  "pergunta": "comara os dias",
+  "intencao": "comparar",
+  "base": "compara os dias"
+ },
+ {
+  "pergunta": "qual dia vedeu mais",
+  "intencao": "comparar",
+  "base": "qual dia vendeu mais"
+ },
+ {
+  "pergunta": "cresceu ou caiu",
+  "intencao": "comparar",
+  "base": "cresceu ou caiu"
+ },
+ {
+  "pergunta": "evolucao das vendas",
+  "intencao": "comparar",
+  "base": "evolucao das vendas"
+ },
+ {
+  "pergunta": "comparatio de fsturamento",
+  "intencao": "comparar",
+  "base": "comparativo de faturamento"
+ },
+ {
+  "pergunta": "estamos vendendo mais",
+  "intencao": "comparar",
+  "base": "estamos vendendo mais"
+ },
+ {
+  "pergunta": "melhoe dia semana",
+  "intencao": "comparar",
+  "base": "melhor dia da semana"
+ },
+ {
+  "pergunta": "hj foi melhor que ontem",
+  "intencao": "comparar",
+  "base": "hoje foi melhor que ontem"
+ },
+ {
+  "pergunta": "esta pior que antes",
+  "intencao": "comparar",
+  "base": "esta pior que antes"
+ },
+ {
+  "pergunta": "nova câmera",
+  "intencao": "configurar_camera",
+  "base": "nova câmera"
+ },
+ {
+  "pergunta": "preciso mexer na config da câmera",
+  "intencao": "configurar_camera",
+  "base": "preciso mexer na configuracao da camera"
+ },
+ {
+  "pergunta": "configurar câmera",
+  "intencao": "configurar_camera",
+  "base": "configurar câmera"
+ },
+ {
+  "pergunta": "ajusta a cam frontsl",
+  "intencao": "configurar_camera",
+  "base": "ajusta a camera frontal"
+ },
+ {
+  "pergunta": "muda a taxa de quados da cam",
+  "intencao": "configurar_camera",
+  "base": "muda a taxa de quadros da camera"
+ },
+ {
+  "pergunta": "adiciona a cam da entrada",
+  "intencao": "configurar_camera",
+  "base": "adiciona a camera da entrada"
+ },
+ {
+  "pergunta": "reconfigura a cam que ta caindo",
+  "intencao": "configurar_camera",
+  "base": "reconfigura a camera que ta caindo"
+ },
+ {
+  "pergunta": "muda o endereco da cam lateral",
+  "intencao": "configurar_camera",
+  "base": "muda o endereco da camera lateral"
+ },
+ {
+  "pergunta": "troca a reslucao das cameras",
+  "intencao": "configurar_camera",
+  "base": "troca a resolucao das cameras"
+ },
+ {
+  "pergunta": "quero configurar a camera do alto",
+  "intencao": "configurar_camera",
+  "base": "quero configurar a camera do alto"
+ },
+ {
+  "pergunta": "altera ip camera lateral",
+  "intencao": "configurar_camera",
+  "base": "altera o ip da camera lateral"
+ },
+ {
+  "pergunta": "configura camera nova",
+  "intencao": "configurar_camera",
+  "base": "configura uma camera nova"
+ },
+ {
+  "pergunta": "adicionar mais canera?",
+  "intencao": "configurar_camera",
+  "base": "da pra adicionar mais uma camera?"
+ },
+ {
+  "pergunta": "poe camera nova sistma",
+  "intencao": "configurar_camera",
+  "base": "poe uma camera nova no sistema"
+ },
+ {
+  "pergunta": "instalar câmera",
+  "intencao": "configurar_camera",
+  "base": "instalar câmera"
+ },
+ {
+  "pergunta": "instala camera sada",
+  "intencao": "configurar_camera",
+  "base": "instala uma camera na saida"
+ },
+ {
+  "pergunta": "arrua a configuracao das cameras",
+  "intencao": "configurar_camera",
+  "base": "arruma a configuracao das cameras"
+ },
+ {
+  "pergunta": "adicionar câmera",
+  "intencao": "configurar_camera",
+  "base": "adicionar câmera"
+ },
+ {
+  "pergunta": "configura alerta estoqye",
+  "intencao": "configurar_sistema",
+  "base": "configura o alerta de estoque"
+ },
+ {
+  "pergunta": "quero mudar uma comfigracao",
+  "intencao": "configurar_sistema",
+  "base": "quero mudar uma configuracao"
+ },
+ {
+  "pergunta": "alterar configuração",
+  "intencao": "configurar_sistema",
+  "base": "alterar configuração"
+ },
+ {
+  "pergunta": "atualiza os oarametros",
+  "intencao": "configurar_sistema",
+  "base": "atualiza os parametros"
+ },
+ {
+  "pergunta": "arrma config ta errada",
+  "intencao": "configurar_sistema",
+  "base": "arruma a config que ta errada"
+ },
+ {
+  "pergunta": "da pra mudar o ajuste do sistema",
+  "intencao": "configurar_sistema",
+  "base": "da pra mudar o ajuste do sistema?"
+ },
+ {
+  "pergunta": "troca a configuracao da loja",
+  "intencao": "configurar_sistema",
+  "base": "troca a configuracao da loja"
+ },
+ {
+  "pergunta": "configurar sistema",
+  "intencao": "configurar_sistema",
+  "base": "configurar sistema"
+ },
+ {
+  "pergunta": "altera o limite de estoque baixo",
+  "intencao": "configurar_sistema",
+  "base": "altera o limite de estoque baixo"
+ },
+ {
+  "pergunta": "ajusa parametros sistema",
+  "intencao": "configurar_sistema",
+  "base": "ajusta os parametros do sistema"
+ },
+ {
+  "pergunta": "define minumo estoque como 5",
+  "intencao": "configurar_sistema",
+  "base": "define o minimo de estoque como 5"
+ },
+ {
+  "pergunta": "preciso alterar uma config",
+  "intencao": "configurar_sistema",
+  "base": "preciso alterar uma config"
+ },
+ {
+  "pergunta": "ajustar configuração",
+  "intencao": "configurar_sistema",
+  "base": "ajustar configuração"
+ },
+ {
+  "pergunta": "muda o tempo de expiracao do qr code",
+  "intencao": "configurar_sistema",
+  "base": "muda o tempo de expiracao do qr code"
+ },
+ {
+  "pergunta": "altera a config das znas",
+  "intencao": "configurar_sistema",
+  "base": "altera a configuracao das zonas"
+ },
+ {
+  "pergunta": "mexe nas configuracoes",
+  "intencao": "configurar_sistema",
+  "base": "mexe nas configuracoes"
+ },
+ {
+  "pergunta": "mudar settings",
+  "intencao": "configurar_sistema",
+  "base": "mudar settings"
+ },
+ {
+  "pergunta": "muda a configuracao do sistema",
+  "intencao": "configurar_sistema",
+  "base": "muda a configuracao do sistema"
+ },
+ {
+  "pergunta": "LIBERA",
+  "intencao": "confirmar_acao",
+  "base": "libera"
+ },
+ {
+  "pergunta": "AHOW",
+  "intencao": "confirmar_acao",
+  "base": "show"
+ },
+ {
+  "pergunta": "ACHO QUE SIM",
+  "intencao": "confirmar_acao",
+  "base": "acho que sim"
+ },
+ {
+  "pergunta": "executa por faor",
+  "intencao": "confirmar_acao",
+  "base": "executa por favor"
+ },
+ {
+  "pergunta": "sim obrigado",
+  "intencao": "confirmar_acao",
+  "base": "sim obrigado"
+ },
+ {
+  "pergunta": "issi mesmoo",
+  "intencao": "confirmar_acao",
+  "base": "isso mesmo"
+ },
+ {
+  "pergunta": "pide prosseguir",
+  "intencao": "confirmar_acao",
+  "base": "pode prosseguir"
+ },
+ {
+  "pergunta": "sim faz pfv",
+  "intencao": "confirmar_acao",
+  "base": "sim faz por favor"
+ },
+ {
+  "pergunta": "PERFEIYO",
+  "intencao": "confirmar_acao",
+  "base": "perfeito"
+ },
+ {
+  "pergunta": "prosaegue",
+  "intencao": "confirmar_acao",
+  "base": "prossegue"
+ },
+ {
+  "pergunta": "AFIRMATIVO",
+  "intencao": "confirmar_acao",
+  "base": "afirmativo"
+ },
+ {
+  "pergunta": "cofirmar operação",
+  "intencao": "confirmar_acao",
+  "base": "confirmar operação"
+ },
+ {
+  "pergunta": "ta vaendi",
+  "intencao": "confirmar_acao",
+  "base": "ta valendo"
+ },
+ {
+  "pergunta": "TUDO CERTO",
+  "intencao": "confirmar_acao",
+  "base": "tudo certo"
+ },
+ {
+  "pergunta": "segue em fente",
+  "intencao": "confirmar_acao",
+  "base": "segue em frente"
+ },
+ {
+  "pergunta": "e iaso",
+  "intencao": "confirmar_acao",
+  "base": "e isso"
+ },
+ {
+  "pergunta": "eetiva",
+  "intencao": "confirmar_acao",
+  "base": "efetiva"
+ },
+ {
+  "pergunta": "tudi ok",
+  "intencao": "confirmar_acao",
+  "base": "tudo ok"
+ },
+ {
+  "pergunta": "faz isso pfv",
+  "intencao": "confirmar_acao",
+  "base": "faz isso por favor"
+ },
+ {
+  "pergunta": "TA CERTO",
+  "intencao": "confirmar_acao",
+  "base": "ta certo"
+ },
+ {
+  "pergunta": "FAZZ SIM",
+  "intencao": "confirmar_acao",
+  "base": "faz sim"
+ },
+ {
+  "pergunta": "pode seguir por faor",
+  "intencao": "confirmar_acao",
+  "base": "pode seguir por favor"
+ },
+ {
+  "pergunta": "por mim ta bomm",
+  "intencao": "confirmar_acao",
+  "base": "por mim ta bom"
+ },
+ {
+  "pergunta": "manda balaa",
+  "intencao": "confirmar_acao",
+  "base": "manda bala"
+ },
+ {
+  "pergunta": "sim por facor",
+  "intencao": "confirmar_acao",
+  "base": "sim por favor"
+ },
+ {
+  "pergunta": "ta bom",
+  "intencao": "confirmar_acao",
+  "base": "ta bom"
+ },
+ {
+  "pergunta": "POR FAVR",
+  "intencao": "confirmar_acao",
+  "base": "por favor"
+ },
+ {
+  "pergunta": "certo",
+  "intencao": "confirmar_acao",
+  "base": "certo"
+ },
+ {
+  "pergunta": "TA",
+  "intencao": "confirmar_acao",
+  "base": "ta"
+ },
+ {
+  "pergunta": "grava pfv",
+  "intencao": "confirmar_acao",
+  "base": "grava por favor"
+ },
+ {
+  "pergunta": "acho que estou fazendo errado",
+  "intencao": "desculpa_correcao",
+  "base": "acho que estou fazendo errado"
+ },
+ {
+  "pergunta": "não quero cometer erro",
+  "intencao": "desculpa_correcao",
+  "base": "não quero cometer erro"
+ },
+ {
+  "pergunta": "e se der errado",
+  "intencao": "desculpa_correcao",
+  "base": "e se der errado"
+ },
+ {
+  "pergunta": "qual produto causou erro no estoque",
+  "intencao": "diagnostico_problema",
+  "base": "qual produto causou erro no estoque"
+ },
+ {
+  "pergunta": "qual câmera está com problema",
+  "intencao": "diagnostico_problema",
+  "base": "qual câmera está com problema"
+ },
+ {
+  "pergunta": "encontrei um bug onde reporto",
+  "intencao": "diagnostico_problema",
+  "base": "encontrei um bug onde reporto"
+ },
+ {
+  "pergunta": "meus dados vao intenet",
+  "intencao": "duvida_sistema",
+  "base": "meus dados vao pra internet"
+ },
+ {
+  "pergunta": "q tipo de ia vc e",
+  "intencao": "duvida_sistema",
+  "base": "que tipo de ia voce e"
+ },
+ {
+  "pergunta": "oor que preciso do minimo de estoque",
+  "intencao": "duvida_sistema",
+  "base": "por que preciso do minimo de estoque"
+ },
+ {
+  "pergunta": "eplica o orojeto",
+  "intencao": "duvida_sistema",
+  "base": "explica o projeto"
+ },
+ {
+  "pergunta": "cm vc aprende",
+  "intencao": "duvida_sistema",
+  "base": "como voce aprende"
+ },
+ {
+  "pergunta": "cliente identificado",
+  "intencao": "duvida_sistema",
+  "base": "o cliente e identificado"
+ },
+ {
+  "pergunta": "como o prod entra no carrinho",
+  "intencao": "duvida_sistema",
+  "base": "como o produto entra no carrinho"
+ },
+ {
+  "pergunta": "o que e o so espacial",
+  "intencao": "duvida_sistema",
+  "base": "o que e o so espacial"
+ },
+ {
+  "pergunta": "por que a camera caiu",
+  "intencao": "duvida_sistema",
+  "base": "por que a camera caiu"
+ },
+ {
+  "pergunta": "por que vc nao entendeu minha pergunta",
+  "intencao": "duvida_sistema",
+  "base": "por que voce nao entendeu minha pergunta"
+ },
+ {
+  "pergunta": "me eplica o sistema",
+  "intencao": "duvida_sistema",
+  "base": "me explica o sistema"
+ },
+ {
+  "pergunta": "de onde vc tira os dados",
+  "intencao": "duvida_sistema",
+  "base": "de onde voce tira os dados"
+ },
+ {
+  "pergunta": "resumo do sist",
+  "intencao": "duvida_sistema",
+  "base": "resumo do sistema"
+ },
+ {
+  "pergunta": "o sist reconhece roso",
+  "intencao": "duvida_sistema",
+  "base": "o sistema reconhece rosto"
+ },
+ {
+  "pergunta": "e rede neural gerente",
+  "intencao": "duvida_sistema",
+  "base": "o que e a rede neural do gerente"
+ },
+ {
+  "pergunta": "exlica sistema mim",
+  "intencao": "duvida_sistema",
+  "base": "explica o sistema pra mim"
+ },
+ {
+  "pergunta": "o monitor espacial está mandando dados para a rede",
+  "intencao": "duvida_sistema",
+  "base": "o monitor espacial está mandando dados para a rede"
+ },
+ {
+  "pergunta": "fala sobre o sist",
+  "intencao": "duvida_sistema",
+  "base": "fala sobre o sistema"
+ },
+ {
+  "pergunta": "vc roda inde",
+  "intencao": "duvida_sistema",
+  "base": "voce roda onde"
+ },
+ {
+  "pergunta": "cm vc entende o q eu escrevo",
+  "intencao": "duvida_sistema",
+  "base": "como voce entende o que eu escrevo"
+ },
+ {
+  "pergunta": "o que o qr code fax",
+  "intencao": "duvida_sistema",
+  "base": "o que o qr code faz"
+ },
+ {
+  "pergunta": "o que faz o automomous store",
+  "intencao": "duvida_sistema",
+  "base": "o que faz o autonomous store"
+ },
+ {
+  "pergunta": "o que signifca surpresa em nats",
+  "intencao": "duvida_sistema",
+  "base": "o que significa surpresa em nats"
+ },
+ {
+  "pergunta": "e smart store",
+  "intencao": "duvida_sistema",
+  "base": "o que e o smart store"
+ },
+ {
+  "pergunta": "o que e uma sessao",
+  "intencao": "duvida_sistema",
+  "base": "o que e uma sessao"
+ },
+ {
+  "pergunta": "queria entender como funcioa",
+  "intencao": "duvida_sistema",
+  "base": "queria entender como funciona"
+ },
+ {
+  "pergunta": "como funciona carrinho automatico",
+  "intencao": "duvida_sistema",
+  "base": "como funciona o carrinho automatico"
+ },
+ {
+  "pergunta": "me exolica tudo",
+  "intencao": "duvida_sistema",
+  "base": "me explica tudo"
+ },
+ {
+  "pergunta": "como estoque baixa",
+  "intencao": "duvida_sistema",
+  "base": "como o estoque baixa"
+ },
+ {
+  "pergunta": "como o cliente enra na loja",
+  "intencao": "duvida_sistema",
+  "base": "como o cliente entra na loja"
+ },
+ {
+  "pergunta": "liberar aceso",
+  "intencao": "entrada_loja",
+  "base": "liberar acesso"
+ },
+ {
+  "pergunta": "abir portão",
+  "intencao": "entrada_loja",
+  "base": "abrir portão"
+ },
+ {
+  "pergunta": "entrar na lija",
+  "intencao": "entrada_loja",
+  "base": "entrar na loja"
+ },
+ {
+  "pergunta": "tentar primeira solução",
+  "intencao": "escolher_solucao",
+  "base": "tentar primeira solução"
+ },
+ {
+  "pergunta": "tentar correção automática",
+  "intencao": "escolher_solucao",
+  "base": "tentar correção automática"
+ },
+ {
+  "pergunta": "usae solção 1",
+  "intencao": "escolher_solucao",
+  "base": "usar solução 1"
+ },
+ {
+  "pergunta": "tem quanto de cada coisa",
+  "intencao": "estoque",
+  "base": "tem quanto de cada coisa"
+ },
+ {
+  "pergunta": "qnt vsle o estoque",
+  "intencao": "estoque",
+  "base": "quanto vale o estoque"
+ },
+ {
+  "pergunta": "quantidade cada produto",
+  "intencao": "estoque",
+  "base": "quantidade de cada produto"
+ },
+ {
+  "pergunta": "e ai Eduardo, qual o estoque",
+  "intencao": "estoque",
+  "base": "e ai Eduardo, qual o estoque"
+ },
+ {
+  "pergunta": "opa tudo bom, qual o estoque",
+  "intencao": "estoque",
+  "base": "opa tudo bom, qual o estoque"
+ },
+ {
+  "pergunta": "qnts chocolates tem em estoque",
+  "intencao": "estoque",
+  "base": "quantos chocolates tem em estoque"
+ },
+ {
+  "pergunta": "qnts proda ativos",
+  "intencao": "estoque",
+  "base": "quantos produtos ativos"
+ },
+ {
+  "pergunta": "me lista os produtos",
+  "intencao": "estoque",
+  "base": "me lista os produtos"
+ },
+ {
+  "pergunta": "tem quanro de tudo",
+  "intencao": "estoque",
+  "base": "tem quanto de tudo"
+ },
+ {
+  "pergunta": "quantas unidades no total",
+  "intencao": "estoque",
+  "base": "quantas unidades no total"
+ },
+ {
+  "pergunta": "ah! não acho o estoque",
+  "intencao": "estoque",
+  "base": "não acho o estoque"
+ },
+ {
+  "pergunta": "qnts produos diferentes eu tenho",
+  "intencao": "estoque",
+  "base": "quantos produtos diferentes eu tenho"
+ },
+ {
+  "pergunta": "ola tudo bem, quantos produtos temos",
+  "intencao": "estoque",
+  "base": "ola tudo bem, quantos produtos temos"
+ },
+ {
+  "pergunta": "qual a quantidade do baly",
+  "intencao": "estoque",
+  "base": "qual a quantidade do baly"
+ },
+ {
+  "pergunta": "quantas unidades tem no total",
+  "intencao": "estoque",
+  "base": "quantas unidades tem no total"
+ },
+ {
+  "pergunta": "tem quantas bebidas",
+  "intencao": "estoque",
+  "base": "tem quantas bebidas"
+ },
+ {
+  "pergunta": "quantidade em estoque",
+  "intencao": "estoque",
+  "base": "quantidade em estoque"
+ },
+ {
+  "pergunta": "sobrou barra de cereal",
+  "intencao": "estoque",
+  "base": "sobrou barra de cereal"
+ },
+ {
+  "pergunta": " será! será que vai faltar",
+  "intencao": "estoque",
+  "base": "será que vai faltar"
+ },
+ {
+  "pergunta": "ola chefe, qual o estoque",
+  "intencao": "estoque",
+  "base": "ola chefe, qual o estoque"
+ },
+ {
+  "pergunta": "bom dia Eduardo, me mostra o inventário",
+  "intencao": "estoque",
+  "base": "bom dia Eduardo, me mostra o inventário"
+ },
+ {
+  "pergunta": "situacao do estoque",
+  "intencao": "estoque",
+  "base": "situacao do estoque"
+ },
+ {
+  "pergunta": "tem cafe aind?",
+  "intencao": "estoque",
+  "base": "tem cafe ainda?"
+ },
+ {
+  "pergunta": "agora, preciso do estoque já",
+  "intencao": "estoque",
+  "base": "preciso do estoque já"
+ },
+ {
+  "pergunta": "excelente, ótimo consigo ver tudo",
+  "intencao": "estoque",
+  "base": "ótimo consigo ver tudo"
+ },
+ {
+  "pergunta": " será! tenho medo de ruptura",
+  "intencao": "estoque",
+  "base": "tenho medo de ruptura"
+ },
+ {
+  "pergunta": "qnt tem de agua",
+  "intencao": "estoque",
+  "base": "quanto tem de agua"
+ },
+ {
+  "pergunta": "esoque de refrigerante",
+  "intencao": "estoque",
+  "base": "estoque de refrigerante"
+ },
+ {
+  "pergunta": "esoque do suco",
+  "intencao": "estoque",
+  "base": "estoque do suco"
+ },
+ {
+  "pergunta": "e ai Eduardo, me mostra o inventário",
+  "intencao": "estoque",
+  "base": "e ai Eduardo, me mostra o inventário"
+ },
+ {
+  "pergunta": "quais prods tao acabando",
+  "intencao": "estoque_baixo",
+  "base": "quais produtos estao acabando"
+ },
+ {
+  "pergunta": "o que sumiu da prateleiea",
+  "intencao": "estoque_baixo",
+  "base": "o que sumiu da prateleira"
+ },
+ {
+  "pergunta": "alfo acaando?",
+  "intencao": "estoque_baixo",
+  "base": "algo acabando?"
+ },
+ {
+  "pergunta": "o que ta falando no estoque",
+  "intencao": "estoque_baixo",
+  "base": "o que ta faltando no estoque"
+ },
+ {
+  "pergunta": "tem produto perto acabar",
+  "intencao": "estoque_baixo",
+  "base": "tem produto perto de acabar"
+ },
+ {
+  "pergunta": "tem poduto acabado",
+  "intencao": "estoque_baixo",
+  "base": "tem produto acabado"
+ },
+ {
+  "pergunta": "quais prods tao no minimo",
+  "intencao": "estoque_baixo",
+  "base": "quais produtos estao no minimo"
+ },
+ {
+  "pergunta": "tem item zeeado",
+  "intencao": "estoque_baixo",
+  "base": "tem item zerado"
+ },
+ {
+  "pergunta": "o que ta perto de acabar",
+  "intencao": "estoque_baixo",
+  "base": "o que ta perto de acabar"
+ },
+ {
+  "pergunta": "eeposcao urgente",
+  "intencao": "estoque_baixo",
+  "base": "reposicao urgente"
+ },
+ {
+  "pergunta": "o que ta pouco",
+  "intencao": "estoque_baixo",
+  "base": "o que ta pouco"
+ },
+ {
+  "pergunta": "o que esta acababdo",
+  "intencao": "estoque_baixo",
+  "base": "o que esta acabando"
+ },
+ {
+  "pergunta": "preciso cimprar",
+  "intencao": "estoque_baixo",
+  "base": "preciso comprar o que"
+ },
+ {
+  "pergunta": "alerta de estoqe",
+  "intencao": "estoque_baixo",
+  "base": "alerta de estoque"
+ },
+ {
+  "pergunta": "quais itens preciso repor primeiro",
+  "intencao": "estoque_baixo",
+  "base": "quais itens preciso repor primeiro"
+ },
+ {
+  "pergunta": "me avisa o que reoor",
+  "intencao": "estoque_baixo",
+  "base": "me avisa o que repor"
+ },
+ {
+  "pergunta": "o que ta no vermekho",
+  "intencao": "estoque_baixo",
+  "base": "o que ta no vermelho"
+ },
+ {
+  "pergunta": "tem coia faltando",
+  "intencao": "estoque_baixo",
+  "base": "tem coisa faltando"
+ },
+ {
+  "pergunta": "prdutos em baixa",
+  "intencao": "estoque_baixo",
+  "base": "produtos em baixa"
+ },
+ {
+  "pergunta": "orodutos criticos",
+  "intencao": "estoque_baixo",
+  "base": "produtos criticos"
+ },
+ {
+  "pergunta": "quais prods abaixo do limite",
+  "intencao": "estoque_baixo",
+  "base": "quais produtos abaixo do limite"
+ },
+ {
+  "pergunta": "quais prods preciso repor",
+  "intencao": "estoque_baixo",
+  "base": "quais produtos preciso repor"
+ },
+ {
+  "pergunta": "prods abaixo minimo",
+  "intencao": "estoque_baixo",
+  "base": "produtos abaixo do minimo"
+ },
+ {
+  "pergunta": "algum produo zerou",
+  "intencao": "estoque_baixo",
+  "base": "algum produto zerou"
+ },
+ {
+  "pergunta": "o que oreciso repor",
+  "intencao": "estoque_baixo",
+  "base": "o que preciso repor"
+ },
+ {
+  "pergunta": "o que devo compar",
+  "intencao": "estoque_baixo",
+  "base": "o que devo comprar"
+ },
+ {
+  "pergunta": "me avisa o que ta baixo",
+  "intencao": "estoque_baixo",
+  "base": "me avisa o que ta baixo"
+ },
+ {
+  "pergunta": "o que pecisa de reposicao",
+  "intencao": "estoque_baixo",
+  "base": "o que precisa de reposicao"
+ },
+ {
+  "pergunta": "algum alerta de estoque",
+  "intencao": "estoque_baixo",
+  "base": "algum alerta de estoque"
+ },
+ {
+  "pergunta": "quais estao no limite",
+  "intencao": "estoque_baixo",
+  "base": "quais estao no limite"
+ },
+ {
+  "pergunta": "excelente, ótimo faturamento alto",
+  "intencao": "faturamento",
+  "base": "ótimo faturamento alto"
+ },
+ {
+  "pergunta": "ola tudo bem, quanto faturamos hoje",
+  "intencao": "faturamento",
+  "base": "ola tudo bem, quanto faturamos hoje"
+ },
+ {
+  "pergunta": "ola tudo bem, vendas do dia",
+  "intencao": "faturamento",
+  "base": "ola tudo bem, vendas do dia"
+ },
+ {
+  "pergunta": "qnt entrou de dinheiro",
+  "intencao": "faturamento",
+  "base": "quanto entrou de dinheiro"
+ },
+ {
+  "pergunta": "qnt ja fechou de venda",
+  "intencao": "faturamento",
+  "base": "quanto ja fechou de venda"
+ },
+ {
+  "pergunta": "qnt de grana entrou",
+  "intencao": "faturamento",
+  "base": "quanto de grana entrou"
+ },
+ {
+  "pergunta": "me diz faturamento dia, semana e mes",
+  "intencao": "faturamento",
+  "base": "me diz o faturamento do dia, da semana e do mes"
+ },
+ {
+  "pergunta": "excelente, que bom vendi bem",
+  "intencao": "faturamento",
+  "base": "que bom vendi bem"
+ },
+ {
+  "pergunta": "me da o fatramrnto",
+  "intencao": "faturamento",
+  "base": "me da o faturamento"
+ },
+ {
+  "pergunta": "fatuamento do mes ate agora",
+  "intencao": "faturamento",
+  "base": "faturamento do mes ate agora"
+ },
+ {
+  "pergunta": "agora, preciso do faturamento já",
+  "intencao": "faturamento",
+  "base": "preciso do faturamento já"
+ },
+ {
+  "pergunta": "total venddo",
+  "intencao": "faturamento",
+  "base": "total vendido"
+ },
+ {
+  "pergunta": "quanto o caixa fez",
+  "intencao": "faturamento",
+  "base": "quanto o caixa fez"
+ },
+ {
+  "pergunta": "opa tudo bom, quanto faturamos hoje",
+  "intencao": "faturamento",
+  "base": "opa tudo bom, quanto faturamos hoje"
+ },
+ {
+  "pergunta": "quanras vendas hoje",
+  "intencao": "faturamento",
+  "base": "quantas vendas hoje"
+ },
+ {
+  "pergunta": "ah! chato não saber resultado",
+  "intencao": "faturamento",
+  "base": "chato não saber resultado"
+ },
+ {
+  "pergunta": "e ai Eduardo, qual a receita",
+  "intencao": "faturamento",
+  "base": "e ai Eduardo, qual a receita"
+ },
+ {
+  "pergunta": "qanto faturamos mes passado?",
+  "intencao": "faturamento",
+  "base": "quanto faturamos no mes passado?"
+ },
+ {
+  "pergunta": "quanti vendemos em agosto?",
+  "intencao": "faturamento",
+  "base": "quanto vendemos em agosto?"
+ },
+ {
+  "pergunta": "receita do dia de hj",
+  "intencao": "faturamento",
+  "base": "receita do dia de hoje"
+ },
+ {
+  "pergunta": "total de vendas hoje",
+  "intencao": "faturamento",
+  "base": "total de vendas hoje"
+ },
+ {
+  "pergunta": "ola chefe, quanto faturamos hoje",
+  "intencao": "faturamento",
+  "base": "ola chefe, quanto faturamos hoje"
+ },
+ {
+  "pergunta": "fala ai, vendas do dia",
+  "intencao": "faturamento",
+  "base": "fala ai, vendas do dia"
+ },
+ {
+  "pergunta": "qual foi faturamento onte?",
+  "intencao": "faturamento",
+  "base": "qual foi o faturamento de ontem?"
+ },
+ {
+  "pergunta": "faturamento da semana",
+  "intencao": "faturamento",
+  "base": "faturamento da semana"
+ },
+ {
+  "pergunta": "bom dia chefe, vendas do dia",
+  "intencao": "faturamento",
+  "base": "bom dia chefe, vendas do dia"
+ },
+ {
+  "pergunta": "opa tudo bom, vendas do dia",
+  "intencao": "faturamento",
+  "base": "opa tudo bom, vendas do dia"
+ },
+ {
+  "pergunta": "ah! não consigo ver faturamento",
+  "intencao": "faturamento",
+  "base": "não consigo ver faturamento"
+ },
+ {
+  "pergunta": "vendas de hj",
+  "intencao": "faturamento",
+  "base": "vendas de hoje"
+ },
+ {
+  "pergunta": "qual daturamento",
+  "intencao": "faturamento",
+  "base": "qual o faturamento"
+ },
+ {
+  "pergunta": "qual a cor do ceu",
+  "intencao": "fora_de_escopo",
+  "base": "qual a cor do ceu"
+ },
+ {
+  "pergunta": "o que você acha de mim",
+  "intencao": "fora_de_escopo",
+  "base": "o que voce acha de mim"
+ },
+ {
+  "pergunta": "voce dorme",
+  "intencao": "fora_de_escopo",
+  "base": "voce dorme?"
+ },
+ {
+  "pergunta": "vc gosta de musica",
+  "intencao": "fora_de_escopo",
+  "base": "voce gosta de musica"
+ },
+ {
+  "pergunta": "como faz bilo",
+  "intencao": "fora_de_escopo",
+  "base": "como faz bolo"
+ },
+ {
+  "pergunta": "que hoas sao",
+  "intencao": "fora_de_escopo",
+  "base": "que horas sao"
+ },
+ {
+  "pergunta": "coacao do dolae",
+  "intencao": "fora_de_escopo",
+  "base": "cotacao do dolar"
+ },
+ {
+  "pergunta": "escreve poema",
+  "intencao": "fora_de_escopo",
+  "base": "escreve um poema"
+ },
+ {
+  "pergunta": "abre o excel",
+  "intencao": "fora_de_escopo",
+  "base": "abre o excel"
+ },
+ {
+  "pergunta": "qnt e a raiz de 144",
+  "intencao": "fora_de_escopo",
+  "base": "quanto e a raiz de 144"
+ },
+ {
+  "pergunta": "vai chover amanha",
+  "intencao": "fora_de_escopo",
+  "base": "vai chover amanha"
+ },
+ {
+  "pergunta": "qual i sentido da vida",
+  "intencao": "fora_de_escopo",
+  "base": "qual o sentido da vida"
+ },
+ {
+  "pergunta": "vai choer?",
+  "intencao": "fora_de_escopo",
+  "base": "vai chover?"
+ },
+ {
+  "pergunta": "me ajuda com dever casa",
+  "intencao": "fora_de_escopo",
+  "base": "me ajuda com o dever de casa"
+ },
+ {
+  "pergunta": "traduz isso pro ibgles",
+  "intencao": "fora_de_escopo",
+  "base": "traduz isso pro ingles"
+ },
+ {
+  "pergunta": "qual o resltado do jogo",
+  "intencao": "fora_de_escopo",
+  "base": "qual o resultado do jogo"
+ },
+ {
+  "pergunta": "qual a bola hoje",
+  "intencao": "fora_de_escopo",
+  "base": "qual a bolsa hoje"
+ },
+ {
+  "pergunta": "me da a receita de brigadeiro",
+  "intencao": "fora_de_escopo",
+  "base": "me da a receita de brigadeiro"
+ },
+ {
+  "pergunta": "como esta o tempo hoje",
+  "intencao": "fora_de_escopo",
+  "base": "como esta o tempo hoje"
+ },
+ {
+  "pergunta": "quem ganhou as eleicoes",
+  "intencao": "fora_de_escopo",
+  "base": "quem ganhou as eleicoes"
+ },
+ {
+  "pergunta": "quano e 2 mais 2",
+  "intencao": "fora_de_escopo",
+  "base": "quanto e 2 mais 2"
+ },
+ {
+  "pergunta": "qual a melhor linguagem de programacao",
+  "intencao": "fora_de_escopo",
+  "base": "qual a melhor linguagem de programacao"
+ },
+ {
+  "pergunta": "taduz bom dia",
+  "intencao": "fora_de_escopo",
+  "base": "traduz bom dia"
+ },
+ {
+  "pergunta": "me ajuda a edtudar",
+  "intencao": "fora_de_escopo",
+  "base": "me ajuda a estudar"
+ },
+ {
+  "pergunta": "cnta ate dez",
+  "intencao": "fora_de_escopo",
+  "base": "conta ate dez"
+ },
+ {
+  "pergunta": "qual a formula de bhaskara",
+  "intencao": "fora_de_escopo",
+  "base": "qual a formula de bhaskara"
+ },
+ {
+  "pergunta": "quem descobriu brasil",
+  "intencao": "fora_de_escopo",
+  "base": "quem descobriu o brasil"
+ },
+ {
+  "pergunta": "me eplica fisica quantica",
+  "intencao": "fora_de_escopo",
+  "base": "me explica fisica quantica"
+ },
+ {
+  "pergunta": "qnt custa um iphone",
+  "intencao": "fora_de_escopo",
+  "base": "quanto custa um iphone"
+ },
+ {
+  "pergunta": "me conta piada",
+  "intencao": "fora_de_escopo",
+  "base": "me conta uma piada"
+ },
+ {
+  "pergunta": "alguem leou sem pagar?",
+  "intencao": "furo_sistema",
+  "base": "alguem levou sem pagar?"
+ },
+ {
+  "pergunta": "tem fueo no estoue?",
+  "intencao": "furo_sistema",
+  "base": "tem furo no estoque?"
+ },
+ {
+  "pergunta": "deu fueo hoje?",
+  "intencao": "furo_sistema",
+  "base": "deu furo hoje?"
+ },
+ {
+  "pergunta": "tem produto a menos do que deveria?",
+  "intencao": "furo_sistema",
+  "base": "tem produto a menos do que deveria?"
+ },
+ {
+  "pergunta": "tivemos agum furo no sist?",
+  "intencao": "furo_sistema",
+  "base": "tivemos algum furo no sistema?"
+ },
+ {
+  "pergunta": "tem buraco estoque?",
+  "intencao": "furo_sistema",
+  "base": "tem buraco no estoque?"
+ },
+ {
+  "pergunta": "algo errado com estoq?",
+  "intencao": "furo_sistema",
+  "base": "algo errado com o estoque?"
+ },
+ {
+  "pergunta": "saiu piduto sem pagamento?",
+  "intencao": "furo_sistema",
+  "base": "saiu produto sem pagamento?"
+ },
+ {
+  "pergunta": "confeeenca de estoque",
+  "intencao": "furo_sistema",
+  "base": "conferencia de estoque"
+ },
+ {
+  "pergunta": "estoq bate?",
+  "intencao": "furo_sistema",
+  "base": "o estoque bate?"
+ },
+ {
+  "pergunta": "n ta batendo?",
+  "intencao": "furo_sistema",
+  "base": "o que nao esta batendo?"
+ },
+ {
+  "pergunta": "teve riubo?",
+  "intencao": "furo_sistema",
+  "base": "teve roubo?"
+ },
+ {
+  "pergunta": "smiu algum produto?",
+  "intencao": "furo_sistema",
+  "base": "sumiu algum produto?"
+ },
+ {
+  "pergunta": "teve qbra de etoq?",
+  "intencao": "furo_sistema",
+  "base": "teve quebra de estoque?"
+ },
+ {
+  "pergunta": "teve peeda?",
+  "intencao": "furo_sistema",
+  "base": "teve perda?"
+ },
+ {
+  "pergunta": "teve fro?",
+  "intencao": "furo_sistema",
+  "base": "teve furo?"
+ },
+ {
+  "pergunta": "numero sist confere com prateleira?",
+  "intencao": "furo_sistema",
+  "base": "o numero do sistema confere com a prateleira?"
+ },
+ {
+  "pergunta": "contei a pateleira e n bate",
+  "intencao": "furo_sistema",
+  "base": "contei a prateleira e nao bate"
+ },
+ {
+  "pergunta": "estoque sistema esta errado",
+  "intencao": "furo_sistema",
+  "base": "o estoque do sistema esta errado"
+ },
+ {
+  "pergunta": "tem diveegencia?",
+  "intencao": "furo_sistema",
+  "base": "tem divergencia?"
+ },
+ {
+  "pergunta": "tiemos perda produto?",
+  "intencao": "furo_sistema",
+  "base": "tivemos perda de produto?"
+ },
+ {
+  "pergunta": "o sistema bate com a prateleira?",
+  "intencao": "furo_sistema",
+  "base": "o sistema bate com a prateleira?"
+ },
+ {
+  "pergunta": "esta sumindo produto?",
+  "intencao": "furo_sistema",
+  "base": "esta sumindo produto?"
+ },
+ {
+  "pergunta": "quano sumiu?",
+  "intencao": "furo_sistema",
+  "base": "quanto sumiu?"
+ },
+ {
+  "pergunta": "o sist ta perdendo prduto?",
+  "intencao": "furo_sistema",
+  "base": "o sistema esta perdendo produto?"
+ },
+ {
+  "pergunta": "tem veda que nao entrou na conta?",
+  "intencao": "furo_sistema",
+  "base": "tem venda que nao entrou na conta?"
+ },
+ {
+  "pergunta": "invenario bate?",
+  "intencao": "furo_sistema",
+  "base": "o inventario bate?"
+ },
+ {
+  "pergunta": "comfere o estoque com o fisico",
+  "intencao": "furo_sistema",
+  "base": "confere o estoque com o fisico"
+ },
+ {
+  "pergunta": "perdemis alguma coisa?",
+  "intencao": "furo_sistema",
+  "base": "perdemos alguma coisa?"
+ },
+ {
+  "pergunta": "estoq ta batendo?",
+  "intencao": "furo_sistema",
+  "base": "o estoque esta batendo?"
+ },
+ {
+  "pergunta": "como a smart store está se comunicando com as câmeras",
+  "intencao": "integracao_sistemas",
+  "base": "como a smart store está se comunicando com as câmeras"
+ },
+ {
+  "pergunta": "o que causou a falha de comunicação",
+  "intencao": "integracao_sistemas",
+  "base": "o que causou a falha de comunicação"
+ },
+ {
+  "pergunta": "qual parte do sistema está lenta",
+  "intencao": "integracao_sistemas",
+  "base": "qual parte do sistema está lenta"
+ },
+ {
+  "pergunta": "melhorias possíveis no sistema",
+  "intencao": "integracao_sistemas",
+  "base": "melhorias possíveis no sistema"
+ },
+ {
+  "pergunta": "a loja autônoma está integrada com a percepção",
+  "intencao": "integracao_sistemas",
+  "base": "a loja autônoma está integrada com a percepção"
+ },
+ {
+  "pergunta": "comunicação enre loja e espacial",
+  "intencao": "integracao_sistemas",
+  "base": "comunicação entre loja e espacial"
+ },
+ {
+  "pergunta": "coordenação entre sistemas",
+  "intencao": "integracao_sistemas",
+  "base": "coordenação entre sistemas"
+ },
+ {
+  "pergunta": "os sistemas estão sincronizados",
+  "intencao": "integracao_sistemas",
+  "base": "os sistemas estão sincronizados"
+ },
+ {
+  "pergunta": "os sistemas estão se falando direito",
+  "intencao": "integracao_sistemas",
+  "base": "os sistemas estão se falando direito"
+ },
+ {
+  "pergunta": "onde está o gargalo do sistema",
+  "intencao": "integracao_sistemas",
+  "base": "onde está o gargalo do sistema"
+ },
+ {
+  "pergunta": "a rede neural está conversando com o so espacial",
+  "intencao": "integracao_sistemas",
+  "base": "a rede neural está conversando com o so espacial"
+ },
+ {
+  "pergunta": "enmera produtos",
+  "intencao": "listar_produtos",
+  "base": "enumera os produtos"
+ },
+ {
+  "pergunta": "quais sao as mercadirias da loja?",
+  "intencao": "listar_produtos",
+  "base": "quais sao as mercadorias da loja?"
+ },
+ {
+  "pergunta": "produtos existem sistema?",
+  "intencao": "listar_produtos",
+  "base": "que produtos existem no sistema?"
+ },
+ {
+  "pergunta": "me diz qais produtos tem",
+  "intencao": "listar_produtos",
+  "base": "me diz quais produtos tem"
+ },
+ {
+  "pergunta": "o q temos a vend?",
+  "intencao": "listar_produtos",
+  "base": "o que temos a venda?"
+ },
+ {
+  "pergunta": "me pasa os produtos da loja",
+  "intencao": "listar_produtos",
+  "base": "me passa os produtos da loja"
+ },
+ {
+  "pergunta": "me mosra tudo que a loja tem",
+  "intencao": "listar_produtos",
+  "base": "me mostra tudo que a loja tem"
+ },
+ {
+  "pergunta": "qais itens a loja tem?",
+  "intencao": "listar_produtos",
+  "base": "quais itens a loja tem?"
+ },
+ {
+  "pergunta": "qual catalogo loja?",
+  "intencao": "listar_produtos",
+  "base": "qual o catalogo da loja?"
+ },
+ {
+  "pergunta": "me da a lista de peodtos",
+  "intencao": "listar_produtos",
+  "base": "me da a lista de produtos"
+ },
+ {
+  "pergunta": "me mistra catalogo",
+  "intencao": "listar_produtos",
+  "base": "me mostra o catalogo"
+ },
+ {
+  "pergunta": "tdos produtos",
+  "intencao": "listar_produtos",
+  "base": "todos os produtos"
+ },
+ {
+  "pergunta": "me mosta os produtis",
+  "intencao": "listar_produtos",
+  "base": "me mostra os produtos"
+ },
+ {
+  "pergunta": "ver prdutos",
+  "intencao": "listar_produtos",
+  "base": "ver produtos"
+ },
+ {
+  "pergunta": "liata de produtos",
+  "intencao": "listar_produtos",
+  "base": "lista de produtos"
+ },
+ {
+  "pergunta": "me lisa o que tem",
+  "intencao": "listar_produtos",
+  "base": "me lista o que tem"
+ },
+ {
+  "pergunta": "qais produtos temos?",
+  "intencao": "listar_produtos",
+  "base": "quais produtos temos?"
+ },
+ {
+  "pergunta": "mostea o caalogo da loja",
+  "intencao": "listar_produtos",
+  "base": "mostra o catalogo da loja"
+ },
+ {
+  "pergunta": "abee a lista de proutos",
+  "intencao": "listar_produtos",
+  "base": "abre a lista de produtos"
+ },
+ {
+  "pergunta": "loja vende?",
+  "intencao": "listar_produtos",
+  "base": "o que a loja vende?"
+ },
+ {
+  "pergunta": "qro ver todos os produtos",
+  "intencao": "listar_produtos",
+  "base": "quero ver todos os produtos"
+ },
+ {
+  "pergunta": "quais produtoa tem no sist?",
+  "intencao": "listar_produtos",
+  "base": "quais produtos tem no sistema?"
+ },
+ {
+  "pergunta": "o q tem na loja?",
+  "intencao": "listar_produtos",
+  "base": "o que tem na loja?"
+ },
+ {
+  "pergunta": "cataligo completo",
+  "intencao": "listar_produtos",
+  "base": "catalogo completo"
+ },
+ {
+  "pergunta": "lista os peodutos",
+  "intencao": "listar_produtos",
+  "base": "lista os produtos"
+ },
+ {
+  "pergunta": "lista tudo q temos a venda",
+  "intencao": "listar_produtos",
+  "base": "lista tudo que temos a venda"
+ },
+ {
+  "pergunta": "qro a relacao dos produtos",
+  "intencao": "listar_produtos",
+  "base": "quero a relacao dos produtos"
+ },
+ {
+  "pergunta": "qais mercadoriss temos?",
+  "intencao": "listar_produtos",
+  "base": "quais mercadorias temos?"
+ },
+ {
+  "pergunta": "liste todos os peodutos",
+  "intencao": "listar_produtos",
+  "base": "liste todos os produtos"
+ },
+ {
+  "pergunta": "me fala os podutos",
+  "intencao": "listar_produtos",
+  "base": "me fala os produtos"
+ },
+ {
+  "pergunta": "erro no sisema",
+  "intencao": "logs_sistema",
+  "base": "erro no sistema"
+ },
+ {
+  "pergunta": "ver ligs",
+  "intencao": "logs_sistema",
+  "base": "ver logs"
+ },
+ {
+  "pergunta": "lofs sistema",
+  "intencao": "logs_sistema",
+  "base": "logs do sistema"
+ },
+ {
+  "pergunta": "prod campeao",
+  "intencao": "mais_vendidos",
+  "base": "produto campeao"
+ },
+ {
+  "pergunta": "produto de maior giro",
+  "intencao": "mais_vendidos",
+  "base": "produto de maior giro"
+ },
+ {
+  "pergunta": "qual tem mais saida",
+  "intencao": "mais_vendidos",
+  "base": "qual tem mais saida"
+ },
+ {
+  "pergunta": "poduto mais popular",
+  "intencao": "mais_vendidos",
+  "base": "produto mais popular"
+ },
+ {
+  "pergunta": "o que ninguem leva",
+  "intencao": "mais_vendidos",
+  "base": "o que ninguem leva"
+ },
+ {
+  "pergunta": "o que menos vede",
+  "intencao": "mais_vendidos",
+  "base": "o que menos vende"
+ },
+ {
+  "pergunta": "os mais pdidos",
+  "intencao": "mais_vendidos",
+  "base": "os mais pedidos"
+ },
+ {
+  "pergunta": "maia sai",
+  "intencao": "mais_vendidos",
+  "base": "o que mais sai"
+ },
+ {
+  "pergunta": "top prods",
+  "intencao": "mais_vendidos",
+  "base": "top produtos"
+ },
+ {
+  "pergunta": "quais campees venda",
+  "intencao": "mais_vendidos",
+  "base": "quais os campeoes de venda"
+ },
+ {
+  "pergunta": "qual prod mais bende",
+  "intencao": "mais_vendidos",
+  "base": "qual produto mais vende"
+ },
+ {
+  "pergunta": "clientes mais levam",
+  "intencao": "mais_vendidos",
+  "base": "o que os clientes mais levam"
+ },
+ {
+  "pergunta": "qual item sai mais",
+  "intencao": "mais_vendidos",
+  "base": "qual item sai mais"
+ },
+ {
+  "pergunta": "qual encalha",
+  "intencao": "mais_vendidos",
+  "base": "qual encalha"
+ },
+ {
+  "pergunta": "prod prado",
+  "intencao": "mais_vendidos",
+  "base": "produto parado"
+ },
+ {
+  "pergunta": "o que sai mais rapido",
+  "intencao": "mais_vendidos",
+  "base": "o que sai mais rapido"
+ },
+ {
+  "pergunta": "o que vende melhor",
+  "intencao": "mais_vendidos",
+  "base": "o que vende melhor"
+ },
+ {
+  "pergunta": "mais venddo loja",
+  "intencao": "mais_vendidos",
+  "base": "mais vendido da loja"
+ },
+ {
+  "pergunta": "me da o ranking",
+  "intencao": "mais_vendidos",
+  "base": "me da o ranking"
+ },
+ {
+  "pergunta": "ranking de orodutos",
+  "intencao": "mais_vendidos",
+  "base": "ranking de produtos"
+ },
+ {
+  "pergunta": "mei carrinho",
+  "intencao": "meu_carrinho",
+  "base": "meu carrinho"
+ },
+ {
+  "pergunta": "o que estou comprando",
+  "intencao": "meu_carrinho",
+  "base": "o que estou comprando"
+ },
+ {
+  "pergunta": "mimhas compras",
+  "intencao": "meu_carrinho",
+  "base": "minhas compras"
+ },
+ {
+  "pergunta": "como melhorar o rastreamento",
+  "intencao": "otimizacao",
+  "base": "como melhorar o rastreamento"
+ },
+ {
+  "pergunta": "posso aumentar a precisão",
+  "intencao": "otimizacao",
+  "base": "posso aumentar a precisão"
+ },
+ {
+  "pergunta": "otimizar performance da rede",
+  "intencao": "otimizacao",
+  "base": "otimizar performance da rede"
+ },
+ {
+  "pergunta": "oagar agora",
+  "intencao": "pagamento",
+  "base": "pagar agora"
+ },
+ {
+  "pergunta": "fializar compra",
+  "intencao": "pagamento",
+  "base": "finalizar compra"
+ },
+ {
+  "pergunta": "chckout",
+  "intencao": "pagamento",
+  "base": "checkout"
+ },
+ {
+  "pergunta": "fluxo clientes",
+  "intencao": "pessoas_na_loja",
+  "base": "fluxo de clientes"
+ },
+ {
+  "pergunta": "quantos clientes estao dentro da loja agora",
+  "intencao": "pessoas_na_loja",
+  "base": "quantos clientes estao dentro da loja agora"
+ },
+ {
+  "pergunta": "ah! por que não mostra quantos clientes",
+  "intencao": "pessoas_na_loja",
+  "base": "por que não mostra quantos clientes"
+ },
+ {
+  "pergunta": "ola chefe, tem cliente",
+  "intencao": "pessoas_na_loja",
+  "base": "ola chefe, tem cliente"
+ },
+ {
+  "pergunta": "ta vazio a loja",
+  "intencao": "pessoas_na_loja",
+  "base": "ta vazio a loja"
+ },
+ {
+  "pergunta": "koja movimentada?",
+  "intencao": "pessoas_na_loja",
+  "base": "loja movimentada?"
+ },
+ {
+  "pergunta": "e ai Eduardo, quantas pessoas estão na loja",
+  "intencao": "pessoas_na_loja",
+  "base": "e ai Eduardo, quantas pessoas estão na loja"
+ },
+ {
+  "pergunta": "me diz o moimento",
+  "intencao": "pessoas_na_loja",
+  "base": "me diz o movimento"
+ },
+ {
+  "pergunta": "tem cliente dentro",
+  "intencao": "pessoas_na_loja",
+  "base": "tem cliente dentro"
+ },
+ {
+  "pergunta": "qnts corpos rastreados",
+  "intencao": "pessoas_na_loja",
+  "base": "quantos corpos rastreados"
+ },
+ {
+  "pergunta": "quanas pessoas estao ai dentro agora",
+  "intencao": "pessoas_na_loja",
+  "base": "quantas pessoas estao ai dentro agora"
+ },
+ {
+  "pergunta": "movimento clientes agora",
+  "intencao": "pessoas_na_loja",
+  "base": "movimento de clientes agora"
+ },
+ {
+  "pergunta": "quantad pessoas passaram hoje",
+  "intencao": "pessoas_na_loja",
+  "base": "quantas pessoas passaram hoje"
+ },
+ {
+  "pergunta": "opa tudo bom, tem cliente",
+  "intencao": "pessoas_na_loja",
+  "base": "opa tudo bom, tem cliente"
+ },
+ {
+  "pergunta": "tem cliente parado na godola",
+  "intencao": "pessoas_na_loja",
+  "base": "tem cliente parado na gondola"
+ },
+ {
+  "pergunta": "qnts rastros ativos",
+  "intencao": "pessoas_na_loja",
+  "base": "quantos rastros ativos"
+ },
+ {
+  "pergunta": "tem gente perto caxa",
+  "intencao": "pessoas_na_loja",
+  "base": "tem gente perto do caixa"
+ },
+ {
+  "pergunta": "agora, rápido quantos clientes tem",
+  "intencao": "pessoas_na_loja",
+  "base": "rápido quantos clientes tem"
+ },
+ {
+  "pergunta": "numero de clientes agora",
+  "intencao": "pessoas_na_loja",
+  "base": "numero de clientes agora"
+ },
+ {
+  "pergunta": "tem quantas pessoas ai",
+  "intencao": "pessoas_na_loja",
+  "base": "tem quantas pessoas ai"
+ },
+ {
+  "pergunta": "quanas pessoas identificadas",
+  "intencao": "pessoas_na_loja",
+  "base": "quantas pessoas identificadas"
+ },
+ {
+  "pergunta": " será! e se tiver mais pessoas do que deveria",
+  "intencao": "pessoas_na_loja",
+  "base": "e se tiver mais pessoas do que deveria"
+ },
+ {
+  "pergunta": "ah! não consigo ver quantas pessoas tem",
+  "intencao": "pessoas_na_loja",
+  "base": "não consigo ver quantas pessoas tem"
+ },
+ {
+  "pergunta": "bom dia chefe, movimento hoje",
+  "intencao": "pessoas_na_loja",
+  "base": "bom dia chefe, movimento hoje"
+ },
+ {
+  "pergunta": "ola tudo bem, movimento hoje",
+  "intencao": "pessoas_na_loja",
+  "base": "ola tudo bem, movimento hoje"
+ },
+ {
+  "pergunta": "bom dia Eduardo, movimento hoje",
+  "intencao": "pessoas_na_loja",
+  "base": "bom dia Eduardo, movimento hoje"
+ },
+ {
+  "pergunta": "quantas pessoas estao loja agora",
+  "intencao": "pessoas_na_loja",
+  "base": "quantas pessoas estao na loja agora"
+ },
+ {
+  "pergunta": "quantas pessoad circulando",
+  "intencao": "pessoas_na_loja",
+  "base": "quantas pessoas circulando"
+ },
+ {
+  "pergunta": "e ai Eduardo, tem cliente",
+  "intencao": "pessoas_na_loja",
+  "base": "e ai Eduardo, tem cliente"
+ },
+ {
+  "pergunta": "tem alguem ai denro",
+  "intencao": "pessoas_na_loja",
+  "base": "tem alguem ai dentro"
+ },
+ {
+  "pergunta": "qual o preco de venda",
+  "intencao": "preco",
+  "base": "qual o preco de venda"
+ },
+ {
+  "pergunta": "oreco venda",
+  "intencao": "preco",
+  "base": "preco de venda"
+ },
+ {
+  "pergunta": "qnt e a agua minral",
+  "intencao": "preco",
+  "base": "quanto e a agua mineral"
+ },
+ {
+  "pergunta": "quanto e o sanduiche",
+  "intencao": "preco",
+  "base": "quanto e o sanduiche"
+ },
+ {
+  "pergunta": "o baly custa quanto",
+  "intencao": "preco",
+  "base": "o baly custa quanto"
+ },
+ {
+  "pergunta": "quanto ta custando i cafe",
+  "intencao": "preco",
+  "base": "quanto ta custando o cafe"
+ },
+ {
+  "pergunta": "valor unitario do suco",
+  "intencao": "preco",
+  "base": "valor unitario do suco"
+ },
+ {
+  "pergunta": "qual o preco",
+  "intencao": "preco",
+  "base": "qual o preco"
+ },
+ {
+  "pergunta": "custi de venda",
+  "intencao": "preco",
+  "base": "custo de venda"
+ },
+ {
+  "pergunta": "tabea de precos",
+  "intencao": "preco",
+  "base": "tabela de precos"
+ },
+ {
+  "pergunta": "me diz i preco",
+  "intencao": "preco",
+  "base": "me diz o preco"
+ },
+ {
+  "pergunta": "custo chocolate",
+  "intencao": "preco",
+  "base": "custo do chocolate"
+ },
+ {
+  "pergunta": "qual o valor da barra de cereal",
+  "intencao": "preco",
+  "base": "qual o valor da barra de cereal"
+ },
+ {
+  "pergunta": "qnt ta o preco do suco",
+  "intencao": "preco",
+  "base": "quanto ta o preco do suco"
+ },
+ {
+  "pergunta": "valores dos prods",
+  "intencao": "preco",
+  "base": "valores dos produtos"
+ },
+ {
+  "pergunta": "precos atuais",
+  "intencao": "preco",
+  "base": "precos atuais"
+ },
+ {
+  "pergunta": "quanto sai a baata chips",
+  "intencao": "preco",
+  "base": "quanto sai a batata chips"
+ },
+ {
+  "pergunta": "quanto vale o refrigerante",
+  "intencao": "preco",
+  "base": "quanto vale o refrigerante"
+ },
+ {
+  "pergunta": "por quanro ta a agua",
+  "intencao": "preco",
+  "base": "por quanto ta a agua"
+ },
+ {
+  "pergunta": "valor chocolate",
+  "intencao": "preco",
+  "base": "valor do chocolate"
+ },
+ {
+  "pergunta": "valores da loja",
+  "intencao": "preco",
+  "base": "valores da loja"
+ },
+ {
+  "pergunta": "tabela de valoes",
+  "intencao": "preco",
+  "base": "tabela de valores"
+ },
+ {
+  "pergunta": "qual valor do poduto",
+  "intencao": "preco",
+  "base": "qual valor do produto"
+ },
+ {
+  "pergunta": "peco unitario",
+  "intencao": "preco",
+  "base": "preco unitario"
+ },
+ {
+  "pergunta": "qnt custa o baly",
+  "intencao": "preco",
+  "base": "quanto custa o baly"
+ },
+ {
+  "pergunta": "valor do cafe expresso",
+  "intencao": "preco",
+  "base": "valor do cafe expresso"
+ },
+ {
+  "pergunta": "lista de pecos",
+  "intencao": "preco",
+  "base": "lista de precos"
+ },
+ {
+  "pergunta": "por quanto vendo a agua",
+  "intencao": "preco",
+  "base": "por quanto vendo a agua"
+ },
+ {
+  "pergunta": "valor do sabduiche",
+  "intencao": "preco",
+  "base": "valor do sanduiche"
+ },
+ {
+  "pergunta": "quanto sai o refrigerante",
+  "intencao": "preco",
+  "base": "quanto sai o refrigerante"
+ },
+ {
+  "pergunta": "tenho medo de estragar algo",
+  "intencao": "preocupacao",
+  "base": "tenho medo de estragar algo"
+ },
+ {
+  "pergunta": "para o serico é liga de novo",
+  "intencao": "reiniciar_servico",
+  "base": "para o servico e liga de novo"
+ },
+ {
+  "pergunta": "reiniciaiza o monitor",
+  "intencao": "reiniciar_servico",
+  "base": "reinicializa o monitor"
+ },
+ {
+  "pergunta": "reeta o servico",
+  "intencao": "reiniciar_servico",
+  "base": "reseta o servico"
+ },
+ {
+  "pergunta": "derrba e sobe o servidor",
+  "intencao": "reiniciar_servico",
+  "base": "derruba e sobe o servidor"
+ },
+ {
+  "pergunta": "reinicia a captura das cameas",
+  "intencao": "reiniciar_servico",
+  "base": "reinicia a captura das cameras"
+ },
+ {
+  "pergunta": "reinicia o distema",
+  "intencao": "reiniciar_servico",
+  "base": "reinicia o sistema"
+ },
+ {
+  "pergunta": "preciso reiniciar o rastreamento",
+  "intencao": "reiniciar_servico",
+  "base": "preciso reiniciar o rastreamento"
+ },
+ {
+  "pergunta": "reiniciar serviço",
+  "intencao": "reiniciar_servico",
+  "base": "reiniciar serviço"
+ },
+ {
+  "pergunta": "restarta o so espacal",
+  "intencao": "reiniciar_servico",
+  "base": "restarta o so espacial"
+ },
+ {
+  "pergunta": "da pra reiniciar o sistema",
+  "intencao": "reiniciar_servico",
+  "base": "da pra reiniciar o sistema?"
+ },
+ {
+  "pergunta": "restart no serviço",
+  "intencao": "reiniciar_servico",
+  "base": "restart no serviço"
+ },
+ {
+  "pergunta": "da um resart no minitor",
+  "intencao": "reiniciar_servico",
+  "base": "da um restart no monitor"
+ },
+ {
+  "pergunta": "e liga sevico novo",
+  "intencao": "reiniciar_servico",
+  "base": "para e liga o servico de novo"
+ },
+ {
+  "pergunta": "reiicia o so espacial",
+  "intencao": "reiniciar_servico",
+  "base": "reinicia o so espacial"
+ },
+ {
+  "pergunta": "sobe o serico de novo",
+  "intencao": "reiniciar_servico",
+  "base": "sobe o servico de novo"
+ },
+ {
+  "pergunta": "reiicia tudo",
+  "intencao": "reiniciar_servico",
+  "base": "reinicia tudo"
+ },
+ {
+  "pergunta": "resumo cmpleto da semana",
+  "intencao": "relatorio_periodo",
+  "base": "resumo completo da semana"
+ },
+ {
+  "pergunta": "me apanhado dia",
+  "intencao": "relatorio_periodo",
+  "base": "me da um apanhado do dia"
+ },
+ {
+  "pergunta": "qro relatorio dia",
+  "intencao": "relatorio_periodo",
+  "base": "quero um relatorio do dia"
+ },
+ {
+  "pergunta": "eelatorio da semana",
+  "intencao": "relatorio_periodo",
+  "base": "relatorio da semana"
+ },
+ {
+  "pergunta": "jnts tudo do mes num relatorio",
+  "intencao": "relatorio_periodo",
+  "base": "junta tudo do mes num relatorio"
+ },
+ {
+  "pergunta": "me da um eelatorio de agosto",
+  "intencao": "relatorio_periodo",
+  "base": "me da um relatorio de agosto"
+ },
+ {
+  "pergunta": "conaolida as informacoes de agosto",
+  "intencao": "relatorio_periodo",
+  "base": "consolida as informacoes de agosto"
+ },
+ {
+  "pergunta": "qro tudo sobre dia 15",
+  "intencao": "relatorio_periodo",
+  "base": "quero tudo sobre o dia 15"
+ },
+ {
+  "pergunta": "me da o panorama de hoje",
+  "intencao": "relatorio_periodo",
+  "base": "me da o panorama de hoje"
+ },
+ {
+  "pergunta": "aconteceu essa semana?",
+  "intencao": "relatorio_periodo",
+  "base": "o que aconteceu essa semana?"
+ },
+ {
+  "pergunta": "me teaz todas as informacoes da semana",
+  "intencao": "relatorio_periodo",
+  "base": "me traz todas as informacoes da semana"
+ },
+ {
+  "pergunta": "puxe todas as infirmacos de hoje",
+  "intencao": "relatorio_periodo",
+  "base": "puxe todas as informacoes de hoje"
+ },
+ {
+  "pergunta": "relatoeio geral",
+  "intencao": "relatorio_periodo",
+  "base": "relatorio geral"
+ },
+ {
+  "pergunta": "eesumo mes",
+  "intencao": "relatorio_periodo",
+  "base": "resumo do mes"
+ },
+ {
+  "pergunta": "puxa tudi do mes",
+  "intencao": "relatorio_periodo",
+  "base": "puxa tudo do mes"
+ },
+ {
+  "pergunta": "todas as inforacoes do mes",
+  "intencao": "relatorio_periodo",
+  "base": "todas as informacoes do mes"
+ },
+ {
+  "pergunta": "relatoio completo",
+  "intencao": "relatorio_periodo",
+  "base": "relatorio completo"
+ },
+ {
+  "pergunta": "me conta cm foi semana inteira",
+  "intencao": "relatorio_periodo",
+  "base": "me conta como foi a semana inteira"
+ },
+ {
+  "pergunta": "qero o balanco da semans",
+  "intencao": "relatorio_periodo",
+  "base": "quero o balanco da semana"
+ },
+ {
+  "pergunta": "qero ver tudo q aconteceu hoje",
+  "intencao": "relatorio_periodo",
+  "base": "quero ver tudo que aconteceu hoje"
+ },
+ {
+  "pergunta": "geea um relatorio do mes",
+  "intencao": "relatorio_periodo",
+  "base": "gera um relatorio do mes"
+ },
+ {
+  "pergunta": "me mosta tudo do dia",
+  "intencao": "relatorio_periodo",
+  "base": "me mostra tudo do dia"
+ },
+ {
+  "pergunta": "puxa dadis mes",
+  "intencao": "relatorio_periodo",
+  "base": "puxa os dados do mes"
+ },
+ {
+  "pergunta": "me passa o resmo geral de hoje",
+  "intencao": "relatorio_periodo",
+  "base": "me passa o resumo geral de hoje"
+ },
+ {
+  "pergunta": "faz um relatorio",
+  "intencao": "relatorio_periodo",
+  "base": "faz um relatorio"
+ },
+ {
+  "pergunta": "informaces gerais de hoje",
+  "intencao": "relatorio_periodo",
+  "base": "informacoes gerais de hoje"
+ },
+ {
+  "pergunta": "tudo sobe ontem",
+  "intencao": "relatorio_periodo",
+  "base": "tudo sobre ontem"
+ },
+ {
+  "pergunta": "puxe no sist tudo sobre ontem",
+  "intencao": "relatorio_periodo",
+  "base": "puxe no sistema tudo sobre ontem"
+ },
+ {
+  "pergunta": "desativa a coca no catalogo",
+  "intencao": "remover_produto",
+  "base": "desativa a coca no catalogo"
+ },
+ {
+  "pergunta": "deletar produto",
+  "intencao": "remover_produto",
+  "base": "deletar produto"
+ },
+ {
+  "pergunta": "esse prod nao vendemos mais, tira",
+  "intencao": "remover_produto",
+  "base": "esse produto nao vendemos mais, tira"
+ },
+ {
+  "pergunta": "da pra apagar um prod",
+  "intencao": "remover_produto",
+  "base": "da pra apagar um produto?"
+ },
+ {
+  "pergunta": "excluir produto",
+  "intencao": "remover_produto",
+  "base": "excluir produto"
+ },
+ {
+  "pergunta": "eimina esse produto lista",
+  "intencao": "remover_produto",
+  "base": "elimina esse produto da lista"
+ },
+ {
+  "pergunta": "exclui chocolate",
+  "intencao": "remover_produto",
+  "base": "exclui o chocolate"
+ },
+ {
+  "pergunta": "some com esse prod",
+  "intencao": "remover_produto",
+  "base": "some com esse produto"
+ },
+ {
+  "pergunta": "deleta o salgadinho do sistema",
+  "intencao": "remover_produto",
+  "base": "deleta o salgadinho do sistema"
+ },
+ {
+  "pergunta": "apagar item",
+  "intencao": "remover_produto",
+  "base": "apagar item"
+ },
+ {
+  "pergunta": "quero remocer um item",
+  "intencao": "remover_produto",
+  "base": "quero remover um item"
+ },
+ {
+  "pergunta": "nao quero mais vender agua com gas",
+  "intencao": "remover_produto",
+  "base": "nao quero mais vender agua com gas"
+ },
+ {
+  "pergunta": "remove a agua do catalogo",
+  "intencao": "remover_produto",
+  "base": "remove a agua do catalogo"
+ },
+ {
+  "pergunta": "remover produto",
+  "intencao": "remover_produto",
+  "base": "remover produto"
+ },
+ {
+  "pergunta": "retira item catalogo",
+  "intencao": "remover_produto",
+  "base": "retira o item do catalogo"
+ },
+ {
+  "pergunta": "tira baly lisa",
+  "intencao": "remover_produto",
+  "base": "tira o baly da lista"
+ },
+ {
+  "pergunta": "cancela cadastro suco",
+  "intencao": "remover_produto",
+  "base": "cancela o cadastro do suco"
+ },
+ {
+  "pergunta": "apaga esse prod",
+  "intencao": "remover_produto",
+  "base": "apaga esse produto"
+ },
+ {
+  "pergunta": "+ 20 chocolate",
+  "intencao": "repor_estoque",
+  "base": "mais 20 chocolate"
+ },
+ {
+  "pergunta": "emtrou mercadoria",
+  "intencao": "repor_estoque",
+  "base": "entrou mercadoria"
+ },
+ {
+  "pergunta": "recebemos mercadora hoje",
+  "intencao": "repor_estoque",
+  "base": "recebemos mercadoria hoje"
+ },
+ {
+  "pergunta": "subie 30 unidades estoque",
+  "intencao": "repor_estoque",
+  "base": "subir 30 unidades no estoque"
+ },
+ {
+  "pergunta": "somar 15 un",
+  "intencao": "repor_estoque",
+  "base": "somar 15 unidades"
+ },
+ {
+  "pergunta": "add 5 no estq",
+  "intencao": "repor_estoque",
+  "base": "adiciona 5 no estoque"
+ },
+ {
+  "pergunta": "repe estoque salgadinho",
+  "intencao": "repor_estoque",
+  "base": "repoe o estoque do salgadinho"
+ },
+ {
+  "pergunta": "soar mais uma agua",
+  "intencao": "repor_estoque",
+  "base": "somar mais uma agua"
+ },
+ {
+  "pergunta": "precia repor agua",
+  "intencao": "repor_estoque",
+  "base": "precisa repor a agua"
+ },
+ {
+  "pergunta": "bita mais 10 ai",
+  "intencao": "repor_estoque",
+  "base": "bota mais 10 ai"
+ },
+ {
+  "pergunta": "aceescenta 10 estoque chocolate",
+  "intencao": "repor_estoque",
+  "base": "acrescenta 10 no estoque do chocolate"
+ },
+ {
+  "pergunta": "chegaram 10 caixas de salgadinho",
+  "intencao": "repor_estoque",
+  "base": "chegaram 10 caixas de salgadinho"
+ },
+ {
+  "pergunta": "adiciona 1 uidade de agua",
+  "intencao": "repor_estoque",
+  "base": "adiciona 1 unidade de agua"
+ },
+ {
+  "pergunta": "aumenta estoqe 12",
+  "intencao": "repor_estoque",
+  "base": "aumenta o estoque em 12"
+ },
+ {
+  "pergunta": "adicine mais 1 unidade",
+  "intencao": "repor_estoque",
+  "base": "adicione mais 1 unidade"
+ },
+ {
+  "pergunta": "addr 10 umidades",
+  "intencao": "repor_estoque",
+  "base": "adicionar 10 unidades"
+ },
+ {
+  "pergunta": "entou + estq",
+  "intencao": "repor_estoque",
+  "base": "entrou mais estoque"
+ },
+ {
+  "pergunta": "mete + 5 no etoque",
+  "intencao": "repor_estoque",
+  "base": "mete mais 5 no estoque"
+ },
+ {
+  "pergunta": "faz a repoaicao do chocolate",
+  "intencao": "repor_estoque",
+  "base": "faz a reposicao do chocolate"
+ },
+ {
+  "pergunta": "vou reor 15 unidades coca",
+  "intencao": "repor_estoque",
+  "base": "vou repor 15 unidades de coca"
+ },
+ {
+  "pergunta": "poe + 20 estq",
+  "intencao": "repor_estoque",
+  "base": "poe mais 20 no estoque"
+ },
+ {
+  "pergunta": "cloca mais 3 aguas",
+  "intencao": "repor_estoque",
+  "base": "coloca mais 3 aguas"
+ },
+ {
+  "pergunta": "incli mais 10 unidades",
+  "intencao": "repor_estoque",
+  "base": "inclui mais 10 unidades"
+ },
+ {
+  "pergunta": "chegou + agua",
+  "intencao": "repor_estoque",
+  "base": "chegou mais agua"
+ },
+ {
+  "pergunta": "chegou mercadiria nova",
+  "intencao": "repor_estoque",
+  "base": "chegou mercadoria nova"
+ },
+ {
+  "pergunta": "soma 5 eatoque agua",
+  "intencao": "repor_estoque",
+  "base": "soma 5 no estoque da agua"
+ },
+ {
+  "pergunta": "eecebi mais 30 unidades",
+  "intencao": "repor_estoque",
+  "base": "recebi mais 30 unidades"
+ },
+ {
+  "pergunta": "chegaram mais 20 chocilates",
+  "intencao": "repor_estoque",
+  "base": "chegaram mais 20 chocolates"
+ },
+ {
+  "pergunta": "+ 5 agua",
+  "intencao": "repor_estoque",
+  "base": "mais 5 de agua"
+ },
+ {
+  "pergunta": "eepoe 20 unidades",
+  "intencao": "repor_estoque",
+  "base": "repoe 20 unidades"
+ },
+ {
+  "pergunta": "obigado",
+  "intencao": "saudacao",
+  "base": "obrigado"
+ },
+ {
+  "pergunta": "oi",
+  "intencao": "saudacao",
+  "base": "oi"
+ },
+ {
+  "pergunta": "boa tarde",
+  "intencao": "saudacao",
+  "base": "boa tarde"
+ },
+ {
+  "pergunta": "bom trabalho",
+  "intencao": "saudacao",
+  "base": "bom trabalho"
+ },
+ {
+  "pergunta": "boa nite gerebte",
+  "intencao": "saudacao",
+  "base": "boa noite gerente"
+ },
+ {
+  "pergunta": "tcau",
+  "intencao": "saudacao",
+  "base": "tchau"
+ },
+ {
+  "pergunta": "oi tudi certo",
+  "intencao": "saudacao",
+  "base": "oi tudo certo"
+ },
+ {
+  "pergunta": "brgado",
+  "intencao": "saudacao",
+  "base": "brigado"
+ },
+ {
+  "pergunta": "cheando",
+  "intencao": "saudacao",
+  "base": "chegando"
+ },
+ {
+  "pergunta": "boltei",
+  "intencao": "saudacao",
+  "base": "voltei"
+ },
+ {
+  "pergunta": "oi bom dia",
+  "intencao": "saudacao",
+  "base": "oi bom dia"
+ },
+ {
+  "pergunta": "oii",
+  "intencao": "saudacao",
+  "base": "oii"
+ },
+ {
+  "pergunta": "bom dia gerente virtual",
+  "intencao": "saudacao",
+  "base": "bom dia gerente virtual"
+ },
+ {
+  "pergunta": "oi geente",
+  "intencao": "saudacao",
+  "base": "oi gerente"
+ },
+ {
+  "pergunta": "e ai gerente",
+  "intencao": "saudacao",
+  "base": "e ai gerente"
+ },
+ {
+  "pergunta": "to de volta",
+  "intencao": "saudacao",
+  "base": "to de volta"
+ },
+ {
+  "pergunta": "ila",
+  "intencao": "saudacao",
+  "base": "ola"
+ },
+ {
+  "pergunta": "ola de nivo",
+  "intencao": "saudacao",
+  "base": "ola de novo"
+ },
+ {
+  "pergunta": "como vai",
+  "intencao": "saudacao",
+  "base": "como vai"
+ },
+ {
+  "pergunta": "oi de novo",
+  "intencao": "saudacao",
+  "base": "oi de novo"
+ },
+ {
+  "pergunta": "ola gerente",
+  "intencao": "saudacao",
+  "base": "ola gerente"
+ },
+ {
+  "pergunta": "ate maia",
+  "intencao": "saudacao",
+  "base": "ate mais"
+ },
+ {
+  "pergunta": "fala ai",
+  "intencao": "saudacao",
+  "base": "fala ai"
+ },
+ {
+  "pergunta": "vaeu",
+  "intencao": "saudacao",
+  "base": "valeu"
+ },
+ {
+  "pergunta": "ooa",
+  "intencao": "saudacao",
+  "base": "opa"
+ },
+ {
+  "pergunta": "boa",
+  "intencao": "saudacao",
+  "base": "boa"
+ },
+ {
+  "pergunta": "ola bom dia",
+  "intencao": "saudacao",
+  "base": "ola bom dia"
+ },
+ {
+  "pergunta": "bom dia",
+  "intencao": "saudacao",
+  "base": "bom dia"
+ },
+ {
+  "pergunta": "ola tudo bem",
+  "intencao": "saudacao",
+  "base": "ola tudo bem"
+ },
+ {
+  "pergunta": "e ai",
+  "intencao": "saudacao",
+  "base": "e ai"
+ },
+ {
+  "pergunta": "ebdpoint dispnível",
+  "intencao": "status_api",
+  "base": "endpoint disponível"
+ },
+ {
+  "pergunta": "api funcionando",
+  "intencao": "status_api",
+  "base": "api funcionando"
+ },
+ {
+  "pergunta": "status api",
+  "intencao": "status_api",
+  "base": "status da api"
+ },
+ {
+  "pergunta": "a aoi esta respondendo?",
+  "intencao": "status_sistema",
+  "base": "a api esta respondendo?"
+ },
+ {
+  "pergunta": "opa tudo bom, tudo funcionando",
+  "intencao": "status_sistema",
+  "base": "opa tudo bom, tudo funcionando"
+ },
+ {
+  "pergunta": "algma falha?",
+  "intencao": "status_sistema",
+  "base": "alguma falha?"
+ },
+ {
+  "pergunta": "excelente, ótimo funcionando bem",
+  "intencao": "status_sistema",
+  "base": "ótimo funcionando bem"
+ },
+ {
+  "pergunta": "o sistema esta no ar?",
+  "intencao": "status_sistema",
+  "base": "o sistema esta no ar?"
+ },
+ {
+  "pergunta": "o sistema ta no ar",
+  "intencao": "status_sistema",
+  "base": "o sistema ta no ar"
+ },
+ {
+  "pergunta": "is dois sistemas estao funcionando",
+  "intencao": "status_sistema",
+  "base": "os dois sistemas estao funcionando"
+ },
+ {
+  "pergunta": "esta tudo conectado",
+  "intencao": "status_sistema",
+  "base": "esta tudo conectado"
+ },
+ {
+  "pergunta": "ta tudo bem com o sidtema",
+  "intencao": "status_sistema",
+  "base": "ta tudo bem com o sistema"
+ },
+ {
+  "pergunta": "bom dia chefe, status geral",
+  "intencao": "status_sistema",
+  "base": "bom dia chefe, status geral"
+ },
+ {
+  "pergunta": "o sist ta de pe?",
+  "intencao": "status_sistema",
+  "base": "o sistema esta de pe?"
+ },
+ {
+  "pergunta": "opa tudo bom, como está o sistema",
+  "intencao": "status_sistema",
+  "base": "opa tudo bom, como está o sistema"
+ },
+ {
+  "pergunta": "ah! pq não funciona",
+  "intencao": "status_sistema",
+  "base": "pq não funciona"
+ },
+ {
+  "pergunta": "bom dia Eduardo, status geral",
+  "intencao": "status_sistema",
+  "base": "bom dia Eduardo, status geral"
+ },
+ {
+  "pergunta": "statua",
+  "intencao": "status_sistema",
+  "base": "status"
+ },
+ {
+  "pergunta": "excelente, sistema perfeito",
+  "intencao": "status_sistema",
+  "base": "sistema perfeito"
+ },
+ {
+  "pergunta": "o so esoacial ta ligado",
+  "intencao": "status_sistema",
+  "base": "o so espacial ta ligado"
+ },
+ {
+  "pergunta": "esta tudo integrado e funcionando",
+  "intencao": "status_sistema",
+  "base": "esta tudo integrado e funcionando"
+ },
+ {
+  "pergunta": "checagem geral",
+  "intencao": "status_sistema",
+  "base": "checagem geral"
+ },
+ {
+  "pergunta": "me da um diagnostico feral",
+  "intencao": "status_sistema",
+  "base": "me da um diagnostico geral"
+ },
+ {
+  "pergunta": "fala ai, tudo funcionando",
+  "intencao": "status_sistema",
+  "base": "fala ai, tudo funcionando"
+ },
+ {
+  "pergunta": "status do siatema",
+  "intencao": "status_sistema",
+  "base": "status do sistema"
+ },
+ {
+  "pergunta": "ola chefe, status geral",
+  "intencao": "status_sistema",
+  "base": "ola chefe, status geral"
+ },
+ {
+  "pergunta": "ola tudo bem, status geral",
+  "intencao": "status_sistema",
+  "base": "ola tudo bem, status geral"
+ },
+ {
+  "pergunta": "e ai Eduardo, tudo funcionando",
+  "intencao": "status_sistema",
+  "base": "e ai Eduardo, tudo funcionando"
+ },
+ {
+  "pergunta": "me mostra o status de tudo",
+  "intencao": "status_sistema",
+  "base": "me mostra o status de tudo"
+ },
+ {
+  "pergunta": "esta tudo roando?",
+  "intencao": "status_sistema",
+  "base": "esta tudo rodando?"
+ },
+ {
+  "pergunta": "tem algum problema",
+  "intencao": "status_sistema",
+  "base": "tem algum problema?"
+ },
+ {
+  "pergunta": "esta tudo saidavl",
+  "intencao": "status_sistema",
+  "base": "esta tudo saudavel"
+ },
+ {
+  "pergunta": "ola tudo bem, tudo funcionando",
+  "intencao": "status_sistema",
+  "base": "ola tudo bem, tudo funcionando"
+ },
+ {
+  "pergunta": "preciso de resposta urgente por favor",
+  "intencao": "urgencia",
+  "base": "preciso de resposta urgente por favor"
+ },
+ {
+  "pergunta": "tem gente na fila já precisa disso",
+  "intencao": "urgencia",
+  "base": "tem gente na fila já precisa disso"
+ },
+ {
+  "pergunta": "emergência no sistema me ajuda",
+  "intencao": "urgencia",
+  "base": "emergência no sistema me ajuda"
+ }
+]
