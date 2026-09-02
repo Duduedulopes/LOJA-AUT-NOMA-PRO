@@ -1,0 +1,251 @@
+@inject IChamadoApiService Chamados
+
+@*
+    A CONVERSA DE UM CHAMADO — a mesma nos três aplicativos.
+
+    Uma só, e não três: o cliente, o admin e o técnico veem exatamente o
+    mesmo fio, com as bolhas do mesmo lado e a hora no mesmo formato. Se
+    fossem três, a primeira correção iria para uma delas e as outras duas
+    ficariam contando a história de um jeito ligeiramente diferente — que num
+    registro de suporte é pior do que parece.
+
+    O COMPONENTE FALA COM A API SOZINHO. As páginas só dizem qual chamado
+    mostrar e quem está olhando; mandar a resposta, tratar a falha e
+    redesenhar é problema daqui. Assim as três telas não repetem o mesmo
+    try/catch.
+
+    TODA COR TEM RESERVA (`var(--x, algo)`). Este componente entra em três
+    CSS diferentes, e uma variável que não existe não dá erro nenhum: o
+    navegador descarta a declaração e o texto herda o que estiver por perto.
+    É o defeito mais caro de achar, porque nada quebra — só fica errado.
+*@
+
+<div class="conversa">
+
+    @if (Chamado is null)
+    {
+        <p class="conversa-vazia">Nenhum chamado selecionado.</p>
+    }
+    else
+    {
+        <div class="conversa-fio">
+            @foreach (var m in Chamado.Conversa)
+            {
+                <div class="fala @(EhMinha(m) ? "fala-minha" : "fala-dele")">
+                    <div class="fala-quem">
+                        <span class="fala-nome">@m.AutorNome</span>
+                        <span class="fala-papel">@Papel(m.Autor)</span>
+                        <span class="fala-hora">@Hora(m.QuandoUtc)</span>
+                    </div>
+                    <div class="fala-texto">@m.Texto</div>
+                </div>
+            }
+
+            @if (Chamado.Conversa.Count == 0)
+            {
+                <p class="conversa-vazia">Ainda não há mensagens neste chamado.</p>
+            }
+        </div>
+
+        @if (PodeResponder)
+        {
+            <div class="conversa-responder">
+                <textarea @bind="_texto"
+                          @bind:event="oninput"
+                          rows="3"
+                          disabled="@_enviando"
+                          placeholder="@Convite()"></textarea>
+
+                <div class="conversa-acoes">
+                    @if (_recado is { Length: > 0 })
+                    {
+                        <span class="conversa-recado @(_deuCerto ? "ok" : "ruim")">@_recado</span>
+                    }
+                    <button class="conversa-enviar"
+                            disabled="@(_enviando || string.IsNullOrWhiteSpace(_texto))"
+                            @onclick="Enviar">
+                        @(_enviando ? "Enviando…" : "Enviar")
+                    </button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .conversa { display: flex; flex-direction: column; gap: 14px; }
+
+    .conversa-fio {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 46vh;
+        overflow-y: auto;
+        padding: 4px 2px;
+    }
+
+    .conversa-vazia {
+        color: var(--ink-3, #6b7280);
+        font-size: 14px;
+        margin: 8px 2px;
+    }
+
+    .fala { max-width: 78%; }
+
+    /* Quem está olhando fica à DIREITA, sempre. Alinhar por papel fixo faria
+       a mesma conversa trocar de lado dependendo do app — e aí ninguém acha
+       a própria fala de relance. */
+    .fala-minha { align-self: flex-end; }
+    .fala-dele  { align-self: flex-start; }
+
+    .fala-quem {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: var(--ink-3, #6b7280);
+    }
+
+    .fala-minha .fala-quem { justify-content: flex-end; }
+
+    .fala-nome { font-weight: 700; color: var(--ink-2, #374151); }
+
+    .fala-papel {
+        padding: 1px 7px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        background: var(--tint-ciano, #e0f2fe);
+        color: var(--texto-ciano, #075985);
+    }
+
+    .fala-texto {
+        padding: 10px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line, #d4d4d8);
+        background: var(--surface-solid, #ffffff);
+        color: var(--ink, #18181b);
+        font-size: 14.5px;
+        line-height: 1.5;
+
+        /* O texto vem cru do banco. `pre-wrap` preserva as quebras que a
+           pessoa digitou sem interpretar nada como marcação. */
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .fala-minha .fala-texto {
+        background: var(--tint-violeta, #ede9fe);
+        border-color: var(--acao-violeta, #7c3aed);
+        color: var(--texto-violeta, #4c1d95);
+    }
+
+    .conversa-responder { display: flex; flex-direction: column; gap: 8px; }
+
+    .conversa-responder textarea {
+        width: 100%;
+        padding: 11px 13px;
+        border-radius: 12px;
+        border: 1px solid var(--line, #d4d4d8);
+        background: var(--surface-solid, #ffffff);
+        color: var(--ink, #18181b);
+        font: inherit;
+        font-size: 14.5px;
+        resize: vertical;
+    }
+
+    .conversa-acoes {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .conversa-recado { font-size: 13px; font-weight: 600; }
+    .conversa-recado.ok   { color: var(--texto-ciano, #075985); }
+    .conversa-recado.ruim { color: #B3261E; }
+
+    .conversa-enviar {
+        padding: 9px 20px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--acao-violeta, #7c3aed);
+        color: var(--sobre-acao, #ffffff);
+        font: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .conversa-enviar:disabled { opacity: 0.5; cursor: default; }
+</style>
+
+@code {
+    /// <summary>O chamado que está sendo mostrado.</summary>
+    [Parameter, EditorRequired]
+    public ChamadoDto? Chamado { get; set; }
+
+    /// <summary>Quem está olhando: "Cliente", "Admin" ou "Suporte".</summary>
+    /// <remarks>
+    /// Texto e não enum porque este componente vive em três aplicativos, e
+    /// nenhum deles referencia o Domain só para dizer de que lado está.
+    /// </remarks>
+    [Parameter, EditorRequired]
+    public string EuSou { get; set; } = "Cliente";
+
+    [Parameter] public bool PodeResponder { get; set; } = true;
+
+    /// <summary>Avisa a página com o chamado já atualizado depois de responder.</summary>
+    [Parameter] public EventCallback<ChamadoDto> AoAtualizar { get; set; }
+
+    private string _texto = "";
+    private bool _enviando;
+    private bool _deuCerto;
+    private string _recado = "";
+
+    private bool EhMinha(MensagemDto m)
+        => string.Equals(m.Autor, EuSou, StringComparison.OrdinalIgnoreCase);
+
+    private static string Papel(string autor) => autor switch
+    {
+        "Suporte" => "suporte técnico",
+        "Admin" => "administrador",
+        "Cliente" => "cliente",
+        _ => autor,
+    };
+
+    private static string Hora(DateTime utc)
+        => utc.ToLocalTime().ToString("dd/MM HH:mm",
+               System.Globalization.CultureInfo.GetCultureInfo("pt-BR"));
+
+    private string Convite() => EuSou == "Suporte"
+        ? "Responda a quem abriu o chamado…"
+        : "Escreva aqui para o suporte técnico…";
+
+    private async Task Enviar()
+    {
+        if (Chamado is null || string.IsNullOrWhiteSpace(_texto)) return;
+
+        _enviando = true;
+        _recado = "";
+
+        var atualizado = await Chamados.ResponderAsync(Chamado.Id, _texto);
+
+        _enviando = false;
+
+        if (atualizado is null)
+        {
+            // Sem exceção: a tela de pedir ajuda não pode ser a que quebra.
+            _deuCerto = false;
+            _recado = "Não consegui enviar. Tenta de novo?";
+            return;
+        }
+
+        _texto = "";
+        _deuCerto = true;
+        _recado = "Enviado.";
+        Chamado = atualizado;
+        await AoAtualizar.InvokeAsync(atualizado);
+    }
+}

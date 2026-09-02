@@ -13,9 +13,9 @@
                     <button class="back-button" @onclick="GoBack" title="Voltar">←</button>
                 }
                 <a class="marca" href="/">
-                    <img src="img/logo-mark-alpha.png" alt="Smart Store" />
+                    <img src="img/logo-mark-alpha.png" alt="AutonomousStore" />
                     <span class="marca-texto">
-                        <span class="marca-nome"><b>Smart</b><i>Store</i></span>
+                        <span class="marca-nome"><b>Autonomous</b><i>Store</i></span>
                     </span>
                 </a>
             </div>
@@ -29,6 +29,7 @@
                     <NavLink class="menu-item" href="catalogo">Catálogo</NavLink>
                     <NavLink class="menu-item" href="minhas-compras">Compras</NavLink>
                     <NavLink class="menu-item" href="como-funciona">Ajuda</NavLink>
+                    <NavLink class="menu-item" href="suporte">Suporte</NavLink>
                 </nav>
             }
 
@@ -67,7 +68,7 @@
     <footer class="rodape">
         <div class="rodape-marca">
             <img src="img/logo-mark-alpha.png" alt="" />
-            <span class="rodape-linha">Smart Store</span>
+            <span class="rodape-linha">AutonomousStore</span>
         </div>
         @if (AppState.IsAuthenticated)
         {
@@ -75,7 +76,29 @@
         }
     </footer>
 
-    <ChatWidget />
+    @*
+        O GERENTE DA LOJA, ATENDENDO O COMPRADOR.
+
+        Era o assistente do Gemini aqui. Saiu por dois motivos: dependia de
+        uma API de fora que parou de responder duas vezes esta semana, e não
+        sabia nada sobre ESTA loja — respondia sobre "uma loja autônoma" em
+        geral, a partir de um texto de instruções fixo.
+
+        O gerente sabe. É a mesma rede treinada nas 5.586 frases, os mesmos
+        preços e o mesmo estoque que o painel do admin consulta.
+
+        O QUE MUDA EM RELAÇÃO AO ADMIN está todo no perfil:
+          · trata pelo primeiro nome de quem entrou, não por "Chefe"
+          · só responde as doze intenções do mundo do comprador
+          · não escreve nada — nenhuma das onze intenções de alteração
+
+        O Gemini continua no sistema, na função em que ele é bom e que a
+        rede não faz: ler a foto da prateleira (GeminiVisionService).
+    *@
+    @if (AppState.IsAuthenticated)
+    {
+        <GerenteChat Perfil="PerfilDeQuemFala.Cliente(AppState.CurrentCustomerName, AppState.CurrentCustomerId)" />
+    }
 </div>
 
 @code {

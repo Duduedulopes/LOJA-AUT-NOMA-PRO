@@ -1,6 +1,6 @@
 {
-  "name": "Smart Store",
-  "short_name": "Smart Store",
+  "name": "AutonomousStore",
+  "short_name": "AutonomousStore",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#1b1f27",

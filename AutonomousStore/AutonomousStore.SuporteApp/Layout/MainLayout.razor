@@ -1,0 +1,100 @@
+@inherits LayoutComponentBase
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<div class="page">
+    <main>
+        <div class="top-row px-4">
+            <a class="marca" href="/">
+                <img src="img/logo-mark-alpha.png" alt="AutonomousStore" />
+                <span class="marca-texto">
+                    <span class="marca-nome"><b>Autonomous</b><i>Store</i></span>
+                </span>
+            </a>
+
+            <span class="selo-admin selo-suporte">Suporte Técnico</span>
+
+            @if (AppState.IsAuthenticated)
+            {
+                <nav class="admin-nav">
+                    <NavLink href="/" Match="NavLinkMatch.All">Fila</NavLink>
+                    <NavLink href="/ocorrencias">Histórico</NavLink>
+                </nav>
+
+            }
+
+
+            @* SEMPRE VISIVEL, inclusive antes de entrar.
+               O tema era escolhido so DEPOIS do login — e a tela de login e
+               justamente a primeira que a pessoa encara. Quem abre isto de
+               madrugada levava um branco na cara e so podia arrumar depois
+               de digitar a senha. Preferencia de leitura nao depende de
+               credencial. *@
+            <SeletorDeTema />
+
+            @if (AppState.IsAuthenticated)
+            {
+                <span class="chip-operador">
+                    <span class="chip-operador-avatar">@Inicial()</span>
+                    <span class="chip-operador-nome">@AppState.SuporteName</span>
+                </span>
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+
+        @* O MESMO gerente do painel do admin — mesma biblioteca, mesmo modelo
+           treinado, mesmo classificador. Não é uma segunda versão dele.
+
+           Fica ao alcance em TODA página, e não numa rota própria: a pergunta
+           sobre a loja costuma nascer enquanto se olha um chamado, e ter que
+           sair da tela faz a pergunta não ser feita.
+
+           Atrás do login de propósito: ele lê estoque, faturamento e
+           ocorrências. Isso não aparece para quem ainda não entrou. *@
+        @if (AppState.IsAuthenticated)
+        {
+            <GerenteChat Perfil="PerfilDeQuemFala.Chefe" />
+        }
+    </main>
+
+    <footer class="rodape">
+        <div class="rodape-marca">
+            <img src="img/logo-mark-alpha.png" alt="" />
+            <span class="rodape-linha">AutonomousStore · Ambiente de Suporte Técnico</span>
+        </div>
+        @if (AppState.IsAuthenticated)
+        {
+            <a class="rodape-sair" @onclick="Sair">Sair</a>
+        }
+    </footer>
+</div>
+
+@code {
+    private string Inicial()
+    {
+        var nome = AppState.SuporteName;
+        return string.IsNullOrWhiteSpace(nome) ? "?" : nome.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    private void Sair()
+    {
+        AppState.Logout();
+        Nav.NavigateTo("/login");
+    }
+
+    protected override void OnInitialized()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            var uri = new Uri(Nav.Uri);
+            if (!uri.AbsolutePath.Contains("/login", StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.NavigateTo("/login");
+            }
+        }
+        AppState.OnChange += StateHasChanged;
+    }
+}

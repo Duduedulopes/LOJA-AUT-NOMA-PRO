@@ -1,0 +1,119 @@
+/* ══════════════════════════════════════════════════════════════════════
+   O TEMA ESCURO, E OS TRES MODOS.
+   ══════════════════════════════════════════════════════════════════════ */
+
+[data-tema="escuro"] {
+    --bg-void:       oklch(0.260 0.012 285);
+    --surface-solid: oklch(0.320 0.014 285);
+    --surface:       oklch(0.320 0.014 285 / 0.86);
+    --surface-alto:  oklch(0.375 0.016 285);
+    --line:          oklch(0.440 0.018 285);
+
+    --vidro:       oklch(0.215 0.012 285 / 0.86);
+    --vidro-forte: oklch(0.300 0.014 285 / 0.95);
+
+    --acao-ambar:       oklch(0.800 0.130 80);
+    --acao-ambar-forte: oklch(0.870 0.140 85);
+    --tint-ambar:       oklch(0.370 0.055 80);
+    --tint-ambar-alto:  oklch(0.430 0.070 80);
+
+    --sobre-marca: oklch(0.180 0.010 285);
+
+    --sobre-acao: oklch(0.180 0.010 285);
+
+    --ink:   oklch(0.955 0.006 285);
+    --ink-2: oklch(0.800 0.012 285);
+    --ink-3: oklch(0.705 0.016 285);
+
+    --ciano:         oklch(0.800 0.120 195);
+    --violeta:       oklch(0.740 0.150 295);
+    --rosa:          oklch(0.760 0.160 345);
+    --acao-azul:     oklch(0.760 0.120 205);
+    --acao-violeta:  oklch(0.740 0.150 295);
+
+    --tint-ciano:   oklch(0.375 0.055 195);
+    --tint-violeta: oklch(0.375 0.060 295);
+    --tint-rosa:    oklch(0.375 0.060 345);
+
+    --texto-ciano:   oklch(0.880 0.080 197);
+    --texto-violeta: oklch(0.870 0.080 295);
+    --texto-rosa:    oklch(0.880 0.085 348);
+
+    --danger: oklch(0.720 0.150 25);
+
+    --sombra-card:      0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 0, 0, 0.22);
+    --sombra-flutuante: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+    --cyan:         var(--acao-azul);
+    --cyan-soft:    var(--tint-ciano);
+    --panel:        var(--surface-solid);
+    --panel-border: var(--line);
+    --text-primary: var(--ink);
+    --text-muted:   var(--ink-3);
+}
+
+[data-tema="escuro"] body {
+    background:
+        radial-gradient(90% 70% at 8% 0%,   oklch(0.315 0.040 200) 0%, rgba(0,0,0,0) 60%),
+        radial-gradient(85% 75% at 100% 12%, oklch(0.305 0.045 340) 0%, rgba(0,0,0,0) 58%),
+        oklch(0.260 0.012 285);
+    background-attachment: fixed;
+}
+
+[data-tema="escuro"] { color-scheme: dark; }
+[data-tema="claro"]  { color-scheme: light; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   O BOTÃO
+   ══════════════════════════════════════════════════════════════════════ */
+
+.tema-troca {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-pill, 999px);
+    background: var(--surface-solid);
+}
+
+.tema-troca button {
+    display: inline-grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+}
+
+.tema-troca button:hover { color: var(--ink); }
+
+.tema-troca button[aria-pressed="true"] {
+    background: var(--tint-violeta);
+    color: var(--texto-violeta);
+}
+
+.tema-troca button:focus { outline: none; }
+.tema-troca button:focus-visible {
+    outline: 2px solid var(--acao-violeta);
+    outline-offset: 2px;
+}
+
+.tema-troca svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tema-troca button { transition: none; }
+}

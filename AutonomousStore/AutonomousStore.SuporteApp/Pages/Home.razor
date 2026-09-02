@@ -1,0 +1,419 @@
+@page "/"
+@using System.Globalization
+@using System.Text.Json
+@inject IOcorrenciaApiService OcorrenciaApi
+@inject AppState AppState
+@inject NavigationManager Nav
+@inject IChamadoApiService Chamados
+
+<div class="pag-ocorrencias">
+    <header class="pag-cabecalho">
+        <h1>Fila de suporte</h1>
+        <p class="pag-subtitulo">Chamados enviados por administradores de loja, aguardando atendimento técnico.</p>
+    </header>
+
+    @if (_carregando)
+    {
+        <div class="estado card">Carregando fila…</div>
+    }
+    else if (_lista is null)
+    {
+        <div class="estado card erro">
+            <strong>Não consegui consultar a fila.</strong>
+            <span>A API pode estar fora do ar ou a sessão expirou. Tente novamente em alguns segundos.</span>
+            <button class="btn primario" @onclick="Recarregar">Tentar de novo</button>
+        </div>
+    }
+    else if (_lista.Count == 0)
+    {
+        <div class="estado card ok">
+            Nenhum chamado aberto no momento. A fila está vazia.
+        </div>
+    }
+    else
+    {
+        <div class="lista card">
+            <div class="contagem-chamados">
+                <strong>@_lista.Count</strong> chamado@(_lista.Count == 1 ? "" : "s") em aberto
+            </div>
+            <table class="tabela-ocorrencias">
+                <thead>
+                    <tr>
+                        <th>Quando</th>
+                        <th>Sistema</th>
+                        <th>Tipo</th>
+                        <th>Severidade</th>
+                        <th>Descrição</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in _lista)
+                    {
+                        <tr class="@SeveridadeClasse(o.Severidade) estado-@o.Estado.ToLowerInvariant()" @onclick="() => AbrirDetalhe(o)">
+                            <td class="quando">@FormatarddMMyyyyHHmm(o.QuandoUtc)</td>
+                            <td>@o.Sistema</td>
+                            <td><span class="chip chip-tipo">@o.Tipo</span></td>
+                            <td><span class="chip chip-severidade chip-@o.Severidade.ToLowerInvariant()">@o.Severidade</span></td>
+                            <td class="descricao">@o.Descricao</td>
+                            <td class="acao-col"><button class="btn-link" @onclick:stopPropagation @onclick="() => AbrirDetalhe(o)">Atender</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_detalhe is not null)
+{
+    <div class="modal-overlay" @onclick="FecharDetalhe">
+        <div class="modal" @onclick:stopPropagation>
+            <header class="modal-cabecalho">
+                <div>
+                    <h2>Chamado @_detalhe.Id.ToString("N")[..8]</h2>
+                    <div class="modal-meta">
+                        <span class="chip chip-severidade chip-@_detalhe.Severidade.ToLowerInvariant()">@_detalhe.Severidade</span>
+                        <span class="chip chip-estado chip-@_detalhe.Estado.ToLowerInvariant()">@_detalhe.Estado</span>
+                        <span class="chip chip-tipo">@_detalhe.Tipo</span>
+                    </div>
+                </div>
+                <button class="btn-fechar" @onclick="FecharDetalhe" aria-label="Fechar">×</button>
+            </header>
+
+            <div class="modal-corpo">
+                <div class="campos-grid">
+                    <div class="campo">
+                        <span class="rotulo">Quando</span>
+                        <span class="valor">@FormatarddMMyyyyHHmmss(_detalhe.QuandoUtc)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Sistema</span>
+                        <span class="valor">@_detalhe.Sistema</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Módulo</span>
+                        <span class="valor">@_detalhe.Modulo</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Operação</span>
+                        <span class="valor">@_detalhe.Operacao</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Correlação</span>
+                        <span class="valor mono">@_detalhe.CorrelationId</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Recomendação</span>
+                        <span class="valor">@OuVazio(_detalhe.Recomendacao)</span>
+                    </div>
+                </div>
+
+                <div class="bloco bloco-descricao">
+                    <div class="bloco-titulo">Fato observado</div>
+                    <div class="bloco-valor">@_detalhe.Descricao</div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_detalhe.NotaDoAdmin))
+                {
+                    <div class="bloco bloco-nota-admin">
+                        <div class="bloco-titulo">
+                            <span class="tag-admin">Mensagem do admin</span>
+                            O que já foi tentado
+                        </div>
+                        <div class="bloco-valor">@_detalhe.NotaDoAdmin</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_detalhe.CausaProvavel))
+                {
+                    <div class="bloco bloco-inferencia">
+                        <div class="bloco-titulo">
+                            <span class="tag-inferencia">Inferência</span>
+                            Causa provável (palpite do sistema)
+                        </div>
+                        <div class="bloco-valor">@_detalhe.CausaProvavel</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="bloco bloco-campo-vazio">
+                        <div class="bloco-titulo">Causa provável</div>
+                        <div class="bloco-valor vazio">— Não informado —</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_detalhe.CausaRaiz))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Causa raiz (confirmada)</div>
+                        <div class="bloco-valor">@_detalhe.CausaRaiz</div>
+                    </div>
+                }
+
+                <div class="campos-grid">
+                    <div class="campo">
+                        <span class="rotulo">Impacto</span>
+                        <span class="valor">@OuVazio(_detalhe.Impacto)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Ação executada</span>
+                        <span class="valor">@OuVazio(_detalhe.AcaoExecutada)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Resultado</span>
+                        <span class="valor">@OuVazio(_detalhe.Resultado)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Resolvida por</span>
+                        <span class="valor">@OuVazio(_detalhe.ResolvidaPor)</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Vista em</span>
+                        <span class="valor">@(_detalhe.VistaEm is null ? "— Não vista —" : FormatarddMMyyyyHHmmss(_detalhe.VistaEm.Value))</span>
+                    </div>
+                    <div class="campo">
+                        <span class="rotulo">Resolvida em</span>
+                        <span class="valor">@(_detalhe.ResolvidaEm is null ? "— Ainda não resolvida —" : FormatarddMMyyyyHHmmss(_detalhe.ResolvidaEm.Value))</span>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_detalhe.DadosEnvolvidosJson))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Dados envolvidos</div>
+                        <pre class="json-pre">@FormatarJson(_detalhe.DadosEnvolvidosJson)</pre>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(_detalhe.SequenciaJson))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Sequência de eventos</div>
+                        <pre class="json-pre">@FormatarJson(_detalhe.SequenciaJson)</pre>
+                    </div>
+                }
+            </div>
+
+                @*
+                    A CONVERSA, QUE ATÉ AGORA NÃO EXISTIA.
+
+                    Antes daqui, o admin mandava um chamado e o técnico lia —
+                    e acabava. Não havia caminho de volta: o `NotaDoAdmin` era
+                    UM campo, que a mensagem seguinte apagava.
+
+                    É o mesmo componente que o cliente e o admin veem do outro
+                    lado. Um fio só, três telas: ninguém lê uma versão
+                    diferente do que foi dito.
+                *@
+                <div class="bloco bloco-conversa">
+                    <div class="bloco-titulo">Conversa</div>
+
+                    @if (_carregandoConversa)
+                    {
+                        <div class="bloco-valor vazio">Carregando a conversa…</div>
+                    }
+                    else if (_chamado is null)
+                    {
+                        <div class="bloco-valor vazio">
+                            Não consegui carregar a conversa deste chamado.
+                        </div>
+                    }
+                    else
+                    {
+                        <Conversa Chamado="_chamado" EuSou="Suporte" AoAtualizar="ConversaMudou" />
+                    }
+                </div>
+
+            <footer class="modal-rodape">
+                <div class="acoes-esquerda">
+                    @if (_detalhe.Estado == "NoSuporte")
+                    {
+                        <button class="btn secundario" @onclick="MarcarComoVista" disabled="@_executandoAcao">Marcar como vista</button>
+                    }
+                    @if (_detalhe.Estado != "Resolvida" && _detalhe.Estado != "Ignorada")
+                    {
+                        <button class="btn primario" @onclick="AbrirResolver" disabled="@_executandoAcao">Resolver…</button>
+                    }
+                </div>
+                <div class="acoes-direita">
+                    <button class="btn-link" @onclick="IrParaHistoricoCorrelacionado">Ver rastro completo →</button>
+                    <button class="btn secundario" @onclick="FecharDetalhe">Fechar</button>
+                </div>
+            </footer>
+        </div>
+    </div>
+}
+
+@if (_mostrarResolver)
+{
+    <div class="modal-overlay" @onclick="() => _mostrarResolver = false">
+        <div class="modal modal-pequeno" @onclick:stopPropagation>
+            <header class="modal-cabecalho">
+                <h3>Resolver ocorrência</h3>
+                <button class="btn-fechar" @onclick="() => _mostrarResolver = false" aria-label="Fechar">×</button>
+            </header>
+            <div class="modal-corpo">
+                <label>Descreva o que foi feito (opcional)</label>
+                <textarea @bind="_notaResolver" rows="5" placeholder="Ex.: Reiniciei a leitora RFID e reconfigurei as antenas. Problema resolvido."></textarea>
+            </div>
+            <footer class="modal-rodape">
+                <button class="btn secundario" @onclick="() => _mostrarResolver = false">Cancelar</button>
+                <button class="btn primario" @onclick="ConfirmarResolver" disabled="@_executandoAcao">Confirmar resolução</button>
+            </footer>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+    private static readonly JsonSerializerOptions JsonIndent = new() { WriteIndented = true };
+
+    private bool _carregando = true;
+    private List<OcorrenciaDto>? _lista;
+
+    private OcorrenciaDto? _detalhe;
+    private bool _executandoAcao;
+
+    private bool _mostrarResolver;
+    private string _notaResolver = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Recarregar();
+    }
+
+    private async Task Recarregar()
+    {
+        _carregando = true;
+        _lista = await OcorrenciaApi.BuscarAsync(
+            estado: "NoSuporte",
+            limite: 500);
+        _carregando = false;
+    }
+
+    private static string FormatarddMMyyyyHHmm(DateTime utc)
+    {
+        return utc.ToLocalTime().ToString("dd/MM/yyyy HH:mm", PtBr);
+    }
+
+    private static string FormatarddMMyyyyHHmmss(DateTime utc)
+    {
+        return utc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", PtBr);
+    }
+
+    private static string OuVazio(string? s) => string.IsNullOrWhiteSpace(s) ? "— Não informado —" : s;
+
+    private static string SeveridadeClasse(string s) => "severidade-" + s.ToLowerInvariant();
+
+    private static string FormatarJson(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(doc.RootElement, JsonIndent);
+        }
+        catch
+        {
+            return json;
+        }
+    }
+
+    private ChamadoDto? _chamado;
+    private bool _carregandoConversa;
+
+    private async Task AbrirDetalhe(OcorrenciaDto o)
+    {
+        _detalhe = o;
+
+        // A conversa vem numa chamada SEPARADA de propósito: a fila lê
+        // ocorrência a toda hora e não precisa das mensagens. Trazer a
+        // conversa junto na listagem seria pagar por um dado que quase
+        // ninguém abre, na consulta mais frequente do sistema.
+        _chamado = null;
+        _carregandoConversa = true;
+        StateHasChanged();
+
+        _chamado = await Chamados.UmAsync(o.Id);
+        _carregandoConversa = false;
+    }
+
+    private void FecharDetalhe()
+    {
+        _detalhe = null;
+        _chamado = null;
+        _carregandoConversa = false;
+        _mostrarResolver = false;
+        _notaResolver = "";
+    }
+
+    /// <summary>
+    /// O técnico respondeu: o estado do chamado mudou junto, então a fila
+    /// atrás do modal precisa recarregar.
+    /// </summary>
+    private async Task ConversaMudou(ChamadoDto atualizado)
+    {
+        _chamado = atualizado;
+        await Recarregar();
+    }
+
+    private async Task MarcarComoVista()
+    {
+        if (_detalhe is null || _executandoAcao) return;
+        _executandoAcao = true;
+        try
+        {
+            var atualizada = await OcorrenciaApi.MarcarVistaAsync(_detalhe.Id);
+            if (atualizada is not null)
+            {
+                _detalhe = atualizada;
+                AtualizarNaLista(atualizada);
+            }
+        }
+        finally { _executandoAcao = false; }
+    }
+
+    private void AbrirResolver()
+    {
+        _mostrarResolver = true;
+        _notaResolver = "";
+    }
+
+    private async Task ConfirmarResolver()
+    {
+        if (_detalhe is null || _executandoAcao) return;
+        _executandoAcao = true;
+        try
+        {
+            var atualizada = await OcorrenciaApi.ResolverAsync(_detalhe.Id, string.IsNullOrWhiteSpace(_notaResolver) ? null : _notaResolver);
+            if (atualizada is not null)
+            {
+                _detalhe = atualizada;
+                AtualizarNaLista(atualizada);
+                _mostrarResolver = false;
+                _notaResolver = "";
+            }
+        }
+        finally { _executandoAcao = false; }
+    }
+
+    private void AtualizarNaLista(OcorrenciaDto atualizada)
+    {
+        if (_lista is null) return;
+        if (atualizada.Estado == "Resolvida" || atualizada.Estado == "Ignorada")
+        {
+            _lista.RemoveAll(o => o.Id == atualizada.Id);
+        }
+        else
+        {
+            var i = _lista.FindIndex(o => o.Id == atualizada.Id);
+            if (i >= 0) _lista[i] = atualizada;
+        }
+    }
+
+    private void IrParaHistoricoCorrelacionado()
+    {
+        if (_detalhe is null) return;
+        Nav.NavigateTo($"/ocorrencias?cid={_detalhe.CorrelationId}");
+    }
+}

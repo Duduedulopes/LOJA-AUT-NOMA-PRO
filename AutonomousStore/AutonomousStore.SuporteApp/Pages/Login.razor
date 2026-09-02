@@ -1,0 +1,273 @@
+@page "/login"
+@inject ISuporteAuthApiService AuthApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-icon">
+            <img src="img/logo-mark-alpha.png" alt="" width="40" height="40" />
+        </div>
+        <h1 class="auth-title">Suporte Técnico</h1>
+        <p class="auth-subtitle">Acesso restrito à equipe de atendimento — visualiza múltiplas lojas.</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        @if (_modo == Modo.Login)
+        {
+            <EditForm Model="_model" OnValidSubmit="HandleLogin">
+                <div class="form-group">
+                    <label>E-mail</label>
+                    <InputText @bind-Value="_model.Email" type="email" />
+                </div>
+
+                <div class="form-group">
+                    <label>Senha</label>
+                    <InputText @bind-Value="_model.Password" type="password" />
+                </div>
+
+                <button type="submit" class="btn-primary" disabled="@_isLoading">
+                    @(_isLoading ? "Entrando..." : "Entrar")
+                </button>
+
+                <p class="mudar-modo">
+                    É a primeira vez?
+                    <button type="button" class="link-botao" @onclick="() => _modo = Modo.Cadastro">
+                        Criar usuário de suporte
+                    </button>
+                </p>
+            </EditForm>
+        }
+        else
+        {
+            <EditForm Model="_cadastro" OnValidSubmit="HandleCadastro">
+                <div class="form-group">
+                    <label>Nome completo</label>
+                    <InputText @bind-Value="_cadastro.Name" />
+                </div>
+                <div class="form-group">
+                    <label>E-mail</label>
+                    <InputText @bind-Value="_cadastro.Email" type="email" />
+                </div>
+                <div class="form-group">
+                    <label>CPF</label>
+                    <InputText @bind-Value="_cadastro.Cpf" placeholder="000.000.000-00" />
+                </div>
+                <div class="form-group">
+                    <label>Telefone</label>
+                    <InputText @bind-Value="_cadastro.PhoneNumber" placeholder="(00) 00000-0000" />
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    @* O olhinho existe porque a senha do suporte tem
+                       maiuscula, minuscula, numero e simbolo: digitar isso
+                       as cegas, duas vezes, e onde a conta trava. *@
+                    <div class="campo-senha">
+                        <InputText @bind-Value="_cadastro.Password"
+                                   type="@(_verSenha ? "text" : "password")" />
+                        <button type="button" class="toggle-password"
+                                @onclick="() => _verSenha = !_verSenha"
+                                aria-label="@(_verSenha ? "Esconder senha" : "Mostrar senha")">
+                            @(_verSenha ? "ocultar" : "mostrar")
+                        </button>
+                    </div>
+                    <p class="dica">
+                        Mínimo 8 caracteres, uma maiúscula, uma minúscula, um número e um símbolo.
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label>Confirmar senha</label>
+                    <div class="campo-senha">
+                        <InputText @bind-Value="_cadastro.ConfirmPassword"
+                                   type="@(_verConfirma ? "text" : "password")" />
+                        <button type="button" class="toggle-password"
+                                @onclick="() => _verConfirma = !_verConfirma"
+                                aria-label="@(_verConfirma ? "Esconder senha" : "Mostrar senha")">
+                            @(_verConfirma ? "ocultar" : "mostrar")
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" disabled="@_isLoading">
+                    @(_isLoading ? "Criando..." : "Criar conta e entrar")
+                </button>
+
+                <p class="mudar-modo">
+                    Já tem conta?
+                    <button type="button" class="link-botao" @onclick="() => _modo = Modo.Login">
+                        Voltar para o login
+                    </button>
+                </p>
+            </EditForm>
+        }
+    </div>
+</div>
+
+<style>
+    .campo-senha { position: relative; display: flex; align-items: center; }
+    .campo-senha input { flex: 1; padding-right: 74px; }
+    .toggle-password {
+        position: absolute;
+        right: 8px;
+        background: none;
+        border: 0;
+        padding: 4px 6px;
+        font: inherit;
+        font-size: 12px;
+        color: var(--texto-violeta);
+        cursor: pointer;
+        text-decoration: underline;
+    }
+    .toggle-password:focus-visible { outline: 2px solid var(--acao-violeta); outline-offset: 2px; }
+
+    .auth-wrapper {
+        min-height: calc(100vh - 84px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+    .auth-card {
+        width: 100%;
+        max-width: 420px;
+        padding: 32px 28px;
+        border-radius: 20px;
+        background: var(--surface-solid);
+        border: 1px solid var(--line);
+        box-shadow: var(--sombra-card);
+    }
+    .auth-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        background: var(--marca);
+        display: grid;
+        place-items: center;
+        margin-bottom: 20px;
+    }
+    .auth-title { margin: 0 0 4px; font-size: 24px; }
+    .auth-subtitle { margin: 0 0 22px; color: var(--ink-3); font-size: 14px; }
+    .error-message {
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: oklch(0.96 0.04 25);
+        color: var(--danger);
+        font-size: 14px;
+        margin-bottom: 16px;
+    }
+    .form-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+    .form-group input, .form-group .form-group input {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: var(--surface-solid);
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 14px;
+    }
+    .form-group input:focus {
+        outline: 2px solid var(--acao-violeta);
+        outline-offset: 1px;
+        border-color: transparent;
+    }
+    .dica { margin: 4px 0 0; font-size: 12px; color: var(--ink-3); }
+    .btn-primary {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--marca);
+        color: var(--sobre-acao);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: filter .15s;
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn-primary:disabled { opacity: .55; cursor: progress; }
+    .mudar-modo { margin: 18px 0 0; font-size: 13px; color: var(--ink-3); text-align: center; }
+    .link-botao {
+        background: none;
+        border: 0;
+        color: var(--acao-azul);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 13px;
+        padding: 0;
+        text-decoration: underline;
+    }
+</style>
+
+@code {
+    private enum Modo { Login, Cadastro }
+    private Modo _modo = Modo.Login;
+    private bool _isLoading;
+    private string? _errorMessage;
+    private bool _verSenha;
+    private bool _verConfirma;
+
+    private readonly LoginModel _model = new();
+    private readonly CadastroModel _cadastro = new();
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, response, error) = await AuthApi.LoginAsync(_model.Email, _model.Password);
+
+        _isLoading = false;
+
+        if (!success || response is null)
+        {
+            _errorMessage = error;
+            return;
+        }
+
+        AppState.Login(response.Token, response.Name, response.Email);
+        Nav.NavigateTo("/");
+    }
+
+    private async Task HandleCadastro()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, response, error) = await AuthApi.RegisterAsync(
+            _cadastro.Name, _cadastro.Email, _cadastro.PhoneNumber,
+            _cadastro.Cpf, _cadastro.Password, _cadastro.ConfirmPassword);
+
+        _isLoading = false;
+
+        if (!success || response is null)
+        {
+            _errorMessage = error;
+            return;
+        }
+
+        AppState.Login(response.Token, response.Name, response.Email);
+        Nav.NavigateTo("/");
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+
+    private class CadastroModel
+    {
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string Cpf { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

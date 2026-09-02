@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+	<!--
+	  O QUE OS TRÊS APPS PRECISAM, E SÓ ISSO.
+
+	  A conversa de suporte aparece no app do cliente, no painel do admin e no
+	  ambiente do técnico. Três cópias dela divergiriam na primeira correção.
+
+	  POR QUE NÃO FOI PARA A BIBLIOTECA DO GERENTE, que já existe e já é
+	  compartilhada: porque o app do CLIENTE também precisa disto, e
+	  referenciar a AutonomousStore.Gerente levaria o agente inteiro mais o
+	  modelo treinado de 654 KB para o celular de quem só quer comprar uma
+	  água. Esta aqui é de propósito magra — DTOs, um serviço de API e um
+	  componente. Nada entra aqui que não sirva aos três.
+	-->
+
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AddRazorSupportForMvc>false</AddRazorSupportForMvc>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<SupportedPlatform Include="browser" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.11" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+	</ItemGroup>
+
+</Project>

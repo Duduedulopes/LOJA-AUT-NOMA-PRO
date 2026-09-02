@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Smart Store — sistema visual do aplicativo do cliente
+   AutonomousStore — sistema visual do aplicativo do cliente
    --------------------------------------------------------------------------
    Substitui por completo o tema escuro com grade, brilho neon e monoespacada
    em texto corrido. Foi reescrito, e nao sobreposto: regra antiga de neon que
@@ -1445,33 +1445,136 @@ button.card-resumo:focus-visible {
     font-size: 16px;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   A BARRA DE ERRO NAO SEGUE O TEMA.
+
+   E a unica regra deste arquivo sem um `var()` sequer, e e de proposito.
+
+   O QUE ESTAVA ERRADO AQUI.
+
+   O fundo era `var(--tint-rosa)`, que TROCA com o tema — rosa clarinho no
+   claro, ameixa escuro no escuro. O texto era um rosa escuro CRAVADO, que
+   nao troca com nada. No tema claro combinava; no escuro virava rosa
+   escuro sobre ameixa escura, e a frase sumia. Foi assim que uma barra de
+   erro passou dias sem ser lida.
+
+   POR QUE COR FIXA, E NAO UMA VARIAVEL NOVA.
+
+   Esta barra e o ultimo aviso que sobra depois que alguma coisa ja deu
+   errado — e o que deu errado pode ter sido o proprio tema nao carregar.
+   Um aviso de falha que depende do sistema que falhou nao e aviso.
+
+   Branco sobre este vermelho da 6,5:1 de contraste, acima do minimo de
+   4,5:1 para texto normal — e da isso nos DOIS temas, porque nenhum dos
+   dois mexe nele.
+   ══════════════════════════════════════════════════════════════════════ */
+
 #blazor-error-ui {
     display: none;
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 100;
-    padding: 16px 24px;
-    background: var(--tint-rosa);
-    color: oklch(0.42 0.16 345);
+
+    /* acima de tudo, inclusive do chat do gerente (950) */
+    z-index: 2000;
+
+    /* a folga da direita e o espaco do 🗙: sem ela o texto passa por baixo */
+    padding: 16px 60px 16px 22px;
+
+    background: #B3261E;
+    color: #FFFFFF;
+    border-top: 3px solid #FF6B5E;
+    box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.35);
+
     font-size: 15px;
+    font-weight: 600;
+
+    /* A animacao toca quando o Blazor troca o `display` para block. E o que
+       faz o erro ser NOTADO — legivel e o minimo; visto e o objetivo. */
+    animation: erro-sobe 0.28s ease-out;
+}
+
+/* O simbolo vem do CSS e nao da marcacao: assim os tres index.html
+   continuam iguais e ninguem precisa lembrar de por o aviso na mao. */
+#blazor-error-ui::before {
+    content: "⚠";
+    margin-right: 10px;
+    font-size: 17px;
+}
+
+@keyframes erro-sobe {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #blazor-error-ui { animation: none; }
+}
+
+#blazor-error-ui .reload {
+    color: #FFFFFF;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    margin-left: 8px;
 }
 
 #blazor-error-ui .dismiss {
     position: absolute;
-    right: 18px;
-    top: 14px;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+
+    /* alvo de clique de 34px: o 🗙 sozinho era pequeno demais para acertar */
+    padding: 7px 11px;
+    border-radius: 8px;
+
+    color: #FFFFFF;
+    font-size: 17px;
+    line-height: 1;
     cursor: pointer;
 }
 
-/* O link "Recarregar" da barra de erro. Estava sem regra: herdava o azul de
-   `a` sobre o rosa da barra — texto colorido sobre fundo colorido, que e
-   exatamente o que a regra de contraste deste sistema proibe. */
-#blazor-error-ui .reload {
-    color: inherit;
+#blazor-error-ui .dismiss:hover {
+    background: rgba(255, 255, 255, 0.20);
+}
+
+/* O botão que o Eduardo pediu: reportar ESTE erro ao suporte.
+   Fica escondido até um erro acontecer — botão de reportar erro numa tela
+   sem erro só serviria para abrir chamado sem conteúdo.
+
+   Branco cheio, e não contorno: é a ação que ele foi procurar, e tem de ser
+   achada de longe. #8E1B15 sobre branco dá 8,3:1. */
+#blazor-error-ui .reportar {
+    margin-left: 14px;
+    padding: 7px 15px;
+    border: 0;
+    border-radius: 999px;
+
+    background: #FFFFFF;
+    color: #8E1B15;
+
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#blazor-error-ui .reportar:hover { background: #FFE4E1; }
+#blazor-error-ui .reportar:disabled { opacity: 0.55; cursor: default; }
+
+/* O código curto que a pessoa lê no telefone para o técnico. */
+#blazor-error-ui .codigo {
+    margin-left: 12px;
+    font-size: 13.5px;
     font-weight: 600;
-    text-decoration: underline;
+}
+
+#blazor-error-ui .reload:focus-visible,
+#blazor-error-ui .dismiss:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
 }
 
 /* NOMES ANTIGOS, MANTIDOS DE PROPOSITO.

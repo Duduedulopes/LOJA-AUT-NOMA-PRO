@@ -1,0 +1,1507 @@
+/* ==========================================================================
+   AUTONOMOUS STORE — PAINEL ADMINISTRATIVO
+   ==========================================================================
+
+   MESMA PALETA DO CLIENTE, TOM MAIS BAIXO.
+
+   O app do cliente abre com um bloco em degradê ocupando meia tela. Aqui isso
+   seria um erro, e nao de gosto: o cliente entra, faz uma coisa e sai — vale
+   gastar area com boas-vindas. O operador fica horas na mesma tela lendo
+   numeros de estoque. Cor de fundo forte, nesse uso, e ruido permanente.
+
+       No cliente, a cor convida. No painel, a cor INFORMA.
+
+   Por isso o degradê da marca sobra em tres lugares e nenhum deles e fundo de
+   tela: a assinatura no cabecalho, o avatar do operador e o fio de 3px no topo
+   dos cards de acao. Todo o resto e branco com borda.
+
+   VERDE NAO EXISTE NESTA PALETA.
+
+   A tentacao em painel administrativo e sempre a mesma: verde = ok,
+   vermelho = erro. Mas verde nao esta entre as tres cores da marca, e uma
+   quarta cor introduzida so para dizer "tudo bem" faz a tela deixar de ser
+   deste produto. Ciano ocupa o lugar do verde; rosa, o do amarelo/vermelho.
+   Sao duas cores que ja estavam aqui.
+
+   Vermelho continua existindo em UM lugar: `--danger`, para erro de verdade.
+   Um estoque baixo nao e um erro — e um aviso, e leva rosa.
+
+   ALIASES ANTIGOS NO FIM DO ARQUIVO, E DE PROPOSITO.
+
+   Varias telas trazem `style="color:var(--cyan)"` cravado na marcacao. Apagar
+   `--cyan` faria o texto herdar preto sem erro nenhum no console — o defeito
+   mais caro de achar. Os nomes velhos continuam definidos, apontando para as
+   cores novas.
+   ========================================================================== */
+
+/* 1. VARIAVEIS E BASE ==================================================== */
+
+:root {
+    --ink: #14121c;
+    --ink-2: #4e4a55;
+    --ink-3: #6b6673;
+    --line: oklch(0.93 0.02 280);
+    --surface: rgba(255, 255, 255, 0.8);
+    --surface-solid: #ffffff;
+
+    --vidro: rgba(255, 255, 255, 0.72);
+    --vidro-forte: rgba(255, 255, 255, 0.88);
+
+    --acao-ambar:       oklch(0.75 0.15 75);
+    --acao-ambar-forte: oklch(0.62 0.14 75);
+    --tint-ambar:       oklch(0.97 0.03 85);
+    --tint-ambar-alto:  oklch(0.93 0.06 85);
+
+    --sobre-marca: #fff;
+
+    --sobre-acao: #fff;
+
+    --ciano: oklch(0.72 0.14 195);
+    --violeta: oklch(0.60 0.19 295);
+    --rosa: oklch(0.65 0.21 345);
+
+    --acao-azul: oklch(0.62 0.15 205);
+    --acao-violeta: oklch(0.60 0.19 295);
+
+    --tint-ciano: oklch(0.93 0.06 195);
+    --tint-violeta: oklch(0.93 0.065 295);
+    --tint-rosa: oklch(0.93 0.065 345);
+
+    --texto-ciano: oklch(0.42 0.09 200);
+    --texto-rosa: oklch(0.45 0.13 350);
+    --texto-violeta: oklch(0.42 0.13 295);
+
+    --marca: linear-gradient(102deg, var(--ciano) 0%, var(--violeta) 54%, var(--rosa) 100%);
+
+    --danger: oklch(0.55 0.19 25);
+
+    --raio-bloco: 24px;
+    --raio-card: 16px;
+    --raio-campo: 11px;
+    --raio-botao: 12px;
+    --raio-pill: 999px;
+
+    --fonte: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+}
+
+body {
+    background:
+        radial-gradient(90% 70% at 8% 0%, oklch(0.965 0.025 200) 0%, transparent 60%),
+        radial-gradient(85% 75% at 100% 12%, oklch(0.965 0.028 340) 0%, transparent 58%),
+        oklch(0.99 0.008 280);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--fonte);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+.page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}
+
+.content {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 34px 28px 72px;
+}
+
+.px-4 {
+    padding-left: 28px;
+    padding-right: 28px;
+}
+
+a {
+    color: var(--acao-azul);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* 2. CABECALHO E MARCA =================================================== */
+
+.top-row {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    min-height: 84px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    background: var(--vidro);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+}
+
+.marca {
+    display: inline-flex;
+    align-items: center;
+    gap: 13px;
+    text-decoration: none;
+    color: inherit;
+    margin-right: auto;
+}
+
+.marca:hover {
+    text-decoration: none;
+}
+
+.marca img {
+    height: 54px;
+    width: auto;
+    display: block;
+}
+
+.marca-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.marca-nome {
+    font-size: 25px;
+    letter-spacing: -0.035em;
+    line-height: 1;
+}
+
+.marca-nome b {
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.marca-nome i {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--violeta);
+}
+
+.marca-tagline {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+.selo-admin {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--texto-violeta);
+    background: var(--tint-violeta);
+    border-radius: var(--raio-pill);
+    padding: 6px 13px;
+    white-space: nowrap;
+}
+
+.app-title,
+.brand-icon {
+    display: none;
+}
+
+/* 3. MENU ================================================================ */
+
+.admin-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.admin-nav a {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--raio-pill);
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+}
+
+.admin-nav a:hover {
+    background: var(--vidro-forte);
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.admin-nav a.active {
+    background: var(--acao-violeta);
+    color: var(--sobre-acao);
+}
+
+.admin-nav a.active:hover {
+    background: var(--acao-violeta);
+    color: var(--sobre-acao);
+}
+
+.chip-operador {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 14px 5px 5px;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-pill);
+    background: var(--surface-solid);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+}
+
+.chip-operador-avatar {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--marca);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* 4. TIPOGRAFIA DE PAGINA ================================================ */
+
+h1 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin: 0 0 10px;
+    color: var(--ink);
+}
+
+h2 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 0 12px;
+}
+
+h3 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+}
+
+.category-heading {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+.company-heading {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 0 14px;
+}
+
+.company-block {
+    margin-bottom: 34px;
+}
+
+.hint,
+.password-hint {
+    font-size: 14.5px;
+    color: var(--ink-3);
+    margin: 0 0 20px;
+}
+
+td .hint {
+    font-size: 12.5px;
+    margin: 3px 0 0;
+}
+
+/* 5. CARDS =============================================================== */
+
+.card {
+    background: var(--surface-solid);
+    border: 1px solid var(--line);
+    border-radius: var(--raio-card);
+    padding: 26px 28px;
+    margin-bottom: 20px;
+}
+
+.card > *:last-child {
+    margin-bottom: 0;
+}
+
+.card-acao {
+    position: relative;
+    overflow: hidden;
+}
+
+.card-acao::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--marca);
+}
+
+.grade-acoes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+button.card-acao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    width: 100%;
+    padding: 26px 24px 24px;
+    background: var(--surface-solid);
+    border: 1px solid var(--line);
+    border-radius: var(--raio-card);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    appearance: none;
+    transition: border-color .15s, transform .15s;
+}
+
+button.card-acao:hover {
+    border-color: oklch(0.86 0.04 280);
+    transform: translateY(-2px);
+}
+
+.card-acao-etiqueta {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+.card-acao-titulo {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+}
+
+.card-acao-apoio {
+    font-size: 14px;
+    color: var(--ink-3);
+}
+
+/* 6. BOTOES ============================================================== */
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 22px;
+    border: 1px solid transparent;
+    border-radius: var(--raio-botao);
+    background: var(--acao-azul);
+    color: var(--sobre-acao);
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: filter .15s;
+}
+
+.btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+.btn-primary:disabled {
+    background: oklch(0.90 0.008 280);
+    border-color: oklch(0.90 0.008 280);
+    color: var(--ink-3);
+    cursor: not-allowed;
+    filter: none;
+}
+
+.btn-outline {
+    background: var(--surface-solid);
+    border-color: var(--line);
+    color: var(--ink);
+}
+
+.btn-outline:hover:not(:disabled) {
+    border-color: var(--acao-azul);
+    color: var(--acao-azul);
+    filter: none;
+}
+
+.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ink-2);
+}
+
+.btn-ghost:hover:not(:disabled) {
+    background: var(--vidro-forte);
+    border-color: var(--line);
+    color: var(--ink);
+    filter: none;
+}
+
+.btn-suave {
+    background: var(--tint-rosa);
+    border-color: transparent;
+    color: var(--texto-rosa);
+}
+
+.btn-suave:hover:not(:disabled) {
+    filter: brightness(0.97);
+}
+
+.btn-small {
+    width: auto;
+    min-height: 38px;
+    padding: 0 15px;
+    font-size: 14px;
+    border-radius: 10px;
+}
+
+.btn-auto {
+    width: auto;
+}
+
+/* 7. FORMULARIOS ========================================================= */
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 0 18px;
+}
+
+.form-group input,
+.form-group select,
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--raio-campo);
+    background: var(--surface-solid);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 15.5px;
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.form-group input:focus,
+.form-control:focus,
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--acao-azul);
+    box-shadow: 0 0 0 3px oklch(0.62 0.15 205 / 0.14);
+}
+
+input::placeholder {
+    color: #a8a4b0;
+}
+
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.inline-form input {
+    width: 96px;
+    min-height: 38px;
+    font-size: 14px;
+    padding: 0 10px;
+}
+
+.inline-form input[type="text"] {
+    width: 130px;
+}
+
+.lista-monitorada label {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 0;
+    font-size: 15px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    border-bottom: 1px solid var(--line);
+    margin: 0;
+}
+
+.lista-monitorada label:last-child {
+    border-bottom: none;
+}
+
+.lista-monitorada input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    min-height: 0;
+    flex: none;
+    accent-color: var(--acao-violeta);
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--ink);
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-height: 0;
+    accent-color: var(--acao-violeta);
+}
+
+.error-message {
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    border-radius: var(--raio-campo);
+    background: oklch(0.95 0.04 25);
+    border: 1px solid oklch(0.88 0.07 25);
+    color: oklch(0.45 0.16 25);
+    font-size: 14.5px;
+}
+
+/* 8. SELOS DE ESTADO ===================================================== */
+
+.notification-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 26px;
+}
+
+.notification-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 17px;
+    border-radius: var(--raio-pill);
+    background: var(--surface-solid);
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: filter .15s;
+}
+
+.notification-pill:hover {
+    text-decoration: none;
+    filter: brightness(0.98);
+}
+
+.pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: none;
+}
+
+.pill-ok {
+    background: var(--tint-ciano);
+    border-color: transparent;
+    color: var(--texto-ciano);
+}
+
+.pill-warning {
+    background: var(--tint-rosa);
+    border-color: transparent;
+    color: var(--texto-rosa);
+}
+
+.pill-info {
+    background: var(--tint-violeta);
+    border-color: transparent;
+    color: var(--texto-violeta);
+}
+
+.pill-viva .pill-dot {
+    animation: pulso 1.6s ease-in-out infinite;
+}
+
+@keyframes pulso {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pill-viva .pill-dot { animation: none; }
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: var(--raio-pill);
+    background: var(--tint-violeta);
+    color: var(--texto-violeta);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.badge-ok {
+    background: var(--tint-ciano);
+    color: var(--texto-ciano);
+}
+
+.badge-low {
+    background: var(--tint-rosa);
+    color: var(--texto-rosa);
+}
+
+.badge-out {
+    background: oklch(0.94 0.05 25);
+    color: oklch(0.45 0.16 25);
+}
+
+/* 9. TABELAS ============================================================= */
+
+.data-table-wrapper {
+    overflow-x: auto;
+    margin: 0 -6px;
+    padding: 0 6px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+.data-table th {
+    padding: 0 14px 11px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: 15px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+    color: var(--ink);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table td.numero,
+.data-table th.numero {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 10. TOTAIS E VALORES =================================================== */
+
+.total-value {
+    display: block;
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    color: var(--ink);
+}
+
+.card-total {
+    padding: 22px 26px;
+    border-radius: var(--raio-card);
+    background: var(--tint-rosa);
+    color: var(--ink);
+}
+
+.card-total-etiqueta {
+    display: block;
+    margin-bottom: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--texto-rosa);
+}
+
+.valor-destaque {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+}
+
+.empty-state {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 15.5px;
+}
+
+/* 11. TELA DE ACESSO ===================================================== */
+
+.auth-wrapper {
+    display: grid;
+    place-items: center;
+    padding: 56px 0;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 460px;
+    padding: 44px 40px;
+    background: var(--surface-solid);
+    border: 1px solid var(--line);
+    border-radius: var(--raio-bloco);
+    text-align: center;
+}
+
+.auth-icon {
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: var(--marca);
+    color: #fff;
+}
+
+.auth-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    margin: 0 0 8px;
+}
+
+.auth-subtitle {
+    font-size: 15.5px;
+    color: var(--ink-3);
+    margin: 0 0 26px;
+}
+
+.auth-card .form-group {
+    text-align: left;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+}
+
+.auth-footer-link {
+    margin: 14px 0 0;
+    font-size: 14.5px;
+    color: var(--ink-3);
+}
+
+/* 12. MONITOR DA PRATELEIRA ============================================== */
+
+.shelf-video {
+    width: 100%;
+    max-height: 340px;
+    margin-bottom: 18px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: oklch(0.96 0.01 280);
+    object-fit: cover;
+    display: block;
+}
+
+.shelf-canvas-hidden {
+    display: none;
+}
+
+.linha-camera {
+    display: block;
+    margin-bottom: 18px;
+}
+
+.linha-camera .hint {
+    margin-bottom: 7px;
+}
+
+.linha-camera select {
+    border-radius: 12px;
+}
+
+/* 13. RODAPE ============================================================= */
+
+.rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 20px 28px;
+    background: var(--vidro);
+    border-top: 1px solid var(--line);
+}
+
+.rodape-marca {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.rodape-marca img {
+    height: 34px;
+    width: auto;
+}
+
+.rodape-linha {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+.rodape-sair {
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink-2);
+    cursor: pointer;
+}
+
+.rodape-sair:hover {
+    color: var(--ink);
+}
+
+/* 14. CARREGAMENTO E ERRO DO BLAZOR ====================================== */
+
+.loading-indicator {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   A BARRA DE ERRO NAO SEGUE O TEMA.
+
+   E a unica regra deste arquivo sem um `var()` sequer, e e de proposito.
+
+   O QUE ESTAVA ERRADO AQUI.
+
+   Era `background: var(--ink)` com `color: #fff`. No tema claro o `--ink`
+   e quase preto e branco sobre preto se le muito bem. So que `--ink` e a
+   cor do TEXTO do tema: no escuro ele vira quase BRANCO. Branco sobre
+   branco. A barra continuava subindo — so que invisivel.
+
+   POR QUE COR FIXA, E NAO UMA VARIAVEL NOVA.
+
+   Esta barra e o ultimo aviso que sobra depois que alguma coisa ja deu
+   errado — e o que deu errado pode ter sido o proprio tema nao carregar.
+   Um aviso de falha que depende do sistema que falhou nao e aviso.
+
+   Branco sobre este vermelho da 6,5:1 de contraste, acima do minimo de
+   4,5:1 para texto normal — e da isso nos DOIS temas, porque nenhum dos
+   dois mexe nele.
+   ══════════════════════════════════════════════════════════════════════ */
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    /* acima de tudo, inclusive do chat do gerente (950) */
+    z-index: 2000;
+
+    /* a folga da direita e o espaco do 🗙: sem ela o texto passa por baixo */
+    padding: 16px 60px 16px 22px;
+
+    background: #B3261E;
+    color: #FFFFFF;
+    border-top: 3px solid #FF6B5E;
+    box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.35);
+
+    font-size: 15px;
+    font-weight: 600;
+
+    /* A animacao toca quando o Blazor troca o `display` para block. E o que
+       faz o erro ser NOTADO — legivel e o minimo; visto e o objetivo. */
+    animation: erro-sobe 0.28s ease-out;
+}
+
+/* O simbolo vem do CSS e nao da marcacao: assim os tres index.html
+   continuam iguais e ninguem precisa lembrar de por o aviso na mao. */
+#blazor-error-ui::before {
+    content: "⚠";
+    margin-right: 10px;
+    font-size: 17px;
+}
+
+@keyframes erro-sobe {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #blazor-error-ui { animation: none; }
+}
+
+#blazor-error-ui .reload {
+    color: #FFFFFF;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    margin-left: 8px;
+}
+
+#blazor-error-ui .dismiss {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+
+    /* alvo de clique de 34px: o 🗙 sozinho era pequeno demais para acertar */
+    padding: 7px 11px;
+    border-radius: 8px;
+
+    color: #FFFFFF;
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#blazor-error-ui .dismiss:hover {
+    background: rgba(255, 255, 255, 0.20);
+}
+
+/* O botão que o Eduardo pediu: reportar ESTE erro ao suporte.
+   Fica escondido até um erro acontecer — botão de reportar erro numa tela
+   sem erro só serviria para abrir chamado sem conteúdo.
+
+   Branco cheio, e não contorno: é a ação que ele foi procurar, e tem de ser
+   achada de longe. #8E1B15 sobre branco dá 8,3:1. */
+#blazor-error-ui .reportar {
+    margin-left: 14px;
+    padding: 7px 15px;
+    border: 0;
+    border-radius: 999px;
+
+    background: #FFFFFF;
+    color: #8E1B15;
+
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+#blazor-error-ui .reportar:hover { background: #FFE4E1; }
+#blazor-error-ui .reportar:disabled { opacity: 0.55; cursor: default; }
+
+/* O código curto que a pessoa lê no telefone para o técnico. */
+#blazor-error-ui .codigo {
+    margin-left: 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+#blazor-error-ui .reload:focus-visible,
+#blazor-error-ui .dismiss:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: 2px;
+}
+
+/* 15. NOMES ANTIGOS ====================================================== */
+
+:root {
+    --cyan: var(--acao-azul);
+    --cyan-soft: var(--tint-ciano);
+    --panel: var(--surface-solid);
+    --panel-border: var(--line);
+    --bg-void: oklch(0.99 0.008 280);
+    --text-primary: var(--ink);
+    --text-muted: var(--ink-3);
+    --font-body: var(--fonte);
+    --font-display: var(--fonte);
+    --font-mono: var(--mono);
+}
+
+/* 16. TELAS ESTREITAS ==================================================== */
+
+@media (max-width: 900px) {
+    .grade-acoes {
+        grid-template-columns: 1fr;
+    }
+
+    .top-row {
+        flex-wrap: wrap;
+        min-height: 0;
+        gap: 12px;
+    }
+
+    .admin-nav {
+        order: 3;
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 4px;
+    }
+
+    .content,
+    .px-4 {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    h1 {
+        font-size: 31px;
+    }
+
+    .marca img {
+        height: 44px;
+    }
+
+    .marca-nome {
+        font-size: 21px;
+    }
+
+    .selo-admin {
+        display: none;
+    }
+}
+
+@media (max-width: 600px) {
+    .card {
+        padding: 20px 18px;
+    }
+
+    .total-value {
+        font-size: 32px;
+    }
+
+    .chip-operador .chip-operador-nome {
+        display: none;
+    }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   TELAS DE OCORRENCIA — fila, historico e detalhe.
+
+   Isto morava dentro de `Pages/Home.razor`. Um `<style>` dentro de um
+   componente so entra na pagina quando AQUELE componente renderiza:
+   quem abrisse /ocorrencias direto, ou recarregasse a pagina ali,
+   receberia a tela sem estilo nenhum. Estilo compartilhado por mais de
+   uma pagina mora no CSS, nao dentro de uma delas.
+   ══════════════════════════════════════════════════════════════════ */
+    .pag-ocorrencias { display: flex; flex-direction: column; gap: 20px; }
+    .pag-cabecalho h1 { margin: 0; font-size: 28px; }
+    .pag-subtitulo { margin: 6px 0 0; color: var(--ink-3); }
+
+    .card {
+        background: var(--surface-solid);
+        border: 1px solid var(--line);
+        border-radius: var(--raio-card);
+        padding: 20px;
+        box-shadow: var(--sombra-card);
+    }
+
+    .btn {
+        padding: 10px 18px;
+        border-radius: var(--raio-botao);
+        border: 1px solid transparent;
+        font-weight: 600;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all .15s;
+    }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn.primario { background: var(--marca); color: var(--sobre-acao); }
+    .btn.primario:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn.secundario { background: var(--tint-violeta); color: var(--texto-violeta); }
+    .btn.secundario:hover:not(:disabled) { background: var(--tint-ciano); color: var(--texto-ciano); }
+
+    .btn-link {
+        background: none;
+        border: 0;
+        color: var(--acao-azul);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 14px;
+        padding: 4px 8px;
+    }
+    .btn-link:hover { text-decoration: underline; }
+
+    .estado { padding: 36px 24px; text-align: center; color: var(--ink-3); }
+    .estado.erro { display: flex; flex-direction: column; gap: 12px; align-items: center; color: var(--danger); }
+    .estado.ok { color: var(--texto-ciano); }
+
+    .contagem-chamados {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+        color: var(--ink-2);
+    }
+    .contagem-chamados strong {
+        font-family: var(--mono);
+        font-size: 22px;
+        color: var(--ink);
+        margin-right: 6px;
+    }
+
+    .tabela-ocorrencias { width: 100%; border-collapse: collapse; }
+    .tabela-ocorrencias th, .tabela-ocorrencias td {
+        text-align: left;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+        font-size: 14px;
+        vertical-align: top;
+    }
+    .tabela-ocorrencias th {
+        color: var(--ink-3);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-weight: 700;
+    }
+    .tabela-ocorrencias tbody tr { cursor: pointer; transition: background .1s; }
+    .tabela-ocorrencias tbody tr:hover { background: var(--surface-alto, var(--tint-violeta)); }
+    .tabela-ocorrencias .quando { white-space: nowrap; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+    .tabela-ocorrencias .descricao { color: var(--ink-2); max-width: 420px; }
+    .tabela-ocorrencias .acao-col { text-align: right; }
+    .tabela-ocorrencias tr.severidade-critica { background: oklch(0.99 0.015 25); }
+    [data-tema="escuro"] .tabela-ocorrencias tr.severidade-critica { background: oklch(0.35 0.05 25); }
+
+    .chip {
+        display: inline-flex;
+        padding: 3px 10px;
+        border-radius: var(--raio-pill);
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .chip-tipo { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-severidade.chip-informativa { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-severidade.chip-baixa { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-severidade.chip-media { background: var(--tint-ambar); color: var(--acao-ambar-forte); }
+    .chip-severidade.chip-alta { background: var(--tint-rosa); color: var(--texto-rosa); }
+    .chip-severidade.chip-critica { background: oklch(0.96 0.04 25); color: var(--danger); }
+    [data-tema="escuro"] .chip-severidade.chip-critica { background: oklch(0.42 0.09 25); color: oklch(0.92 0.06 30); }
+
+    .chip-estado.chip-nova { background: var(--tint-violeta); color: var(--texto-violeta); }
+    .chip-estado.chip-vista { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-estado.chip-emanalise { background: var(--tint-ambar); color: var(--acao-ambar-forte); }
+    .chip-estado.chip-resolvida { background: var(--tint-ciano); color: var(--texto-ciano); }
+    .chip-estado.chip-ignorada { background: var(--tint-rosa); color: var(--texto-rosa); opacity: .7; }
+    .chip-estado.chip-nosuporte { background: var(--tint-violeta); color: var(--texto-violeta); border: 1px dashed currentColor; }
+
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 18, 28, 0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 24px;
+    }
+    .modal {
+        background: var(--surface-solid);
+        border-radius: var(--raio-bloco);
+        border: 1px solid var(--line);
+        width: 100%;
+        max-width: 880px;
+        max-height: calc(100vh - 48px);
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--sombra-flutuante);
+        overflow: hidden;
+    }
+    .modal-pequeno { max-width: 520px; }
+    .modal-cabecalho {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 20px 24px 14px;
+        border-bottom: 1px solid var(--line);
+        gap: 16px;
+    }
+    .modal-cabecalho h2, .modal-cabecalho h3 { margin: 0 0 8px; font-size: 20px; }
+    .modal-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+    .btn-fechar {
+        background: none;
+        border: 0;
+        font-size: 28px;
+        line-height: 1;
+        color: var(--ink-3);
+        cursor: pointer;
+        padding: 4px 12px;
+        border-radius: 8px;
+    }
+    .btn-fechar:hover { background: var(--tint-violeta); color: var(--ink); }
+    .modal-corpo {
+        padding: 20px 24px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .modal-corpo label { display: block; font-size: 13px; color: var(--ink-3); font-weight: 600; margin-bottom: 6px; }
+    .modal-corpo textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--raio-campo);
+        background: var(--surface-solid);
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 14px;
+        resize: vertical;
+        min-height: 80px;
+    }
+    .modal-rodape {
+        padding: 16px 24px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+    .acoes-esquerda, .acoes-direita { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .campos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+    }
+    .campo { display: flex; flex-direction: column; gap: 3px; }
+    .campo .rotulo { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+    .campo .valor { font-size: 14px; color: var(--ink-2); }
+    .campo .mono { font-family: var(--mono); font-size: 12px; }
+
+    .bloco {
+        border: 1px solid var(--line);
+        border-radius: var(--raio-campo);
+        padding: 14px 16px;
+        background: var(--surface);
+    }
+    .bloco-titulo {
+        font-size: 12px;
+        color: var(--ink-3);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-weight: 700;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bloco-valor { font-size: 14px; color: var(--ink); line-height: 1.55; white-space: pre-wrap; }
+    .bloco-valor.vazio { color: var(--ink-3); font-style: italic; }
+
+    .bloco-inferencia {
+        border-left: 3px solid var(--acao-ambar-forte);
+        background: var(--tint-ambar);
+    }
+    [data-tema="escuro"] .bloco-inferencia { background: oklch(0.37 0.055 80); }
+    .tag-inferencia {
+        display: inline-flex;
+        padding: 2px 8px;
+        border-radius: var(--raio-pill);
+        background: var(--acao-ambar);
+        color: var(--sobre-acao);
+        font-size: 10px;
+        letter-spacing: .06em;
+        font-weight: 800;
+    }
+
+    .bloco-nota-admin {
+        border-left: 3px solid var(--acao-violeta);
+        background: var(--tint-violeta);
+    }
+    [data-tema="escuro"] .bloco-nota-admin { background: oklch(0.37 0.06 295); }
+    .tag-admin {
+        display: inline-flex;
+        padding: 2px 8px;
+        border-radius: var(--raio-pill);
+        background: var(--acao-violeta);
+        color: var(--sobre-acao);
+        font-size: 10px;
+        letter-spacing: .06em;
+        font-weight: 800;
+    }
+
+    .json-pre {
+        margin: 0;
+        padding: 12px 14px;
+        background: oklch(0.985 0.01 285);
+        border: 1px solid var(--line);
+        border-radius: var(--raio-campo);
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.55;
+        color: var(--ink);
+        overflow-x: auto;
+        max-height: 420px;
+    }
+    [data-tema="escuro"] .json-pre { background: oklch(0.28 0.014 285); }
+
+/* ── filtros e rastro: o que a tela de historico acrescenta ────────── */
+
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.filtro {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 150px;
+}
+
+.filtro label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.filtro select {
+    padding: 9px 12px;
+    border-radius: var(--raio-botao);
+    border: 1px solid var(--line);
+    background: var(--surface-solid);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.filtro select:focus-visible {
+    outline: 2px solid var(--acao-violeta);
+    outline-offset: 1px;
+}
+
+/* O numero do passo no rastro. Tabular para os digitos nao dancarem
+   quando a lista passa de 9. */
+.tabela-ocorrencias .passo-col {
+    width: 34px;
+    text-align: right;
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+}
+
+.rastro-id {
+    margin-left: 10px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--tint-violeta);
+    color: var(--texto-violeta);
+    font-size: 12px;
+    font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+}

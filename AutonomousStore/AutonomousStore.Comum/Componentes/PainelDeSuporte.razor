@@ -1,0 +1,328 @@
+@inject IChamadoApiService Chamados
+@inject NavigationManager Nav
+
+@*
+    A TELA DE FALAR COM O SUPORTE — uma só, usada pelo cliente e pelo admin.
+
+    As duas telas seriam iguais linha por linha: o mesmo formulário, a mesma
+    lista, a mesma conversa. A única diferença real é de que lado a pessoa
+    está, e isso cabe num parâmetro. Duas cópias trocariam um parâmetro por
+    duzentas linhas repetidas.
+
+    O SUPORTE NÃO USA ESTA TELA: ele não abre chamado para si mesmo. Do lado
+    dele o que aparece é a fila, e a conversa mora dentro do detalhe do
+    chamado. É o mesmo componente `Conversa`, em outra moldura.
+*@
+
+<div class="suporte">
+
+    <header class="suporte-topo">
+        <h1>Falar com o suporte</h1>
+        <p>@Explicacao()</p>
+    </header>
+
+    <section class="card suporte-abrir">
+        <h2>Abrir um chamado</h2>
+
+        <div class="suporte-tipos">
+            <button type="button"
+                    class="suporte-tipo @(_ehMudanca ? "" : "escolhido")"
+                    @onclick="() => _ehMudanca = false">
+                Tenho uma dúvida
+            </button>
+            <button type="button"
+                    class="suporte-tipo @(_ehMudanca ? "escolhido" : "")"
+                    @onclick="() => _ehMudanca = true">
+                Quero mudar alguma coisa
+            </button>
+        </div>
+
+        <label class="suporte-campo">
+            <span>Assunto</span>
+            <input @bind="_assunto" maxlength="200" placeholder="@(_ehMudanca ? "Ex.: preço automático na sexta" : "Ex.: como eu devolvo um produto?")" />
+        </label>
+
+        <label class="suporte-campo">
+            <span>O que você precisa</span>
+            <textarea @bind="_texto" @bind:event="oninput" rows="4"
+                      placeholder="Conte com suas palavras. Quanto mais detalhe, menos ida e volta."></textarea>
+        </label>
+
+        <div class="suporte-acoes">
+            @if (_recado is { Length: > 0 })
+            {
+                <span class="suporte-recado @(_deuCerto ? "ok" : "ruim")">@_recado</span>
+            }
+            <button class="suporte-enviar"
+                    disabled="@(_enviando || string.IsNullOrWhiteSpace(_texto))"
+                    @onclick="EnviarChamado">
+                @(_enviando ? "Enviando…" : "Enviar ao suporte")
+            </button>
+        </div>
+    </section>
+
+    <section class="suporte-meus">
+        <h2>Meus chamados</h2>
+
+        @if (_carregando)
+        {
+            <p class="suporte-vazio">Carregando…</p>
+        }
+        else if (_meus is null)
+        {
+            <p class="suporte-vazio ruim">
+                Não consegui buscar seus chamados. A API está no ar?
+            </p>
+        }
+        else if (_meus.Count == 0)
+        {
+            <p class="suporte-vazio">Você ainda não abriu nenhum chamado.</p>
+        }
+        else
+        {
+            <div class="suporte-lista">
+                @foreach (var c in _meus)
+                {
+                    <button type="button"
+                            class="suporte-item @(_aberto?.Id == c.Id ? "aberto" : "")"
+                            @onclick="() => Selecionar(c)">
+                        <span class="suporte-item-topo">
+                            <span class="chip chip-@c.Tipo.ToLowerInvariant()">@Rotulo(c.Tipo)</span>
+                            <span class="suporte-estado">@Estado(c.Estado)</span>
+                        </span>
+                        <span class="suporte-assunto">@c.Assunto</span>
+                        <span class="suporte-item-pe">
+                            @c.Mensagens mensagem@(c.Mensagens == 1 ? "" : "s")
+                            · @Quando(c.UltimaMensagemUtc ?? c.QuandoUtc)
+                        </span>
+                    </button>
+                }
+            </div>
+        }
+
+        @if (_aberto is not null)
+        {
+            <div class="card suporte-conversa">
+                <h3>@_aberto.Assunto</h3>
+                <Conversa Chamado="_aberto" EuSou="@EuSou" AoAtualizar="Atualizou" />
+            </div>
+        }
+    </section>
+</div>
+
+<style>
+    .suporte { display: flex; flex-direction: column; gap: 22px; max-width: 940px; }
+    .suporte-topo h1 { margin: 0 0 6px; font-size: 26px; color: var(--ink, #18181b); }
+    .suporte-topo p { margin: 0; color: var(--ink-3, #6b7280); font-size: 14.5px; }
+
+    .suporte h2 { margin: 0 0 14px; font-size: 17px; color: var(--ink, #18181b); }
+    .suporte h3 { margin: 0 0 12px; font-size: 16px; color: var(--ink, #18181b); }
+
+    .suporte .card {
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid var(--line, #d4d4d8);
+        background: var(--surface-solid, #ffffff);
+    }
+
+    .suporte-abrir { display: flex; flex-direction: column; gap: 14px; }
+
+    .suporte-tipos { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .suporte-tipo {
+        padding: 9px 16px;
+        border-radius: 999px;
+        border: 1px solid var(--line, #d4d4d8);
+        background: transparent;
+        color: var(--ink-2, #374151);
+        font: inherit;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    /* O escolhido é PREENCHIDO, e não só contornado: com dois botões lado a
+       lado, contorno contra contorno não diz qual está valendo. */
+    .suporte-tipo.escolhido {
+        background: var(--acao-violeta, #7c3aed);
+        border-color: var(--acao-violeta, #7c3aed);
+        color: var(--sobre-acao, #ffffff);
+        font-weight: 700;
+    }
+
+    .suporte-campo { display: flex; flex-direction: column; gap: 6px; }
+
+    .suporte-campo span {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink-2, #374151);
+    }
+
+    .suporte-campo input,
+    .suporte-campo textarea {
+        width: 100%;
+        padding: 11px 13px;
+        border-radius: 12px;
+        border: 1px solid var(--line, #d4d4d8);
+        background: var(--surface-solid, #ffffff);
+        color: var(--ink, #18181b);
+        font: inherit;
+        font-size: 14.5px;
+        resize: vertical;
+    }
+
+    .suporte-acoes {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .suporte-recado { font-size: 13px; font-weight: 600; }
+    .suporte-recado.ok { color: var(--texto-ciano, #075985); }
+    .suporte-recado.ruim { color: #B3261E; }
+
+    .suporte-enviar {
+        padding: 10px 22px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--acao-violeta, #7c3aed);
+        color: var(--sobre-acao, #ffffff);
+        font: inherit;
+        font-weight: 700;
+        font-size: 14.5px;
+        cursor: pointer;
+    }
+
+    .suporte-enviar:disabled { opacity: 0.5; cursor: default; }
+
+    .suporte-vazio { color: var(--ink-3, #6b7280); font-size: 14px; }
+    .suporte-vazio.ruim { color: #B3261E; font-weight: 600; }
+
+    .suporte-lista { display: flex; flex-direction: column; gap: 10px; }
+
+    .suporte-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px solid var(--line, #d4d4d8);
+        background: var(--surface-solid, #ffffff);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .suporte-item.aberto { border-color: var(--acao-violeta, #7c3aed); border-width: 2px; }
+
+    .suporte-item-topo { display: flex; gap: 10px; align-items: center; }
+
+    .suporte-item .chip {
+        padding: 2px 10px;
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 700;
+        background: var(--tint-ciano, #e0f2fe);
+        color: var(--texto-ciano, #075985);
+    }
+
+    .suporte-item .chip-pedidodemudanca {
+        background: var(--tint-ambar, #fef3c7);
+        color: var(--acao-ambar-forte, #92400e);
+    }
+
+    .suporte-estado { font-size: 12.5px; color: var(--ink-3, #6b7280); }
+    .suporte-assunto { font-size: 15px; font-weight: 700; color: var(--ink, #18181b); }
+    .suporte-item-pe { font-size: 12.5px; color: var(--ink-3, #6b7280); }
+
+    .suporte-conversa { margin-top: 14px; }
+</style>
+
+@code {
+    /// <summary>Quem está olhando: "Cliente" ou "Admin".</summary>
+    [Parameter, EditorRequired]
+    public string EuSou { get; set; } = "Cliente";
+
+    private bool _ehMudanca;
+    private string _assunto = "";
+    private string _texto = "";
+    private bool _enviando;
+    private bool _deuCerto;
+    private string _recado = "";
+
+    private List<ChamadoDto>? _meus;
+    private ChamadoDto? _aberto;
+    private bool _carregando = true;
+
+    protected override async Task OnInitializedAsync() => await Recarregar();
+
+    private async Task Recarregar()
+    {
+        _carregando = true;
+        _meus = await Chamados.MeusAsync();
+        _carregando = false;
+    }
+
+    private string Explicacao() => EuSou == "Admin"
+        ? "Dúvida sobre como fazer alguma coisa, ou pedido de mudança no sistema. Vai direto para a fila do técnico, e a resposta volta aqui mesmo."
+        : "Precisa de ajuda com a loja ou com uma compra? Escreva aqui. A resposta aparece nesta mesma tela.";
+
+    private static string Rotulo(string tipo) => tipo switch
+    {
+        "Duvida" => "dúvida",
+        "PedidoDeMudanca" => "mudança",
+        _ => tipo,
+    };
+
+    private static string Estado(string estado) => estado switch
+    {
+        "Nova" => "aguardando",
+        "Vista" => "aguardando",
+        "NoSuporte" => "na fila do suporte",
+        "EmAnalise" => "o suporte está vendo",
+        "Resolvida" => "resolvido",
+        "Ignorada" => "encerrado",
+        _ => estado,
+    };
+
+    private static string Quando(DateTime utc)
+        => utc.ToLocalTime().ToString("dd/MM HH:mm",
+               System.Globalization.CultureInfo.GetCultureInfo("pt-BR"));
+
+    private void Selecionar(ChamadoDto c) => _aberto = c;
+
+    private async Task Atualizou(ChamadoDto c)
+    {
+        _aberto = c;
+        await Recarregar();
+    }
+
+    private async Task EnviarChamado()
+    {
+        if (string.IsNullOrWhiteSpace(_texto)) return;
+
+        _enviando = true;
+        _recado = "";
+
+        // A página em que a pessoa estava não vem daqui — ela JÁ está aqui.
+        // O que vale é a rota, para o técnico saber de onde partiu.
+        var novo = await Chamados.AbrirAsync(_assunto, _texto, _ehMudanca, Nav.ToBaseRelativePath(Nav.Uri));
+
+        _enviando = false;
+
+        if (novo is null)
+        {
+            _deuCerto = false;
+            _recado = "Não consegui enviar. Tenta de novo?";
+            return;
+        }
+
+        _assunto = "";
+        _texto = "";
+        _deuCerto = true;
+        _recado = "Chamado aberto. A resposta aparece aqui embaixo.";
+        _aberto = novo;
+        await Recarregar();
+    }
+}

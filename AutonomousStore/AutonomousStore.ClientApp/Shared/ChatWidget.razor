@@ -8,14 +8,14 @@
 {
     <div class="chat-panel">
         <div class="chat-panel-header">
-            <span>Assistente Smart Store</span>
+            <span>Assistente AutonomousStore</span>
         </div>
 
         <div class="chat-messages" @ref="_messagesRef">
-            @foreach (var message in _messages)
+            @foreach (var fala in _falas)
             {
-                <div class="chat-message @(message.Role == "user" ? "chat-message-user" : "chat-message-bot")">
-                    @message.Text
+                <div class="chat-message @(fala.Role == "user" ? "chat-message-user" : "chat-message-bot")">
+                    @fala.Texto
                 </div>
             }
             @if (_isSending)
@@ -36,9 +36,29 @@
     private bool _isSending;
     private string _input = "";
     private ElementReference _messagesRef;
-    private readonly List<ChatMessageDto> _messages = new()
+    /// <summary>Uma linha do chat — e se ela conta ou não como conversa.</summary>
+    /// <remarks>
+    /// O QUE APARECE NA TELA E O QUE O MODELO VÊ NÃO SÃO A MESMA COISA.
+    ///
+    /// A saudação e as mensagens de erro são recado da INTERFACE: ninguém
+    /// falou aquilo. Mandá-las como histórico foi o que quebrou o assistente
+    /// — o Gemini exige que a conversa comece com uma fala do usuário, e a
+    /// primeira coisa que ia daqui era a saudação, marcada como `model`.
+    ///
+    /// Pior: a própria mensagem de erro entrava como histórico. Cada tentativa
+    /// mandava uma conversa mais suja que a anterior, e o assistente ficava
+    /// mais longe de funcionar a cada vez que se insistia.
+    ///
+    /// Uma lista só, com um sinalizador. Duas listas em paralelo sairiam de
+    /// sincronia no primeiro caso de borda.
+    /// </remarks>
+    private record Fala(string Role, string Texto, bool SoNaTela = false);
+
+    private readonly List<Fala> _falas = new()
     {
-        new ChatMessageDto("model", "Olá! Sou o assistente da Smart Store 🤖 Posso ajudar com dúvidas sobre como a loja funciona, cadastro e pagamento. Como posso ajudar?")
+        new Fala("model",
+            "Olá! Sou o assistente da AutonomousStore 🤖 Posso ajudar com dúvidas sobre como a loja funciona, cadastro e pagamento. Como posso ajudar?",
+            SoNaTela: true),
     };
 
     private void ToggleOpen() => _isOpen = !_isOpen;
@@ -55,14 +75,27 @@
         if (string.IsNullOrWhiteSpace(text))
             return;
 
-        _messages.Add(new ChatMessageDto("user", text));
+        _falas.Add(new Fala("user", text));
         _input = "";
         _isSending = true;
         StateHasChanged();
 
-        var reply = await ChatApi.SendAsync(_messages);
+        // Só o que é conversa de verdade sobe. Saudação e recado de erro
+        // ficam na tela e não viram histórico.
+        var paraOModelo = _falas
+            .Where(f => !f.SoNaTela)
+            .Select(f => new ChatMessageDto(f.Role, f.Texto))
+            .ToList();
 
-        _messages.Add(new ChatMessageDto("model", reply));
+        var reply = await ChatApi.SendAsync(paraOModelo);
+
+        // `deuCerto` decide se a resposta entra no histórico. Um "não consegui
+        // falar com o agente" guardado como fala do modelo envenena a próxima
+        // pergunta — e a pessoa que insiste piora a situação sem saber.
+        var deuCerto = !reply.StartsWith("Não consegui", StringComparison.OrdinalIgnoreCase)
+                    && !reply.StartsWith("O agente ainda não foi configurado", StringComparison.OrdinalIgnoreCase);
+
+        _falas.Add(new Fala("model", reply, SoNaTela: !deuCerto));
         _isSending = false;
         StateHasChanged();
     }

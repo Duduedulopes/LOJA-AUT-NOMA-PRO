@@ -1,3 +1,5 @@
+using AutonomousStore.Comum;
+using AutonomousStore.Gerente;
 using AutonomousStore.ClientApp;
 using AutonomousStore.ClientApp.Services;
 using Microsoft.AspNetCore.Components.Web;
@@ -47,5 +49,14 @@ builder.Services.AddScoped<ICustomerApiService, CustomerApiService>();
 builder.Services.AddScoped<ISessionApiService, SessionApiService>();
 builder.Services.AddScoped<ICatalogApiService, CatalogApiService>();
 builder.Services.AddScoped<IChatApiService, ChatApiService>();
+
+// A conversa de suporte, nos três apps. O HttpClient continua sendo de cada
+// um: é ele que carrega o token de quem está logado, e a rota de chamados
+// devolve só o que essa pessoa pode ver.
+builder.Services.AdicionarChamados();
+
+// O gerente também atende o comprador. Quem decide o que ele pode dizer
+// é o PerfilDeQuemFala passado ao <GerenteChat /> no MainLayout.
+builder.Services.AdicionarGerente(builder.HostEnvironment.BaseAddress);
 
 await builder.Build().RunAsync();

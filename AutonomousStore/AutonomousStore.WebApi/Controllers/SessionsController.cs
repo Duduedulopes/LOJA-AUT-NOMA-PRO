@@ -2,6 +2,7 @@
 using AutonomousStore.Domain.Enums;
 using AutonomousStore.Domain.Repositories;
 using AutonomousStore.WebApi.Contracts.Sessions;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,15 +16,18 @@ public class SessionsController : ControllerBase
     private readonly IStoreSessionRepository _sessionRepository;
     private readonly ICustomerRepository _customerRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IRegistradorDeOcorrencia _ocorrencias;
 
     public SessionsController(
         IStoreSessionRepository sessionRepository,
         ICustomerRepository customerRepository,
-        IProductRepository productRepository)
+        IProductRepository productRepository,
+        IRegistradorDeOcorrencia ocorrencias)
     {
         _sessionRepository = sessionRepository;
         _customerRepository = customerRepository;
         _productRepository = productRepository;
+        _ocorrencias = ocorrencias;
     }
 
     /// <summary>Gera uma nova sessão (visita) e o QR code que abre a porta da loja.</summary>
@@ -62,9 +66,24 @@ public class SessionsController : ControllerBase
     }
 
     /// <summary>Busca a sessão em andamento (aguardando entrada ou aberta) do cliente, se houver.</summary>
+    /// <remarks>
+    /// SÓ O DONO DA SESSÃO, OU A CASA.
+    ///
+    /// A rota exigia estar autenticado e nada mais: qualquer cliente logado
+    /// podia trocar o GUID da URL pelo de outro e ler o carrinho dele — os
+    /// produtos, as quantidades e o total. Estar logado provava que ele é
+    /// alguém, nunca que ele é ESTE alguém.
+    ///
+    /// Apareceu quando o gerente virtual passou a responder "o que tem no meu
+    /// carrinho?" no app do cliente e precisou desta rota. A falha já existia
+    /// antes disso, esperando alguém chamar.
+    /// </remarks>
     [HttpGet("active/{customerId:guid}")]
     public async Task<ActionResult<SessionResponse>> GetActive(Guid customerId, CancellationToken cancellationToken)
     {
+        if (!PodeVerSessaoDe(customerId))
+            return Forbid();
+
         var session = await _sessionRepository.GetActiveSessionByCustomerAsync(customerId, cancellationToken);
 
         if (session is null)
@@ -344,6 +363,24 @@ public class SessionsController : ControllerBase
         return Ok(ToResponse(session));
     }
 
+    /// <summary>Cancela a sessão e DEVOLVE ao estoque o que estava no carrinho.</summary>
+    /// <remarks>
+    /// O FURO QUE ESTAVA AQUI. O estoque baixa no `AddItem` — o produto saiu
+    /// fisicamente da prateleira. O `RemoveItem` devolve, com
+    /// `IncreaseStockAsync`. Este método NÃO devolvia.
+    ///
+    /// O resultado é silencioso e permanente: sessão cancelada com carrinho
+    /// cheio deixava o sistema contando a menos do que existe. O produto está
+    /// na prateleira e o catálogo jura que saiu. Ninguém recebe erro, ninguém
+    /// vê log, e a diferença só aparece numa contagem física — que quase nunca
+    /// acontece.
+    ///
+    /// A DEVOLUÇÃO VEM ANTES DO `SaveChanges` DA SESSÃO, de propósito: se
+    /// devolver estoque falhar, a sessão não é marcada como cancelada, e o
+    /// próximo cancelamento tenta tudo de novo. Na ordem inversa, uma falha
+    /// no meio deixaria a sessão cancelada e o estoque no chão — exatamente o
+    /// estado que este método existe para evitar.
+    /// </remarks>
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
@@ -351,6 +388,12 @@ public class SessionsController : ControllerBase
 
         if (session is null)
             return NotFound();
+
+        // Fotografa o carrinho ANTES de cancelar: depois do `Cancel` o estado
+        // muda, e o que se precisa devolver é o que estava lá agora.
+        var devolver = session.Items
+            .Select(i => (i.ProductId, i.ProductName, i.Quantity, i.Subtotal))
+            .ToList();
 
         try
         {
@@ -361,7 +404,29 @@ public class SessionsController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
 
+        foreach (var item in devolver)
+            await _productRepository.IncreaseStockAsync(item.ProductId, item.Quantity, cancellationToken);
+
         await _sessionRepository.SaveChangesAsync(cancellationToken);
+
+        if (devolver.Count > 0)
+        {
+            // Registrado mesmo dando certo. Cancelamento com carrinho cheio é
+            // movimento de estoque que não passou por venda nenhuma — o Chefe
+            // tem direito de ver isso no histórico, ainda que sem estrago.
+            var o = Deteccoes.SessaoCanceladaComItem(
+                session.Id,
+                DateTime.UtcNow,
+                devolver.Select(d => (d.ProductName, d.Quantity, d.Subtotal)).ToList());
+
+            o.RegistrarAcao(
+                $"Devolvidas {devolver.Sum(d => d.Quantity)} unidade(s) ao estoque no cancelamento.",
+                "Estoque conferido — o cancelamento não deixou buraco.");
+            o.Resolver(quem: "sistema", nota: null,
+                       resultado: "Corrigido na origem: o Cancel agora devolve.");
+
+            await _ocorrencias.RegistrarAsync(o, cancellationToken);
+        }
 
         return NoContent();
     }
@@ -394,15 +459,33 @@ public class SessionsController : ControllerBase
     /// está carregando ao sair, e essa checagem confere se esse produto foi pago. Não recebe Id de
     /// sessão — assim como a câmera de prateleira, resolve sozinho qual é a sessão mais recente.
     /// </summary>
+    /// <remarks>
+    /// O ALARME AGORA FICA GRAVADO.
+    ///
+    /// Antes, cada um dos três caminhos de ALARME devolvia a mensagem para a
+    /// leitora e acabava ali. A tela da porta acendia vermelho, alguém via ou
+    /// não via, e no dia seguinte não havia como responder "tivemos algum
+    /// furo ontem?" — porque não havia onde olhar. Um antifurto que não deixa
+    /// registro é uma campainha, não um sistema.
+    ///
+    /// A GRAVAÇÃO NUNCA ATRAPALHA A PORTA. O `IRegistradorDeOcorrencia`
+    /// engole a própria falha e devolve `null`: se o banco estiver fora, a
+    /// leitora ainda recebe a resposta em tempo. O remédio não pode matar o
+    /// paciente.
+    /// </remarks>
     [AllowAnonymous]
     [HttpPost("verify-exit")]
     public async Task<ActionResult<VerifyExitResponse>> VerifyExit(VerifyExitRequest request, CancellationToken cancellationToken)
     {
+        var agora = DateTime.UtcNow;
         var product = await _productRepository.GetByRfidTagAsync(request.RfidTag, cancellationToken);
 
         if (product is null)
         {
             // Tag desconhecida saindo pela porta — trata como suspeito por padrão, nunca libera às cegas.
+            await _ocorrencias.RegistrarAsync(
+                Deteccoes.TagDesconhecidaNaPorta(request.RfidTag, agora), cancellationToken);
+
             return Ok(new VerifyExitResponse(false, null, $"Tag \"{request.RfidTag}\" não corresponde a nenhum produto conhecido."));
         }
 
@@ -410,6 +493,10 @@ public class SessionsController : ControllerBase
 
         if (session is null)
         {
+            await _ocorrencias.RegistrarAsync(
+                Deteccoes.SaidaSemPagamento(request.RfidTag, product.Name, null, "nenhuma sessão", agora),
+                cancellationToken);
+
             return Ok(new VerifyExitResponse(false, product.Name, "Nenhuma sessão de compra encontrada para esse produto."));
         }
 
@@ -417,16 +504,45 @@ public class SessionsController : ControllerBase
 
         if (itemInSession is null)
         {
+            await _ocorrencias.RegistrarAsync(
+                Deteccoes.SaidaSemPagamento(request.RfidTag, product.Name, session.Id,
+                                            "produto não está no carrinho", agora),
+                cancellationToken);
+
             return Ok(new VerifyExitResponse(false, product.Name, $"{product.Name} não foi registrado em nenhuma compra — ALARME."));
         }
 
         var isPaid = session.Status == SessionStatus.Concluida;
+
+        if (!isPaid)
+        {
+            await _ocorrencias.RegistrarAsync(
+                Deteccoes.SaidaSemPagamento(request.RfidTag, product.Name, session.Id,
+                                            session.Status.ToString(), agora),
+                cancellationToken);
+        }
 
         var message = isPaid
             ? $"{product.Name} — pagamento confirmado, tudo certo."
             : $"{product.Name} foi escaneado, mas o pagamento ainda não foi confirmado — ALARME.";
 
         return Ok(new VerifyExitResponse(isPaid, product.Name, message));
+    }
+
+    /// <summary>Ou é a sessão dele, ou quem pergunta é do painel.</summary>
+    /// <remarks>
+    /// O `sub` do token é o Id de quem entrou. Com o mapeamento padrão do
+    /// ASP.NET Core ele chega como `NameIdentifier`; o `sub` cru fica de
+    /// reserva para o caso de alguém desligar esse mapeamento um dia.
+    /// </remarks>
+    private bool PodeVerSessaoDe(Guid customerId)
+    {
+        if (User.IsInRole("Admin") || User.IsInRole("Suporte")) return true;
+
+        var meu = User.FindFirstValue(ClaimTypes.NameIdentifier)
+               ?? User.FindFirstValue("sub");
+
+        return Guid.TryParse(meu, out var eu) && eu == customerId;
     }
 
     private static SessionResponse ToResponse(StoreSession session) => new(

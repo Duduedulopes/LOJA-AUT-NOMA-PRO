@@ -28,7 +28,7 @@ public class SmtpEmailService : IEmailService
 
         await SendAsync(
             toEmail,
-            "Bem-vindo(a) à Smart Store! 🛒",
+            "Bem-vindo(a) à AutonomousStore! 🛒",
             BuildWelcomeHtml(customerName, supportEmail, supportWhatsApp),
             "e-mail de boas-vindas",
             cancellationToken);
@@ -38,7 +38,7 @@ public class SmtpEmailService : IEmailService
     {
         await SendAsync(
             toEmail,
-            "Redefinição de senha — Smart Store 🔒",
+            "Redefinição de senha — AutonomousStore 🔒",
             BuildPasswordResetHtml(customerName, resetLink),
             "e-mail de redefinição de senha",
             cancellationToken);
@@ -49,7 +49,7 @@ public class SmtpEmailService : IEmailService
         var section = _configuration.GetSection("Email");
         var senderEmail = section["SenderEmail"];
         var senderPassword = section["SenderPassword"];
-        var senderName = section["SenderName"] ?? "Smart Store";
+        var senderName = section["SenderName"] ?? "AutonomousStore";
         var smtpHost = section["SmtpHost"] ?? "smtp.gmail.com";
         var smtpPort = int.TryParse(section["SmtpPort"], out var port) ? port : 587;
 
@@ -98,12 +98,12 @@ public class SmtpEmailService : IEmailService
 
         return $"""
             <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 28px; background:#0c1220; color:#eaf6ff; border-radius:8px; border:1px solid #22d3ee44;">
-                <h2 style="color:#22d3ee; margin-top:0;">Bem-vindo(a) à Smart Store, {customerName}! 🛒</h2>
+                <h2 style="color:#22d3ee; margin-top:0;">Bem-vindo(a) à AutonomousStore, {customerName}! 🛒</h2>
                 <p>Seu cadastro foi criado com sucesso. Agora você já pode abrir o app, gerar seu QR code
                 e começar a comprar na nossa loja autônoma — 24 horas por dia, sem filas e sem caixas.</p>
                 <p>Se tiver qualquer dúvida ou precisar de ajuda, é só chamar a gente:</p>
                 {supportLines}
-                <p style="margin-top:24px; font-size:0.85em; color:#8fa3bd;">Obrigado por fazer parte da Smart Store!</p>
+                <p style="margin-top:24px; font-size:0.85em; color:#8fa3bd;">Obrigado por fazer parte da AutonomousStore!</p>
             </div>
             """;
     }
@@ -113,14 +113,14 @@ public class SmtpEmailService : IEmailService
         return $"""
             <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 28px; background:#0c1220; color:#eaf6ff; border-radius:8px; border:1px solid #22d3ee44;">
                 <h2 style="color:#22d3ee; margin-top:0;">Olá, {customerName} 👋</h2>
-                <p>Recebemos um pedido pra redefinir a senha da sua conta na Smart Store.
+                <p>Recebemos um pedido pra redefinir a senha da sua conta na AutonomousStore.
                 Clique no botão abaixo pra escolher uma nova senha. Esse link vale por 30 minutos.</p>
                 <p style="text-align:center; margin:28px 0;">
                     <a href="{resetLink}" style="background:#22d3ee; color:#04121a; text-decoration:none; font-weight:bold; padding:12px 28px; border-radius:4px; display:inline-block;">Redefinir minha senha</a>
                 </p>
                 <p style="font-size:0.85em; color:#8fa3bd;">Se você não pediu essa troca de senha, pode ignorar este e-mail —
                 sua senha atual continua funcionando normalmente.</p>
-                <p style="margin-top:24px; font-size:0.85em; color:#8fa3bd;">Equipe Smart Store</p>
+                <p style="margin-top:24px; font-size:0.85em; color:#8fa3bd;">Equipe AutonomousStore</p>
             </div>
             """;
     }

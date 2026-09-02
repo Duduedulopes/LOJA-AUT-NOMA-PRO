@@ -1,4 +1,5 @@
-﻿using AutonomousStore.Domain.Enums;
+﻿using AutonomousStore.Domain.Entities;
+using AutonomousStore.Domain.Enums;
 using AutonomousStore.Domain.Repositories;
 using AutonomousStore.WebApi.Contracts.Vision;
 using AutonomousStore.WebApi.Services;
@@ -17,15 +18,18 @@ public class VisionController : ControllerBase
     private readonly IGeminiVisionService _visionService;
     private readonly IStoreSessionRepository _sessionRepository;
     private readonly IProductRepository _productRepository;
+    private readonly IRegistradorDeOcorrencia _ocorrencias;
 
     public VisionController(
         IGeminiVisionService visionService,
         IStoreSessionRepository sessionRepository,
-        IProductRepository productRepository)
+        IProductRepository productRepository,
+        IRegistradorDeOcorrencia ocorrencias)
     {
         _visionService = visionService;
         _sessionRepository = sessionRepository;
         _productRepository = productRepository;
+        _ocorrencias = ocorrencias;
     }
 
     /// <summary>
@@ -59,7 +63,17 @@ public class VisionController : ControllerBase
             cancellationToken);
 
         if (result.Action == "nenhuma" || string.IsNullOrWhiteSpace(result.ProductName))
+        {
+            // FURO DE COBERTURA, e não crime. Há alguém na loja (a sessão está
+            // aberta) e a câmera comparou antes/depois sem achar diferença.
+            // Pode não ter saído nada — por isso a severidade é informativa e
+            // ninguém é acusado. O valor está na SOMA: qual prateleira
+            // acumula cegueira ao longo das semanas.
+            await _ocorrencias.RegistrarAsync(
+                Deteccoes.CameraNaoViuMudanca(session.Id, DateTime.UtcNow), cancellationToken);
+
             return Ok(new DetectShelfChangeResponse(result.Action, null, "Nenhuma mudança de produto detectada."));
+        }
 
         var matchedProduct = candidateProducts.FirstOrDefault(p =>
             string.Equals(p.Name, result.ProductName, StringComparison.OrdinalIgnoreCase));
@@ -70,6 +84,13 @@ public class VisionController : ControllerBase
 
         if (matchedProduct is null)
         {
+            // Um item saiu da prateleira e NÃO entrou em carrinho nenhum,
+            // porque o sistema não sabe o que ele é. Some do estoque sem
+            // venda e sem alarme — este é o caso que mais custa em silêncio.
+            await _ocorrencias.RegistrarAsync(
+                Deteccoes.ProdutoForaDoCatalogo(session.Id, result.ProductName, DateTime.UtcNow),
+                cancellationToken);
+
             return Ok(new DetectShelfChangeResponse(
                 result.Action,
                 result.ProductName,

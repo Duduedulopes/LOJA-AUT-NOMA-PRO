@@ -22,4 +22,25 @@
 		<ProjectReference Include="..\AutonomousStore.Domain\AutonomousStore.Domain.csproj" />
 	</ItemGroup>
 
+	<!-- A conversa de suporte: DTOs, serviço e o componente das bolhas.
+	     Magra de propósito — o app do cliente também depende dela. -->
+	<ItemGroup>
+		<ProjectReference Include="..\AutonomousStore.Comum\AutonomousStore.Comum.csproj" />
+	</ItemGroup>
+
+	<!--
+	  O MESMO gerente do painel, atendendo o comprador.
+
+	  Vem junto o modelo treinado de 654 KB, e isso foi pesado e aceito: a
+	  loja tem wifi, e a alternativa (classificar no servidor) seria uma ida
+	  e volta a cada pergunta mais uma segunda cópia do classificador.
+
+	  Quem limita o que ele diz ao cliente NÃO é o que está aqui — é o
+	  PerfilDeQuemFala.Cliente, com lista de permissão.
+	-->
+	<ItemGroup>
+		<ProjectReference Include="..\AutonomousStore.Gerente\AutonomousStore.Gerente.csproj" />
+	</ItemGroup>
+
+
 </Project>

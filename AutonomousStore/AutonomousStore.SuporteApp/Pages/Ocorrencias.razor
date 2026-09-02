@@ -1,0 +1,406 @@
+@page "/ocorrencias"
+@using System.Globalization
+@using System.Text.Json
+@inject IOcorrenciaApiService OcorrenciaApi
+@inject NavigationManager Nav
+
+@* ═══════════════════════════════════════════════════════════════════
+   O HISTORICO, E O RASTRO.
+
+   Duas telas no mesmo lugar, e a diferenca esta no `?cid=` da URL.
+
+   Sem `cid`: o historico completo, com filtro.
+
+   Com `cid`: TODAS as ocorrencias de uma mesma sessao, em ordem
+   crescente de tempo. Uma sessao que deu errado costuma gerar tres ou
+   quatro ocorrencias em modulos diferentes — a camera nao viu, a
+   sessao foi cancelada, a tag passou pela porta. Vistas soltas,
+   parecem quatro problemas e alguem investiga quatro vezes. Em fila,
+   contam uma historia.
+
+   Por isso o rastro sobe do mais ANTIGO para o mais novo, ao
+   contrario do historico: historia se le do comeco.
+   ═══════════════════════════════════════════════════════════════════ *@
+
+<div class="pag-ocorrencias">
+    <header class="pag-cabecalho">
+        @if (_correlationId is not null)
+        {
+            <h1>Rastro da sessão</h1>
+            <p class="pag-subtitulo">
+                Tudo o que aconteceu nesta mesma sessão, do começo para o fim.
+                <button class="btn-link" @onclick="LimparRastro">ver o histórico completo</button>
+            </p>
+        }
+        else
+        {
+            <h1>Histórico</h1>
+            <p class="pag-subtitulo">Todas as ocorrências registradas, das mais recentes para as mais antigas.</p>
+        }
+    </header>
+
+    @if (_correlationId is null)
+    {
+        <div class="filtros card">
+            <div class="filtro">
+                <label for="f-tipo">Tipo</label>
+                <select id="f-tipo" @bind="_tipo" @bind:after="Recarregar">
+                    <option value="">todos</option>
+                    @foreach (var t in Tipos)
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filtro">
+                @* PISO, nao igualdade: pedir "Alta" tem de trazer alta E critica.
+                   Filtrar por igual esconderia justamente a pior. *@
+                <label for="f-sev">Severidade mínima</label>
+                <select id="f-sev" @bind="_severidade" @bind:after="Recarregar">
+                    <option value="">qualquer</option>
+                    @foreach (var s in Severidades)
+                    {
+                        <option value="@s">@s ou acima</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filtro">
+                <label for="f-estado">Estado</label>
+                <select id="f-estado" @bind="_estado" @bind:after="Recarregar">
+                    <option value="">todos</option>
+                    @foreach (var e in Estados)
+                    {
+                        <option value="@e">@e</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filtro">
+                <label for="f-dias">Período</label>
+                <select id="f-dias" @bind="_dias" @bind:after="Recarregar">
+                    <option value="1">hoje</option>
+                    <option value="7">últimos 7 dias</option>
+                    <option value="30">últimos 30 dias</option>
+                    <option value="90">últimos 90 dias</option>
+                    <option value="0">tudo</option>
+                </select>
+            </div>
+
+            <button class="btn" @onclick="Recarregar">Atualizar</button>
+        </div>
+    }
+
+    @if (_carregando)
+    {
+        <div class="estado card">Carregando…</div>
+    }
+    else if (_lista is null)
+    {
+        @* NULO NAO E LISTA VAZIA. "Não consegui olhar" e "não há nada"
+           são coisas diferentes, e mostrar uma como a outra faz o
+           técnico confiar no que ninguém conferiu. *@
+        <div class="estado card erro">
+            <strong>Não consegui consultar o histórico.</strong>
+            <span>A API pode estar fora do ar ou a sessão expirou. Isto não quer dizer que não há ocorrências.</span>
+            <button class="btn primario" @onclick="Recarregar">Tentar de novo</button>
+        </div>
+    }
+    else if (_lista.Count == 0)
+    {
+        <div class="estado card ok">
+            @(_correlationId is not null
+                ? "Nenhuma ocorrência nesta sessão."
+                : "Nenhuma ocorrência com esses filtros.")
+        </div>
+    }
+    else
+    {
+        <div class="lista card">
+            <div class="contagem-chamados">
+                <strong>@_lista.Count</strong> ocorrência@(_lista.Count == 1 ? "" : "s")
+                @if (_correlationId is not null)
+                {
+                    <span class="rastro-id">sessão @Curto(_correlationId.Value)</span>
+                }
+            </div>
+
+            <table class="tabela-ocorrencias">
+                <thead>
+                    <tr>
+                        @if (_correlationId is not null)
+                        {
+                            <th class="passo-col">#</th>
+                        }
+                        <th>Quando</th>
+                        <th>Módulo</th>
+                        <th>Operação</th>
+                        <th>Tipo</th>
+                        <th>Severidade</th>
+                        <th>Descrição</th>
+                        <th>Estado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ var passo = 0; }
+                    @foreach (var o in _lista)
+                    {
+                        passo++;
+                        var n = passo;
+                        <tr class="@SeveridadeClasse(o.Severidade) estado-@o.Estado.ToLowerInvariant()"
+                            @onclick="() => AbrirDetalhe(o)">
+                            @if (_correlationId is not null)
+                            {
+                                <td class="passo-col">@n</td>
+                            }
+                            <td class="quando">@Data(o.QuandoUtc)</td>
+                            <td>@o.Modulo</td>
+                            <td>@o.Operacao</td>
+                            <td><span class="chip chip-tipo">@o.Tipo</span></td>
+                            <td><span class="chip chip-severidade chip-@o.Severidade.ToLowerInvariant()">@o.Severidade</span></td>
+                            <td class="descricao">@o.Descricao</td>
+                            <td><span class="chip chip-estado">@o.Estado</span></td>
+                            <td class="acao-col">
+                                @if (_correlationId is null)
+                                {
+                                    <button class="btn-link" @onclick:stopPropagation
+                                            @onclick="() => VerRastro(o.CorrelationId)">Rastro</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_detalhe is not null)
+{
+    <div class="modal-overlay" @onclick="FecharDetalhe">
+        <div class="modal" @onclick:stopPropagation>
+            <header class="modal-cabecalho">
+                <div>
+                    <h2>@_detalhe.Tipo</h2>
+                    <div class="modal-meta">
+                        <span class="chip chip-severidade chip-@_detalhe.Severidade.ToLowerInvariant()">@_detalhe.Severidade</span>
+                        <span class="chip chip-estado">@_detalhe.Estado</span>
+                        <span>@DataHora(_detalhe.QuandoUtc)</span>
+                    </div>
+                </div>
+                <button class="btn-fechar" @onclick="FecharDetalhe" aria-label="Fechar">×</button>
+            </header>
+
+            <div class="modal-corpo">
+                <div class="campos-grid">
+                    <div class="campo"><label>Sistema</label><span>@_detalhe.Sistema</span></div>
+                    <div class="campo"><label>Módulo</label><span>@_detalhe.Modulo</span></div>
+                    <div class="campo"><label>Operação</label><span>@_detalhe.Operacao</span></div>
+                    <div class="campo"><label>Recomendação</label><span>@OuVazio(_detalhe.Recomendacao)</span></div>
+                    <div class="campo"><label>Impacto</label><span>@OuVazio(_detalhe.Impacto)</span></div>
+                    <div class="campo"><label>Sessão</label><span>@Curto(_detalhe.CorrelationId)</span></div>
+                </div>
+
+                <div class="bloco bloco-descricao">
+                    <div class="bloco-titulo">Fato observado</div>
+                    <div class="bloco-valor">@_detalhe.Descricao</div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(_detalhe.NotaDoAdmin))
+                {
+                    <div class="bloco bloco-nota-admin">
+                        <div class="bloco-titulo"><span class="tag-admin">Do administrador</span></div>
+                        <div class="bloco-valor">@_detalhe.NotaDoAdmin</div>
+                    </div>
+                }
+
+                @* PALPITE NAO PODE TER CARA DE LAUDO. `Descricao` e fato
+                   observado; isto e inferencia, e a etiqueta existe para
+                   o tecnico nao agir com uma certeza que ninguem mediu. *@
+                @if (!string.IsNullOrWhiteSpace(_detalhe.CausaProvavel))
+                {
+                    <div class="bloco bloco-inferencia">
+                        <div class="bloco-titulo"><span class="tag-inferencia">Inferência</span> Causa provável</div>
+                        <div class="bloco-valor">@_detalhe.CausaProvavel</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_detalhe.CausaRaiz))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Causa raiz (confirmada)</div>
+                        <div class="bloco-valor">@_detalhe.CausaRaiz</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_detalhe.DadosEnvolvidosJson))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Dados envolvidos</div>
+                        <pre class="json-pre">@Json(_detalhe.DadosEnvolvidosJson)</pre>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_detalhe.SequenciaJson))
+                {
+                    <div class="bloco">
+                        <div class="bloco-titulo">Sequência</div>
+                        <pre class="json-pre">@Json(_detalhe.SequenciaJson)</pre>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_detalhe.AcaoExecutada) ||
+                     !string.IsNullOrWhiteSpace(_detalhe.Resultado))
+                {
+                    <div class="campos-grid">
+                        <div class="campo"><label>Ação executada</label><span>@OuVazio(_detalhe.AcaoExecutada)</span></div>
+                        <div class="campo"><label>Resultado</label><span>@OuVazio(_detalhe.Resultado)</span></div>
+                    </div>
+                }
+
+                @if (_detalhe.ResolvidaEm is not null)
+                {
+                    <div class="campos-grid">
+                        <div class="campo"><label>Resolvida em</label><span>@DataHora(_detalhe.ResolvidaEm.Value)</span></div>
+                        <div class="campo"><label>Resolvida por</label><span>@OuVazio(_detalhe.ResolvidaPor)</span></div>
+                    </div>
+                }
+            </div>
+
+            <footer class="modal-rodape">
+                <div class="acoes-esquerda">
+                    @if (_correlationId is null)
+                    {
+                        <button class="btn" @onclick="() => VerRastro(_detalhe!.CorrelationId)">
+                            Ver rastro da sessão
+                        </button>
+                    }
+                </div>
+                <button class="btn primario" @onclick="FecharDetalhe">Fechar</button>
+            </footer>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+    private static readonly JsonSerializerOptions JsonIndent = new() { WriteIndented = true };
+
+    // A ordem e a MESMA do servidor, de propósito: o servidor manda enum
+    // como texto justamente para o filtro caber na URL sem tradução.
+    private static readonly string[] Tipos =
+    {
+        "Roubo", "FuroDeSistema", "FuroDeCobertura", "ErroDados", "ErroExecucao",
+        "FalhaApi", "FalhaWorkflow", "FalhaIntegracao", "Contradicao", "Anomalia",
+    };
+
+    private static readonly string[] Severidades =
+    {
+        "Critica", "Alta", "Media", "Baixa", "Informativa",
+    };
+
+    private static readonly string[] Estados =
+    {
+        "Nova", "Vista", "EmAnalise", "NoSuporte", "Resolvida", "Ignorada",
+    };
+
+    /// <summary>
+    /// O `?cid=` da URL, entregue pelo roteador.
+    /// </summary>
+    /// <remarks>
+    /// Por parametro, e nao lendo `Nav.Uri` na mao: assim a tela reage a
+    /// QUALQUER mudanca de endereco — inclusive ao botao de voltar do
+    /// navegador, que so troca a URL e nao recria o componente.
+    /// </remarks>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "cid")]
+    public Guid? Cid { get; set; }
+
+    private bool _carregando = true;
+    private List<OcorrenciaDto>? _lista;
+    private OcorrenciaDto? _detalhe;
+
+    private Guid? _correlationId;
+    private string _tipo = "";
+    private string _severidade = "";
+    private string _estado = "";
+    private string _dias = "30";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var antes = _correlationId;
+        _correlationId = Cid;
+        if (antes != _correlationId || _lista is null)
+            await Recarregar();
+    }
+
+    private async Task Recarregar()
+    {
+        _carregando = true;
+        StateHasChanged();
+
+        if (_correlationId is { } cid)
+        {
+            var achadas = await OcorrenciaApi.BuscarAsync(correlationId: cid, limite: 500);
+            // O rastro sobe do mais ANTIGO para o mais novo: historia se
+            // le do comeco. O historico continua invertido.
+            _lista = achadas?.OrderBy(o => o.QuandoUtc).ToList();
+        }
+        else
+        {
+            DateTime? desde = null;
+            if (int.TryParse(_dias, NumberStyles.Integer, CultureInfo.InvariantCulture, out var d) && d > 0)
+                desde = DateTime.UtcNow.Date.AddDays(-(d - 1));
+
+            _lista = await OcorrenciaApi.BuscarAsync(
+                desde: desde,
+                tipo: Vazio(_tipo),
+                severidadeMinima: Vazio(_severidade),
+                estado: Vazio(_estado),
+                limite: 500);
+        }
+
+        _carregando = false;
+    }
+
+    private static string? Vazio(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
+
+    private void VerRastro(Guid cid)
+    {
+        _detalhe = null;
+        Nav.NavigateTo($"/ocorrencias?cid={cid}");
+    }
+
+    private void LimparRastro()
+    {
+        _detalhe = null;
+        Nav.NavigateTo("/ocorrencias");
+    }
+
+    private void AbrirDetalhe(OcorrenciaDto o) => _detalhe = o;
+    private void FecharDetalhe() => _detalhe = null;
+
+    // CULTURA EXPLICITA em toda data. Sem isso, o formato muda com a
+    // maquina — e a data lida errado nao da erro, so fica errada.
+    private static string Data(DateTime utc) => utc.ToLocalTime().ToString("dd/MM/yyyy HH:mm", PtBr);
+    private static string DataHora(DateTime utc) => utc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", PtBr);
+
+    private static string OuVazio(string? s) => string.IsNullOrWhiteSpace(s) ? "— Não informado —" : s;
+    private static string SeveridadeClasse(string s) => "severidade-" + s.ToLowerInvariant();
+    private static string Curto(Guid g) => g.ToString()[..8];
+
+    private static string Json(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return JsonSerializer.Serialize(doc.RootElement, JsonIndent);
+        }
+        catch
+        {
+            return json;   // veio torto do servidor: melhor mostrar cru que esconder
+        }
+    }
+}

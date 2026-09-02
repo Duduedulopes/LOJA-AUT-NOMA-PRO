@@ -218,6 +218,208 @@ namespace AutonomousStore.Infrastructure.Migrations
                     b.ToTable("Clientes", (string)null);
                 });
 
+            modelBuilder.Entity("AutonomousStore.Domain.Entities.MensagemDeSuporte", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("Id");
+
+                    b.Property<string>("Autor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("Autor");
+
+                    b.Property<string>("AutorEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("AutorEmail");
+
+                    b.Property<string>("AutorNome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("AutorNome");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DataCriacao");
+
+                    b.Property<Guid>("OcorrenciaId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("OcorrenciaId");
+
+                    b.Property<DateTime>("QuandoUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("QuandoUtc");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)")
+                        .HasColumnName("Texto");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OcorrenciaId", "QuandoUtc");
+
+                    b.ToTable("MensagensDeSuporte", (string)null);
+                });
+
+            modelBuilder.Entity("AutonomousStore.Domain.Entities.Ocorrencia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("Id");
+
+                    b.Property<string>("AbertoPor")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("AbertoPor");
+
+                    b.Property<string>("AcaoExecutada")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("AcaoExecutada");
+
+                    b.Property<string>("CausaProvavel")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("CausaProvavel");
+
+                    b.Property<string>("CausaRaiz")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("CausaRaiz");
+
+                    b.Property<string>("Chave")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("Chave");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("CorrelationId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DataCriacao");
+
+                    b.Property<string>("DadosEnvolvidosJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("DadosEnvolvidos");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("Descricao");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("Estado");
+
+                    b.Property<string>("Impacto")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)")
+                        .HasColumnName("Impacto");
+
+                    b.Property<string>("Modulo")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("Modulo");
+
+                    b.Property<string>("NotaDoAdmin")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)")
+                        .HasColumnName("NotaDoAdmin");
+
+                    b.Property<string>("Operacao")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)")
+                        .HasColumnName("Operacao");
+
+                    b.Property<DateTime>("QuandoUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("QuandoUtc");
+
+                    b.Property<string>("Recomendacao")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("Recomendacao");
+
+                    b.Property<DateTime?>("ResolvidaEm")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ResolvidaEm");
+
+                    b.Property<string>("ResolvidaPor")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("ResolvidaPor");
+
+                    b.Property<string>("Resultado")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)")
+                        .HasColumnName("Resultado");
+
+                    b.Property<string>("SequenciaJson")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Sequencia");
+
+                    b.Property<string>("Severidade")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("Severidade");
+
+                    b.Property<string>("Sistema")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)")
+                        .HasColumnName("Sistema");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)")
+                        .HasColumnName("Tipo");
+
+                    b.Property<DateTime?>("UltimaVezUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("UltimaVezUtc");
+
+                    b.Property<int>("VezesVistas")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("VezesVistas");
+
+                    b.Property<DateTime?>("VistaEm")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("VistaEm");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AbertoPor");
+
+                    b.HasIndex("Chave")
+                        .IsUnique()
+                        .HasFilter("[Chave] IS NOT NULL");
+
+                    b.HasIndex("CorrelationId");
+
+                    b.HasIndex("Estado");
+
+                    b.HasIndex("QuandoUtc");
+
+                    b.ToTable("Ocorrencias", (string)null);
+                });
+
             modelBuilder.Entity("AutonomousStore.Domain.Entities.PaymentMethod", b =>
                 {
                     b.Property<Guid>("Id")
@@ -433,11 +635,74 @@ namespace AutonomousStore.Infrastructure.Migrations
                     b.ToTable("SessoesCompra", (string)null);
                 });
 
+            modelBuilder.Entity("AutonomousStore.Domain.Entities.SuporteUser", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("Id");
+
+                    b.Property<string>("Cpf")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("nvarchar(11)")
+                        .HasColumnName("Cpf");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("DataCriacao");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("Email");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit")
+                        .HasColumnName("Ativo");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)")
+                        .HasColumnName("Nome");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("SenhaHash");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasColumnName("Telefone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Cpf")
+                        .IsUnique();
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("UsuariosSuporte", (string)null);
+                });
+
             modelBuilder.Entity("AutonomousStore.Domain.Entities.Category", b =>
                 {
                     b.HasOne("AutonomousStore.Domain.Entities.Company", null)
                         .WithMany()
                         .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AutonomousStore.Domain.Entities.MensagemDeSuporte", b =>
+                {
+                    b.HasOne("AutonomousStore.Domain.Entities.Ocorrencia", null)
+                        .WithMany("Mensagens")
+                        .HasForeignKey("OcorrenciaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -463,6 +728,11 @@ namespace AutonomousStore.Infrastructure.Migrations
             modelBuilder.Entity("AutonomousStore.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("PaymentMethods");
+                });
+
+            modelBuilder.Entity("AutonomousStore.Domain.Entities.Ocorrencia", b =>
+                {
+                    b.Navigation("Mensagens");
                 });
 
             modelBuilder.Entity("AutonomousStore.Domain.Entities.StoreSession", b =>
