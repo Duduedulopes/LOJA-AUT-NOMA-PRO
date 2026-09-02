@@ -373,7 +373,7 @@ AutonomousStore/
 ├─ AutonomousStore.Application/     casos de uso
 ├─ AutonomousStore.Infrastructure/  EF Core 8, SQL Server, repositórios
 ├─ AutonomousStore.WebApi/          ASP.NET Core 8, JWT, Gemini (visão)
-├─ AutonomousStore.Gerente/         ⭐ a rede neural, o chat e o aprendizado
+├─ AutonomousStore.Gerente/          a rede neural, o chat e o aprendizado
 │  ├─ Services/ClassificadorDeIntencao.cs
 │  ├─ Services/Aprendizado/         retropropagação, trava, ponte com o Python
 │  ├─ Services/Agente/              conversa, permissões, leitura de valores
@@ -393,55 +393,6 @@ firmware/                           ESP32 + RC522, .NET nanoFramework
 └─ Etapa6Wifi/   Etapa7Api/    Etapa8Saida/
 ```
 
-## Como rodar
-
-Requer **.NET 8 SDK** e **SQL Server** (Express serve).
-
-```bash
-git clone https://github.com/Duduedulopes/LOJA-AUT-NOMA-PRO.git
-cd LOJA-AUT-NOMA-PRO/AutonomousStore
-```
-
-**1. Configure os segredos.** Crie
-`AutonomousStore.WebApi/appsettings.Development.json` — ele está no `.gitignore` e
-é onde ficam os valores reais:
-
-```json
-{
-  "ConnectionStrings": {
-    "SqlServerConnection": "Server=SEU_SERVIDOR\\SQLEXPRESS;Database=AutonomousStoreDb;Trusted_Connection=True;TrustServerCertificate=True;"
-  },
-  "Jwt": { "Key": "uma-chave-longa-de-pelo-menos-32-caracteres" },
-  "Gemini": { "ApiKey": "sua-chave" }
-}
-```
-
-**2. Crie o banco:**
-
-```bash
-dotnet ef database update --project AutonomousStore.Infrastructure --startup-project AutonomousStore.WebApi
-```
-
-**3. Suba a API e os aplicativos** (cada um em seu terminal):
-
-```bash
-dotnet run --project AutonomousStore.WebApi      # https://localhost:7167
-dotnet run --project AutonomousStore.ClientApp   # https://localhost:7280
-dotnet run --project AutonomousStore.AdminApp    # https://localhost:7290
-dotnet run --project AutonomousStore.SuporteApp  # https://localhost:7291
-```
-
-**4. (Opcional) O monitor da rede neural**, para ver a troca entre os dois
-sistemas — no repositório [Rede-Neural](https://github.com/Duduedulopes/Rede-Neural):
-
-```bash
-python monitor/servidor.py          # http://localhost:8760
-```
-
-Sem ele o gerente funciona e aprende igual; só não consegue devolver o que
-aprendeu.
-
----
 
 ## Estado atual
 
