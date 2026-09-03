@@ -425,3 +425,25 @@ a rede neural treinando dentro do navegador.
 ## Licença
 
 MIT — ver [`LICENSE`](LICENSE).
+
+---
+
+## Projetos relacionados
+
+Este repositório é **parte do ecossistema completo** de varejo autônomo. A loja
+sabe **o quê** saiu da prateleira e quanto custa, mas sozinha não sabe quem
+levou, de qual prateleira, nem como interpretar uma pergunta em português torto.
+
+| Repositório | O quê |
+|---|---|
+| [Rede-Neural](https://github.com/Duduedulopes/Rede-Neural) | onde a rede nasce — corpus, treino, validação cruzada e o monitor |
+| [SO-Espacial](https://github.com/Duduedulopes/SO-Espacial) | a percepção espacial por câmeras — quem pegou, e de qual prateleira |
+| **este** | a loja em .NET 8 — API, apps Blazor, firmware ESP32, e o gerente em execução |
+
+O gerente e a rede neural já trocam dados nos dois sentidos: a loja treina no
+navegador e devolve ao Python o que aprendeu. **Cruzar a leitura do RFID com a da
+câmera ainda não acontece automaticamente** — os dois sistemas se falam, e a
+reconciliação entre eles é a próxima decisão de arquitetura, não um trabalho de
+encanamento pendente.
+
+Site do projeto: **[smart-store.contato-dudulopes.workers.dev](https://smart-store.contato-dudulopes.workers.dev)**
