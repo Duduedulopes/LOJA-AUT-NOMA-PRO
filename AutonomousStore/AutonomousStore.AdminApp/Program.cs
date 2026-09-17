@@ -48,7 +48,11 @@ builder.Services.AdicionarGerente(builder.HostEnvironment.BaseAddress);
 // A conversa de suporte, nos três apps. O HttpClient continua sendo de cada
 // um: é ele que carrega o token de quem está logado, e a rota de chamados
 // devolve só o que essa pessoa pode ver.
-builder.Services.AdicionarChamados();
+//
+// O token vai junto porque a conversa ao vivo usa WebSocket, e WebSocket não
+// passa pelo AuthHeaderHandler — nem aceita cabeçalho. Quem sabe onde mora o
+// token deste app é este arquivo; a biblioteca só pergunta.
+builder.Services.AdicionarChamados(sp => sp.GetRequiredService<AppState>().Token);
 
 
 await builder.Build().RunAsync();

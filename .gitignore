@@ -106,3 +106,11 @@ $RECYCLE.BIN/
 
 # Arquivos temporários do Office
 ~$*
+
+## ---------------------------------------------------------------
+## Rascunhos e material de apoio
+## ---------------------------------------------------------------
+
+# Prints e scripts soltos que não fazem parte do projeto.
+# Continuam no disco — só ficam fora do repositório.
+Claude outputs/

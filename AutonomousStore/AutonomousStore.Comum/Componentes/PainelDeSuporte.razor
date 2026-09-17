@@ -290,7 +290,41 @@
         => utc.ToLocalTime().ToString("dd/MM HH:mm",
                System.Globalization.CultureInfo.GetCultureInfo("pt-BR"));
 
-    private void Selecionar(ChamadoDto c) => _aberto = c;
+    /// <summary>Abre um chamado da lista — e vai buscar a conversa dele.</summary>
+    /// <remarks>
+    /// A LISTA NAO TRAZ AS MENSAGENS, E ISSO E DE PROPOSITO.
+    ///
+    /// `GET /api/chamados/meus` monta os cartoes com `comConversa: false`:
+    /// carregar a conversa de vinte chamados para mostrar vinte titulos seria
+    /// pagar caro por nada.
+    ///
+    /// O erro estava em ACREDITAR na lista. Este metodo entregava o objeto do
+    /// cartao direto ao componente da conversa — e o `Conversa` de um cartao e
+    /// sempre vazio. O resultado nao parecia bug: a tela dizia "Ainda nao ha
+    /// mensagens neste chamado", que e uma frase perfeitamente plausivel. O
+    /// cliente lia isso enquanto a resposta do tecnico ja estava gravada no
+    /// banco.
+    ///
+    /// Passava despercebido porque logo depois de abrir um chamado funcionava:
+    /// ali o `_aberto` vem do `AbrirAsync`, que devolve o chamado COMPLETO. So
+    /// quebrava ao recarregar a pagina — que e exatamente quando a pessoa volta
+    /// para ver se ja responderam.
+    /// </remarks>
+    private async Task Selecionar(ChamadoDto c)
+    {
+        // Mostra o cartao na hora: a conversa chega em seguida, e o componente
+        // sabe dizer "carregando" sozinho. Trocar a tela por um vazio enquanto
+        // a rede responde piscaria a lista inteira.
+        _aberto = c;
+        StateHasChanged();
+
+        var completo = await Chamados.UmAsync(c.Id);
+
+        // Se a busca falhou, fica o que ja estava: melhor a conversa velha do
+        // que a tela em branco. O `Conversa` continua funcional para responder.
+        if (completo is not null && _aberto?.Id == c.Id)
+            _aberto = completo;
+    }
 
     private async Task Atualizou(ChamadoDto c)
     {

@@ -3,8 +3,10 @@ using AutonomousStore.Domain.Entities;
 using AutonomousStore.Domain.Enums;
 using AutonomousStore.Domain.Repositories;
 using AutonomousStore.WebApi.Contracts.Ocorrencias;
+using AutonomousStore.WebApi.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace AutonomousStore.WebApi.Controllers;
 
@@ -37,12 +39,16 @@ public class ChamadosController : ControllerBase
 {
     private readonly IOcorrenciaRepository _ocorrencias;
     private readonly IRegistradorDeOcorrencia _registrador;
+    private readonly IHubContext<ChamadoHub> _hub;
 
     public ChamadosController(
-        IOcorrenciaRepository ocorrencias, IRegistradorDeOcorrencia registrador)
+        IOcorrenciaRepository ocorrencias,
+        IRegistradorDeOcorrencia registrador,
+        IHubContext<ChamadoHub> hub)
     {
         _ocorrencias = ocorrencias;
         _registrador = registrador;
+        _hub = hub;
     }
 
     /// <summary>Abre um chamado. A primeira mensagem já nasce dentro dele.</summary>
@@ -137,7 +143,28 @@ public class ChamadosController : ControllerBase
             quandoUtc: DateTime.UtcNow);
 
         await _ocorrencias.SaveChangesAsync(cancellationToken);
-        return Ok(ToResponse(chamado));
+
+        var resposta = ToResponse(chamado);
+
+        // ── O AVISO SAI DEPOIS DE GRAVAR, NUNCA ANTES ────────────────────
+        //
+        // Se o `SaveChanges` falhasse depois do aviso, as telas mostrariam uma
+        // mensagem que não existe no banco — e ela sumiria no próximo F5, sem
+        // nenhum rastro de que esteve lá. Avisar o que já é verdade custa uma
+        // linha fora de ordem; avisar o que talvez seja custa confiança na
+        // tela.
+        //
+        // QUEM FALOU TAMBÉM RECEBE, de propósito: quem escreveu já tem a
+        // resposta da rota HTTP e o componente ignora o que é dele. Mandar
+        // para o grupo inteiro deixa UM caminho para a mensagem aparecer, em
+        // vez de dois que podem discordar.
+        //
+        // Sai o mesmo `ChamadoResponse` da rota HTTP: as telas não precisam
+        // aprender um segundo formato, e nenhuma delas pode divergir do outro.
+        await _hub.Clients.Group(ChamadoHub.Grupo(id))
+            .SendAsync("MensagemNova", resposta, cancellationToken);
+
+        return Ok(resposta);
     }
 
     // ── quem está do outro lado do token ─────────────────────────────────

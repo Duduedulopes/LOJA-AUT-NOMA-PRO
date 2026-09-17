@@ -5,6 +5,7 @@ using AutonomousStore.Infrastructure.Logging;
 using AutonomousStore.Infrastructure.Persistence;
 using AutonomousStore.Infrastructure.Repositories;
 using AutonomousStore.WebApi.Controllers;
+using AutonomousStore.WebApi.Hubs;
 using AutonomousStore.WebApi.Middlewares;
 using AutonomousStore.WebApi.Services;
 using System.Threading.RateLimiting;
@@ -25,6 +26,10 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.Converters.Add(
             new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
+// A CONVERSA AO VIVO. Nao precisa de pacote: o SignalR ja vem no framework
+// do ASP.NET Core. Só os apps Blazor instalam o cliente.
+builder.Services.AddSignalR();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -151,6 +156,37 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSection["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!))
     };
+
+    // ── O TOKEN NAO CABE NO WEBSOCKET ────────────────────────────────────
+    //
+    // O navegador NAO deixa pôr cabeçalho `Authorization` numa conexão
+    // WebSocket — a API do WebSocket simplesmente não tem esse parâmetro. Sem
+    // o que está aqui, a conexão do SignalR sobe, conecta, e chega do outro
+    // lado como ANÔNIMA: o `[Authorize]` do hub barra, e o sintoma é uma
+    // conversa que nunca atualiza, sem erro nenhum na tela.
+    //
+    // Por isso o token viaja na query string, e este evento o move para onde
+    // o JwtBearer espera encontrá-lo.
+    //
+    // SÓ PARA `/hubs`, e isso importa: query string aparece em log de
+    // servidor, em histórico de proxy e no Referer. Aceitar token por ali em
+    // qualquer rota espalharia credencial por lugares que ninguém audita. Na
+    // rota HTTP normal o cabeçalho funciona e continua sendo o único caminho.
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = contexto =>
+        {
+            var token = contexto.Request.Query["access_token"];
+
+            if (!string.IsNullOrEmpty(token) &&
+                contexto.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+            {
+                contexto.Token = token;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 builder.Services.AddAuthorization();
 
@@ -165,7 +201,17 @@ builder.Services.AddCors(options =>
     {
         policy.SetIsOriginAllowed(IsOriginAllowed)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+
+            // EXIGIDO PELO SIGNALR. O cliente negocia com `withCredentials`, e
+            // sem esta linha o navegador recusa a resposta do `/negotiate` —
+            // a conversa ao vivo nunca conecta, e o erro sai no console do
+            // navegador, nao no log da API.
+            //
+            // So e legal porque a origem acima e uma REGRA e nao `AllowAnyOrigin`:
+            // credencial com origem coringa o ASP.NET Core recusa em tempo de
+            // execucao, e com razao.
+            .AllowCredentials();
     });
 });
 
@@ -179,25 +225,44 @@ if (app.Environment.IsDevelopment())
     // Seed de exemplo: só roda em dev e só se ainda não existir nenhuma empresa cadastrada —
     // idempotente, popula o catálogo do ClientApp pra não começar vazio.
     //
-    // O SEED NÃO PODE DERRUBAR A API. Ele é conveniência de desenvolvimento:
-    // se o banco estiver frio, ou o SQL Express ainda subindo, a API tem de
-    // levantar mesmo assim e responder o que não depende de banco — inclusive
-    // o Swagger, que é por onde se descobre o que está errado. Morrer na
-    // partida por causa de um catálogo de exemplo deixa quem está depurando
-    // sem nenhuma superfície para depurar.
-    using (var scope = app.Services.CreateScope())
+    // O SEED NÃO PODE DERRUBAR NEM SEGURAR A API. Ele é conveniência de
+    // desenvolvimento: se o banco estiver frio, ou o SQL Express ainda
+    // subindo, a API tem de levantar mesmo assim e responder o que não
+    // depende de banco — inclusive o Swagger, que é por onde se descobre o
+    // que está errado. Morrer na partida por causa de um catálogo de exemplo
+    // deixa quem está depurando sem nenhuma superfície para depurar.
+    //
+    // O try/catch sozinho não bastava: ele pega EXCEÇÃO, não pega ESPERA.
+    // Com `await` aqui, o seed ficava entre o build e o app.Run() — e o
+    // Kestrel só abre as portas no app.Run(). Com o SQL parado, o
+    // `Connect Timeout=60` multiplicado pelas 5 tentativas do
+    // EnableRetryOnFailure segurava a partida por minutos, e nesse tempo a
+    // API não escutava em porta nenhuma: o Swagger não abria, e o log não
+    // mostrava sequer um "Now listening on". O sintoma parecia ser do
+    // Swagger; a causa era o banco.
+    //
+    // Sem o `await`, o seed vira tarefa paralela: as portas abrem em
+    // segundos e o catálogo de exemplo aparece quando o banco responder.
+    //
+    // O scope nasce DENTRO da tarefa de propósito. Se ficasse fora, seria
+    // descartado assim que esta linha passasse, e o seed tomaria
+    // ObjectDisposedException no meio do caminho.
+    _ = Task.Run(async () =>
     {
+        using var scope = app.Services.CreateScope();
+
         try
         {
             await SeedData.SeedIfEmptyAsync(scope.ServiceProvider);
+            app.Logger.LogInformation("Seed de exemplo concluído.");
         }
         catch (Exception e)
         {
             app.Logger.LogWarning(e,
-                "Não consegui rodar o seed de exemplo. A API sobe assim mesmo; " +
+                "Não consegui rodar o seed de exemplo. A API está no ar assim mesmo; " +
                 "confira se o SQL Server está no ar e se a migração foi aplicada.");
         }
-    }
+    });
 }
 
 // PRIMEIRO DE TODOS. O que este middleware não envolver, ele não captura — e
@@ -211,6 +276,10 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// DEPOIS de UseAuthentication/UseAuthorization: o hub e `[Authorize]`, e o
+// `Context.User` dele vem do que esses dois middlewares montaram.
+app.MapHub<ChamadoHub>("/hubs/chamados");
 
 app.Run();
 

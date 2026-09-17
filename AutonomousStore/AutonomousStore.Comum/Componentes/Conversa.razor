@@ -1,4 +1,8 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
 @inject IChamadoApiService Chamados
+@inject HttpClient Http
+@inject TokenDeQuemEsta Token
 
 @*
     A CONVERSA DE UM CHAMADO — a mesma nos três aplicativos.
@@ -45,13 +49,28 @@
             {
                 <p class="conversa-vazia">Ainda não há mensagens neste chamado.</p>
             }
+
+            @* Dentro do fio, no fim, onde a proxima fala vai nascer — e nao
+               numa barra no topo. Aviso longe do lugar do acontecimento vira
+               ruido que o olho aprende a pular. *@
+            @if (_quemDigita is { Length: > 0 })
+            {
+                <div class="conversa-digitando">
+                    <span class="pontinhos"><i></i><i></i><i></i></span>
+                    @_quemDigita está digitando…
+                </div>
+            }
         </div>
 
         @if (PodeResponder)
         {
             <div class="conversa-responder">
-                <textarea @bind="_texto"
-                          @bind:event="oninput"
+                @* SEM `@bind`, de proposito: o `@bind:event="oninput"` ocupa o
+                   evento, e aqui a digitacao precisa fazer DUAS coisas — guardar
+                   o texto e avisar o outro lado. `value` + `@oninput` deixa as
+                   duas no mesmo lugar. *@
+                <textarea value="@_texto"
+                          @oninput="AoDigitar"
                           rows="3"
                           disabled="@_enviando"
                           placeholder="@Convite()"></textarea>
@@ -141,6 +160,41 @@
         color: var(--texto-violeta, #4c1d95);
     }
 
+    .conversa-digitando {
+        align-self: flex-start;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 4px;
+        font-size: 13px;
+        font-style: italic;
+        color: var(--ink-3, #6b7280);
+    }
+
+    .pontinhos { display: inline-flex; gap: 3px; }
+
+    .pontinhos i {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: pulsa 1.2s infinite ease-in-out;
+    }
+
+    .pontinhos i:nth-child(2) { animation-delay: 0.2s; }
+    .pontinhos i:nth-child(3) { animation-delay: 0.4s; }
+
+    @@keyframes pulsa {
+        0%, 60%, 100% { opacity: 0.25; }
+        30%           { opacity: 1; }
+    }
+
+    /* Respeita quem pediu menos movimento no sistema. O aviso continua
+       legivel — so para de piscar. */
+    @@media (prefers-reduced-motion: reduce) {
+        .pontinhos i { animation: none; opacity: 0.6; }
+    }
+
     .conversa-responder { display: flex; flex-direction: column; gap: 8px; }
 
     .conversa-responder textarea {
@@ -203,6 +257,207 @@
     private bool _enviando;
     private bool _deuCerto;
     private string _recado = "";
+
+    // ── a conversa ao vivo ───────────────────────────────────────────────
+
+    private HubConnection? _hub;
+
+    /// <summary>Qual chamado esta conexao esta ouvindo agora. Nulo: nenhum.</summary>
+    private Guid? _ouvindo;
+
+    private bool _aoVivo;
+    private string? _quemDigita;
+    private CancellationTokenSource? _apagaDigitando;
+    private DateTime _ultimoAviso = DateTime.MinValue;
+
+    /// <remarks>
+    /// A PAGINA TROCA O `Chamado` SEM RECRIAR O COMPONENTE. Quem clica em
+    /// outro chamado da lista faz o Blazor reaproveitar esta mesma instancia,
+    /// so com outro parametro — se a entrada no grupo acontecesse no
+    /// `OnInitialized`, a tela mudaria e a conexao continuaria ouvindo o
+    /// chamado anterior. As mensagens do chamado aberto nao chegariam, e as do
+    /// antigo chegariam para ninguem.
+    ///
+    /// Comparar por `Id` e nao por referencia: o objeto e trocado a cada
+    /// resposta, e reentrar no mesmo grupo a cada mensagem seria um ida e
+    /// volta a toa no servidor.
+    /// </remarks>
+    protected override async Task OnParametersSetAsync()
+    {
+        var alvo = Chamado?.Id;
+        if (alvo == _ouvindo) return;
+
+        await Desligar(_ouvindo);
+        _ouvindo = alvo;
+
+        if (alvo is { } id) await Ligar(id);
+    }
+
+    private async Task Ligar(Guid id)
+    {
+        try
+        {
+            if (_hub is null)
+            {
+                // O endereco da API vem do `HttpClient` que o app registrou.
+                // Fixar a porta aqui quebraria o ClientApp, que descobre o
+                // endereco sozinho para funcionar pelo IP da rede.
+                var raiz = Http.BaseAddress
+                    ?? throw new InvalidOperationException("HttpClient sem BaseAddress.");
+
+                _hub = new HubConnectionBuilder()
+                    .WithUrl(new Uri(raiz, "hubs/chamados"), opcoes =>
+                    {
+                        // Lido A CADA conexao, nunca guardado: quem sai e entra
+                        // com outra conta nao pode seguir ouvindo a anterior.
+                        opcoes.AccessTokenProvider = () => Task.FromResult(Token.Agora());
+                    })
+                    .WithAutomaticReconnect()
+                    .Build();
+
+                _hub.On<ChamadoDto>("MensagemNova", AoChegarMensagem);
+                _hub.On<string, string>("Digitando", AoVerDigitando);
+
+                // GRUPO NAO SOBREVIVE A RECONEXAO. O `WithAutomaticReconnect`
+                // reabre o socket, mas o servidor esqueceu em que grupos esta
+                // conexao estava — sem reentrar, a conversa fica "conectada" e
+                // muda de novo. E o pior tipo de defeito: parece que funciona.
+                _hub.Reconnected += async _ =>
+                {
+                    if (_ouvindo is { } atual)
+                    {
+                        try { await _hub!.InvokeAsync("Entrar", atual); } catch { }
+                    }
+
+                    _aoVivo = true;
+                    await InvokeAsync(StateHasChanged);
+                };
+
+                _hub.Closed += async _ =>
+                {
+                    _aoVivo = false;
+                    await InvokeAsync(StateHasChanged);
+                };
+
+                await _hub.StartAsync();
+            }
+
+            await _hub.InvokeAsync("Entrar", id);
+            _aoVivo = true;
+        }
+        catch
+        {
+            // SEM EXCEÇÃO PARA CIMA. Tempo real e melhoria, nao requisito: se
+            // o socket nao subir, a conversa continua funcionando do jeito
+            // antigo — carrega ao abrir e envia por HTTP. Derrubar a tela de
+            // pedir ajuda por causa do luxo seria trocar o essencial pelo
+            // acessorio.
+            _aoVivo = false;
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task Desligar(Guid? id)
+    {
+        _quemDigita = null;
+
+        if (_hub is null || id is not { } antigo) return;
+
+        try { await _hub.InvokeAsync("Sair", antigo); } catch { }
+    }
+
+    /// <remarks>
+    /// QUEM ESCREVEU TAMBEM RECEBE ISTO, e nao ha duplicata: o servidor manda
+    /// o chamado INTEIRO, entao isto e substituicao e nao acrescimo. Mandar
+    /// para o grupo todo deixa um caminho so para a mensagem aparecer, em vez
+    /// de dois que podem discordar.
+    /// </remarks>
+    private async Task AoChegarMensagem(ChamadoDto atualizado)
+    {
+        // Chegou de um chamado que nao e o da tela: acontece na janela entre
+        // trocar de chamado e o `Sair` chegar ao servidor.
+        if (atualizado.Id != _ouvindo) return;
+
+        Chamado = atualizado;
+
+        // Quem falou obviamente parou de digitar. Sem isto, o aviso ficaria na
+        // tela por mais tres segundos ao lado da mensagem que ele ja mandou.
+        _quemDigita = null;
+
+        await InvokeAsync(StateHasChanged);
+        await AoAtualizar.InvokeAsync(atualizado);
+    }
+
+    /// <remarks>
+    /// QUEM APAGA O AVISO E ESTE RELOGIO, e nao um "parei de digitar" vindo do
+    /// outro lado. Se dependesse de uma segunda mensagem, fechar a aba no meio
+    /// de uma frase deixaria "fulano esta digitando" na tela do outro para
+    /// sempre.
+    ///
+    /// Nao espera os tres segundos aqui dentro: o tratador de evento do
+    /// SignalR ficaria ocupado esse tempo todo, e o proximo aviso entraria na
+    /// fila atras dele.
+    /// </remarks>
+    private Task AoVerDigitando(string quem, string papel)
+    {
+        _quemDigita = quem;
+        _ = InvokeAsync(StateHasChanged);
+
+        _apagaDigitando?.Cancel();
+        _apagaDigitando?.Dispose();
+        _apagaDigitando = new CancellationTokenSource();
+        var ate = _apagaDigitando.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(3), ate);
+                _quemDigita = null;
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (OperationCanceledException)
+            {
+                // Digitou de novo antes de apagar: o proximo relogio manda.
+            }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    /// <remarks>
+    /// UM AVISO A CADA 1,5s, e nao um por tecla. Sem o freio, escrever uma
+    /// frase dispararia trinta mensagens pelo socket para dizer a mesma coisa.
+    /// Casa com os 3s de quem recebe: o aviso e renovado bem antes de expirar,
+    /// entao o texto nao pisca durante a digitacao continua.
+    /// </remarks>
+    private async Task AoDigitar(ChangeEventArgs e)
+    {
+        _texto = e.Value?.ToString() ?? "";
+
+        if (_hub is null || !_aoVivo || _ouvindo is not { } id) return;
+        if (string.IsNullOrWhiteSpace(_texto)) return;
+
+        var agora = DateTime.UtcNow;
+        if (agora - _ultimoAviso < TimeSpan.FromSeconds(1.5)) return;
+        _ultimoAviso = agora;
+
+        // `SendAsync` e nao `InvokeAsync`: nao ha resposta a esperar, e avisar
+        // que esta digitando nao pode segurar a digitacao.
+        try { await _hub.SendAsync("Digitando", id); } catch { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _apagaDigitando?.Cancel();
+        _apagaDigitando?.Dispose();
+
+        if (_hub is not null)
+        {
+            try { await _hub.DisposeAsync(); } catch { }
+        }
+    }
 
     private bool EhMinha(MensagemDto m)
         => string.Equals(m.Autor, EuSou, StringComparison.OrdinalIgnoreCase);

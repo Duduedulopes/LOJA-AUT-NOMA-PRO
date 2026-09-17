@@ -36,7 +36,13 @@ public record OcorrenciaDto(
     [property: JsonPropertyName("resolvidaPor")] string? ResolvidaPor,
     [property: JsonPropertyName("notaDoAdmin")] string? NotaDoAdmin,
     [property: JsonPropertyName("vezesVistas")] int VezesVistas = 1,
-    [property: JsonPropertyName("ultimaVezUtc")] DateTime? UltimaVezUtc = null);
+    [property: JsonPropertyName("ultimaVezUtc")] DateTime? UltimaVezUtc = null,
+
+    /// <summary>
+    /// Quem abriu o chamado. Nulo quando a ocorrencia e de maquina — e e
+    /// exatamente isso que a tela pergunta antes de oferecer a conversa.
+    /// </summary>
+    [property: JsonPropertyName("abertoPor")] string? AbertoPor = null);
 
 /// <summary>O que o sino pergunta.</summary>
 public record NaoVistasDto(

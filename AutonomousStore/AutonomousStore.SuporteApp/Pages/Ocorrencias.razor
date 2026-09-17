@@ -3,6 +3,7 @@
 @using System.Text.Json
 @inject IOcorrenciaApiService OcorrenciaApi
 @inject NavigationManager Nav
+@inject IChamadoApiService Chamados
 
 @* ═══════════════════════════════════════════════════════════════════
    O HISTORICO, E O RASTRO.
@@ -267,6 +268,46 @@
                         <div class="campo"><label>Resolvida por</label><span>@OuVazio(_detalhe.ResolvidaPor)</span></div>
                     </div>
                 }
+
+                @* ═══════════════════════════════════════════════════════
+                   A CONVERSA, TAMBEM AQUI.
+
+                   A fila ja tinha isto; o historico nao. E o historico e
+                   onde o tecnico cai quando volta a um chamado DEPOIS —
+                   resolvido, ignorado, ou so mais antigo que a fila. Sem a
+                   conversa nesta tela, todo chamado que saisse da fila
+                   virava rua sem saida: da para ler o que a pessoa pediu e
+                   nao da para dizer nada de volta.
+
+                   SO APARECE QUANDO HA ALGUEM DO OUTRO LADO. `AbertoPor` e
+                   nulo em ocorrencia de maquina, e caixa de resposta sob um
+                   erro de integracao seria um convite a falar sozinho.
+                   ═══════════════════════════════════════════════════════ *@
+                @if (!string.IsNullOrWhiteSpace(_detalhe.AbertoPor))
+                {
+                    <div class="bloco bloco-conversa">
+                        <div class="bloco-titulo">Conversa com @_detalhe.AbertoPor</div>
+
+                        @if (_carregandoConversa)
+                        {
+                            <div class="bloco-valor vazio">Carregando a conversa…</div>
+                        }
+                        else if (_chamado is null)
+                        {
+                            @* NAO E "nao ha mensagens". Falha de leitura e
+                               ausencia de mensagem sao coisas diferentes, e
+                               mostrar uma como a outra faz o tecnico achar
+                               que ninguem escreveu. *@
+                            <div class="bloco-valor vazio">
+                                Não consegui carregar a conversa deste chamado.
+                            </div>
+                        }
+                        else
+                        {
+                            <Conversa Chamado="_chamado" EuSou="Suporte" AoAtualizar="ConversaMudou" />
+                        }
+                    </div>
+                }
             </div>
 
             <footer class="modal-rodape">
@@ -379,8 +420,50 @@
         Nav.NavigateTo("/ocorrencias");
     }
 
-    private void AbrirDetalhe(OcorrenciaDto o) => _detalhe = o;
-    private void FecharDetalhe() => _detalhe = null;
+    private ChamadoDto? _chamado;
+    private bool _carregandoConversa;
+
+    /// <remarks>
+    /// A CONVERSA VEM NUMA CHAMADA SEPARADA, e so quando o modal abre.
+    ///
+    /// A listagem carrega ate 500 ocorrencias; trazer as mensagens de todas
+    /// seria pagar por um dado que quase ninguem abre, na consulta mais
+    /// frequente do sistema. Mesmo desenho da fila.
+    /// </remarks>
+    private async Task AbrirDetalhe(OcorrenciaDto o)
+    {
+        _detalhe = o;
+        _chamado = null;
+        _carregandoConversa = false;
+
+        // Ocorrencia de maquina nao tem conversa para buscar: sem dono, nem
+        // chega a pedir.
+        if (string.IsNullOrWhiteSpace(o.AbertoPor)) return;
+
+        _carregandoConversa = true;
+        StateHasChanged();
+
+        _chamado = await Chamados.UmAsync(o.Id);
+        _carregandoConversa = false;
+    }
+
+    private void FecharDetalhe()
+    {
+        _detalhe = null;
+        _chamado = null;
+        _carregandoConversa = false;
+    }
+
+    /// <summary>
+    /// O tecnico respondeu. `AdicionarMensagem` mexe no estado do chamado la
+    /// no dominio, entao a linha atras do modal ficou velha — e se houver
+    /// filtro de estado ligado, ela pode ate nao pertencer mais a lista.
+    /// </summary>
+    private async Task ConversaMudou(ChamadoDto atualizado)
+    {
+        _chamado = atualizado;
+        await Recarregar();
+    }
 
     // CULTURA EXPLICITA em toda data. Sem isso, o formato muda com a
     // maquina — e a data lida errado nao da erro, so fica errada.

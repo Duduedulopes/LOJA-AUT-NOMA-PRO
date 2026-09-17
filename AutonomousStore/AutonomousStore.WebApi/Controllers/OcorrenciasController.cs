@@ -245,5 +245,6 @@ public class OcorrenciasController : ControllerBase
         o.ResolvidaPor,
         o.NotaDoAdmin,
         o.VezesVistas,
-        o.UltimaVezUtc);
+        o.UltimaVezUtc,
+        o.AbertoPor);
 }

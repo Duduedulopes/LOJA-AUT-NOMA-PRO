@@ -80,7 +80,27 @@ public record OcorrenciaResponse(
 
     /// <summary>A ultima repeticao. Nulo quando aconteceu uma vez so — e ai
     /// `QuandoUtc` ja e a resposta inteira.</summary>
-    DateTime? UltimaVezUtc);
+    DateTime? UltimaVezUtc,
+
+    /// <summary>
+    /// O e-mail de quem abriu o chamado. NULO quando a ocorrencia e de
+    /// maquina.
+    /// </summary>
+    /// <remarks>
+    /// E A UNICA COISA QUE SEPARA "alguem pediu ajuda" DE "o sistema
+    /// tropecou", e a tela precisa dessa diferenca: e ela que decide se a
+    /// caixa de resposta aparece. Sem este campo, o Historico so poderia
+    /// adivinhar pelo texto do `Modulo` — e adivinhacao por string quebra em
+    /// silencio no dia em que alguem reescrever o texto.
+    ///
+    /// Sai o e-mail e nao um booleano porque quem atende precisa saber A QUEM
+    /// esta respondendo, e o dado ja e visivel para quem chega ate aqui:
+    /// esta rota inteira e `[Authorize(Roles = "Admin,Suporte")]`.
+    ///
+    /// Com valor padrao de proposito: assim nenhuma outra construcao deste
+    /// contrato precisa ser tocada para continuar compilando.
+    /// </remarks>
+    string? AbertoPor = null);
 
 /// <summary>O que o sino pergunta a cada 20 segundos.</summary>
 public record NaoVistasResponse(int Total, int Criticas, DateTime? MaisRecente);

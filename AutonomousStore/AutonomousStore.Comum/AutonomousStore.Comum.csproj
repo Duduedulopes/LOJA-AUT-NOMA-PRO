@@ -28,6 +28,16 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.11" />
 		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+
+		<!--
+		  O cliente da conversa ao vivo. Fica AQUI, e nao nos tres apps: quem
+		  abre a conexao e o componente Conversa, que mora nesta biblioteca.
+		  Os tres apps herdam o pacote por referencia e nao instalam nada.
+
+		  No servidor nao ha pacote nenhum a instalar — o SignalR ja vem no
+		  framework do ASP.NET Core.
+		-->
+		<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.11" />
 	</ItemGroup>
 
 </Project>
