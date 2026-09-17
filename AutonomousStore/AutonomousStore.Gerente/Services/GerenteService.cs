@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net.Http.Json;
 using System.Text;
 using AutonomousStore.Gerente.Models;
@@ -203,7 +203,17 @@ public class GerenteService : IGerenteService
                 palpite = intencao,
                 confianca,
                 escolhida_por_voce = escolhidaPorVoce,
-                de = "admin",
+                // QUEM PERGUNTOU SAI DO PERFIL, e nao de uma constante.
+                //
+                // Estava cravado "admin" desde quando o gerente so existia
+                // dentro do painel do Chefe. Hoje ele atende nos tres apps, e
+                // toda pergunta do comprador chegava ao Python rotulada como
+                // se fosse do dono da loja — o corpus de treino inteiro
+                // ficaria dizendo que ninguem alem do admin usa o sistema.
+                //
+                // O `ServicoDeAprendizado` ja fazia certo (`quemEnsinou.Origem`)
+                // na rota de correcao. Era so esta que tinha ficado para tras.
+                de = Perfil.Origem,
             });
         }
         catch
