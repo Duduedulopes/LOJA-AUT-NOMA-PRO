@@ -91,20 +91,23 @@ Três repositórios, três problemas diferentes, um sistema só.
 
 ## Arquitetura
 
-Solução .NET 8 em camadas, 13 projetos. O `Domain` concentra as regras de negócio
-nas entidades e não conhece a infraestrutura; a persistência entra por interfaces
+Solução .NET 8 em camadas, 14 projetos. É uma plataforma multiempresa (SaaS):
+uma instalação atende várias empresas assinantes, cada uma isolada por um
+`Tenant` — o filtro fica no `AutonomousDbContext` e é global, não uma checagem
+espalhada pelos controllers. O `Domain` concentra as regras de negócio nas
+entidades e não conhece a infraestrutura; a persistência entra por interfaces
 de repositório.
 
 ```
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐    ┌──────────────┐
-│  ClientApp   │  │  AdminApp    │  │  SuporteApp  │    │ EdgeDesktop  │
-│ Blazor WASM  │  │ Blazor WASM  │  │ Blazor WASM  │    │     WPF      │
-│   :7280      │  │   :7290      │  │   :7291      │    │              │
-└──────┬───────┘  └──────┬───────┘  └──────┬───────┘    └──────┬───────┘
-       │                 │                 │                   │
-       └──── AutonomousStore.Gerente (o mesmo cérebro) ─────┘   │
-       │                 │                 │                   │
-       └───────────── HTTP / JSON · JWT ───┴───────────────────┘
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    ┌──────────────┐
+│  ClientApp   │  │   AdminApp   │  │  SuporteApp  │  │  CriadorApp  │    │ EdgeDesktop  │
+│ Blazor WASM  │  │ Blazor WASM  │  │ Blazor WASM  │  │ Blazor WASM  │    │     WPF      │
+│    :7280     │  │    :7290     │  │    :7291     │  │    :7293     │    │              │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    └──────┬───────┘
+       │                 │                 │                 │                   │
+       └───── AutonomousStore.Gerente (o mesmo cérebro) ─────┘                   │
+       │                 │                 │                 │                   │
+       └─────────────────────────── HTTP / JSON · JWT ───────────────────────────┘
                               │
                    ┌──────────▼──────────┐        ┌──────────────┐
                    │       WebApi        │◄─HTTP──┤    ESP32     │
@@ -131,18 +134,70 @@ de repositório.
 | `Infrastructure` | EF Core 8, repositórios, SQL Server |
 | `WebApi` | ASP.NET Core, REST, JWT, Swagger |
 | `Gerente` | a rede neural, o chat e o aprendizado — biblioteca Razor |
-| `Comum` | chamados de suporte, compartilhado pelos três apps |
+| `Comum` | chamados de suporte, compartilhado pelos quatro apps |
 | `ClientApp` | o comprador (Blazor WebAssembly) |
-| `AdminApp` | o painel do dono (Blazor WebAssembly) |
+| `AdminApp` | o painel do dono da empresa (Blazor WebAssembly) |
 | `SuporteApp` | o atendimento (Blazor WebAssembly) |
+| `CriadorApp` | o painel do dono da plataforma — empresas, lojas, técnicos (Blazor WebAssembly) |
 | `EdgeDesktop` | a máquina que fica na loja (WPF) |
 | `Hardware` | abstrações dos dispositivos — RFID, relé, serial, TCP |
 | `firmware/` | as soluções do ESP32 (.NET nanoFramework) |
 
 **`AutonomousStore.Gerente` é uma biblioteca de componentes Razor**, e é o que faz
-os três aplicativos web compartilharem o mesmo gerente: o classificador, o modelo
-treinado, o chat e o motor de aprendizado ficam num lugar só. Cada app passa
-apenas **quem está falando**.
+os quatro aplicativos web compartilharem o mesmo gerente: o classificador, o
+modelo treinado, o chat e o motor de aprendizado ficam num lugar só. Cada app
+passa apenas **quem está falando**.
+
+---
+
+## Multiempresa (SaaS)
+
+Uma instalação, várias empresas. Cada empresa assinante é uma fronteira de
+isolamento — um `Tenant` — e o filtro que garante isso é global, aplicado em
+toda consulta, não uma checagem espalhada pelos controllers.
+
+```
+Criador                     dono da instalação — cadastra e suspende empresas
+  │
+  ├─ Suporte                 serviço DO CRIADOR, não da empresa — atende chamados de todas elas
+  │
+  └─ Empresa (Tenant)        a assinante
+       ├─ Admin              dono da empresa — só consulta as próprias lojas
+       ├─ Loja (Store)       até o limite do plano
+       └─ Comprador          pertence a uma única empresa
+```
+
+Quatro papéis: **Criador** (dono da plataforma), **Suporte** (técnico, cadastrado
+só pelo Criador; dados de comprador ficam mascarados até "revelar com motivo", e
+a empresa aparece para ele como código + nome fantasia), **Admin** (dono da
+empresa assinante) e **Comprador**.
+
+Abrir, renomear, desativar e reativar uma loja é negócio da assinatura, não do
+Admin — ele só consulta as que já tem. Essa regra mora num controller à parte do
+painel do Criador: em ASP.NET Core, `[Authorize(Roles=...)]` de classe e de
+método **somam**, nunca afrouxam — dar essa permissão ao Suporte dentro do
+controller do Criador teria aberto o resto do painel do Criador para o Suporte
+junto.
+
+O limite de lojas conta só as **ativas** — `Tenant.PodeTerMaisUmaLoja` confere ao
+criar, ao reativar e sempre que alguém baixa o limite do plano. Desativar libera
+a vaga na hora; não apaga nada. Empresa suspensa não ganha capacidade nova: criar
+e reativar loja dão 403, desativar continua liberado.
+
+Toda ação de quem opera a plataforma — abrir uma empresa, suspender, revelar um
+dado mascarado — vira um registro de **auditoria que só se acrescenta**: não
+existe método para reescrever uma linha. Fica quem fez, quando, em qual empresa
+e, quando a ação pede (como revelar um dado de comprador), o motivo.
+
+O `AutonomousStore.CriadorApp` é o painel do Criador — o quarto aplicativo
+Blazor. Em vez de uma tabela genérica de empresas, um "Mapa da Rede" em SVG
+desenha a própria hierarquia do produto: o Criador no centro, cada empresa numa
+órbita, o raio marca o uso e um pulso marca chamado esperando. Dali ele cadastra
+e suspende empresas, abre lojas, cadastra técnicos e vê a fila e o histórico de
+chamados de toda a plataforma.
+
+O gerente virtual sabe com qual dos quatro está falando — ver "O mesmo cérebro,
+quatro conversas" mais abaixo.
 
 ---
 
@@ -278,16 +333,24 @@ com ele desligado** — o passo de gradiente acontece no navegador, e o envio é
 tentativa que pode falhar em silêncio. Um monitor fora do ar não pode custar uma
 tarde de correções.
 
-### O mesmo cérebro, duas conversas
+### O mesmo cérebro, quatro conversas
 
-O gerente atende o dono e o comprador, e sabe a diferença.
+O gerente atende quatro perfis — dono da loja, comprador, técnico de suporte e
+dono da plataforma — e sabe a diferença. Hoje todos são tratados pelo primeiro
+nome: o gerente já chamou o dono da loja (e o Criador) de "Chefe", e a decisão
+foi passar a chamar todo mundo pelo nome, sem título.
 
-|  | administração | cliente |
-|---|---|---|
-| tratamento | "Chefe" | o primeiro nome de quem está logado |
-| intenções | as 42 | 12 |
-| pode alterar o sistema | sim, sempre confirmando | **não** |
-| sugestões na tela | 16 | 8 |
+|  | Chefe (AdminApp) | Cliente (ClientApp) | Técnico (SuporteApp) | Criador (CriadorApp) |
+|---|---|---|---|---|
+| intenções | as 42 | 12 | 8 | 8 — por enquanto, a mesma lista do técnico |
+| pode alterar o sistema | sim, sempre confirmando | **não** | não | não |
+| enxerga várias empresas | não | não (é de uma só) | **sim** | **sim** |
+
+Técnico e Criador **não herdam a lista do Chefe**: "quanto faturamos hoje?"
+respondido a quem vê todas as empresas somaria o dinheiro de empresas
+diferentes, e nenhum dos dois lê caixa de ninguém. O que é só do Criador
+(quantas empresas, quais suspensas, o que o suporte fez) ainda vai virar
+intenção nova — precisa de corpus e treino próprios no Rede-Neural.
 
 A separação é **lista de permissão, não de bloqueio** — e isso decide o futuro:
 com lista de bloqueio, toda intenção nova que for treinada nasce liberada para o
@@ -352,6 +415,38 @@ gerente diz que não conseguiu olhar** — em vez de responder que está tudo ce
 
 ---
 
+## Chamados e ocorrências
+
+Um alarme que só aparece na tela e some com a resposta HTTP não deixa responder
+"tivemos algum furo essa semana?" — a pergunta exigiria inventar. Por isso todo
+detector do backend, do Agente de IA ou do SO-Espacial que percebe algo errado
+grava uma `Ocorrencia`, com o fato e o palpite sobre a causa em campos
+**separados** — confundir os dois faria o dono da loja agir com uma certeza que
+ninguém mediu.
+
+O mesmo fato repetido não vira linha nova: uma chave (`"assunto:id"`) identifica
+o fato, e a repetição só soma um contador — sem isso, um defeito que dispara cem
+vezes por minuto empurraria para fora da tela tudo o que veio antes. Uma
+`CorrelationId` amarra as três ou quatro ocorrências que a mesma sessão
+problemática costuma gerar, para o suporte não investigar quatro vezes o mesmo
+caso.
+
+Nem todo chamado nasce de detector: um comprador pode pedir ajuda e um Admin
+pode relatar um problema — os dois viram **donos** do próprio chamado, e o Admin
+**não é "da casa"**: no painel dele aparecem só os alertas que os detectores
+acharam e os pedidos que ele mesmo escreveu, nunca os de outra pessoa. Quem
+enxerga tudo — os pedidos de qualquer comprador, de qualquer empresa — é o
+Suporte e o Criador, porque o Suporte é serviço do Criador, não da empresa.
+
+A conversa decide o estado sozinha, sem ninguém precisar lembrar de mexer:
+quando o técnico responde, o chamado vira "em análise"; se alguém escreve de
+novo num chamado já dado como resolvido, ele não estava resolvido — volta para
+o suporte. E se o mesmo fato voltar a acontecer depois de "resolvido", a
+ocorrência reabre: "resolvida" é uma afirmação sobre o mundo, e se o problema
+voltou, a afirmação estava errada.
+
+---
+
 ## Pilha tecnológica
 
 | camada | tecnologia |
@@ -384,6 +479,7 @@ AutonomousStore/
 ├─ AutonomousStore.ClientApp/       Blazor WASM — o comprador
 ├─ AutonomousStore.AdminApp/        Blazor WASM — o dono
 ├─ AutonomousStore.SuporteApp/      Blazor WASM — o suporte
+├─ AutonomousStore.CriadorApp/      Blazor WASM — o Criador (multiempresa)
 ├─ AutonomousStore.EdgeDesktop/     WPF — a máquina da loja
 ├─ AutonomousStore.Hardware/        RFID, relé, serial, TCP
 ├─ Smart-store-PWA/                 protótipo anterior, HTML puro
@@ -402,8 +498,10 @@ Pronto: cadastro e login (senha e Google) · QR code de entrada com validade ·
 confirmação de entrada por token · catálogo com estoque · vinculação de etiqueta
 RFID a produto · leitor de saída em ESP32 · painel administrativo · atendimento e
 chamados de suporte · assistente e visão com Gemini · expiração de sessão
-abandonada · o gerente virtual atendendo dono e cliente com barreiras separadas ·
-a rede neural treinando dentro do navegador.
+abandonada · plataforma multiempresa com isolamento por `Tenant`, quatro papéis
+(Criador, Suporte, Admin, Comprador) e limite de lojas por plano · painel central
+do Criador com o Mapa da Rede · o gerente virtual atendendo os quatro perfis com
+barreiras separadas · a rede neural treinando dentro do navegador.
 
 ## Roadmap
 
@@ -419,6 +517,8 @@ a rede neural treinando dentro do navegador.
 - [ ] **Sensor de presença** na zona de entrada
 - [ ] **Gateway de pagamento real**
 - [ ] **Migração para RFID UHF** — ver "MVP × produto real"
+- [ ] **Publicar a plataforma multiempresa** — cadastro self-service de empresa;
+      cobrança da assinatura é manual por enquanto
 
 ---
 
@@ -438,7 +538,7 @@ levou, de qual prateleira, nem como interpretar uma pergunta em português torto
 |---|---|
 | [Rede-Neural](https://github.com/Duduedulopes/Rede-Neural) | onde a rede nasce — corpus, treino, validação cruzada e o monitor |
 | [SO-Espacial](https://github.com/Duduedulopes/SO-Espacial) | a percepção espacial por câmeras — quem pegou, e de qual prateleira |
-| **este** | a loja em .NET 8 — API, apps Blazor, firmware ESP32, e o gerente em execução |
+| **este** | a loja em .NET 8 — API multiempresa, apps Blazor (loja, dono, suporte e plataforma), firmware ESP32, e o gerente em execução |
 
 O gerente e a rede neural já trocam dados nos dois sentidos: a loja treina no
 navegador e devolve ao Python o que aprendeu. **Cruzar a leitura do RFID com a da
