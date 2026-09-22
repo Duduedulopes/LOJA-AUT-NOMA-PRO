@@ -1,15 +1,20 @@
 using System.Text;
+using AutonomousStore.Domain.Common;
+using AutonomousStore.Domain.Entities;
 using AutonomousStore.Domain.Repositories;
 using AutonomousStore.WebApi;
 using AutonomousStore.Infrastructure.Logging;
 using AutonomousStore.Infrastructure.Persistence;
 using AutonomousStore.Infrastructure.Repositories;
+using AutonomousStore.Infrastructure.Tenancy;
 using AutonomousStore.WebApi.Controllers;
 using AutonomousStore.WebApi.Hubs;
 using AutonomousStore.WebApi.Middlewares;
 using AutonomousStore.WebApi.Services;
+using AutonomousStore.WebApi.Tenancy;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -28,7 +33,9 @@ builder.Services.AddControllers()
     });
 // A CONVERSA AO VIVO. Nao precisa de pacote: o SignalR ja vem no framework
 // do ASP.NET Core. Só os apps Blazor instalam o cliente.
-builder.Services.AddSignalR();
+// O filtro leva a empresa do token para dentro de cada chamada de hub — que nao
+// passa pelo pipeline HTTP e, sem ele, enxergaria o banco como se fosse anonima.
+builder.Services.AddSignalR(opcoes => opcoes.AddFilter<TenantHubFilter>());
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -93,10 +100,26 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IStoreSessionRepository, StoreSessionRepository>();
 builder.Services.AddScoped<IAdminUserRepository, AdminUserRepository>();
+builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+builder.Services.AddScoped<IStoreRepository, StoreRepository>();
+builder.Services.AddScoped<ICriadorUserRepository, CriadorUserRepository>();
+builder.Services.AddScoped<IAuditoriaRepository, AuditoriaRepository>();
 builder.Services.AddScoped<ISuporteUserRepository, SuporteUserRepository>();
 builder.Services.AddScoped<IOcorrenciaRepository, OcorrenciaRepository>();
 builder.Services.AddScoped<IRegistradorDeOcorrencia, RegistradorDeOcorrencia>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+// -- multiempresa --------------------------------------------------------
+// Uma instancia de TenantContext por requisicao, exposta por duas portas: a
+// concreta (quem PREENCHE: o middleware e o filtro do hub) e a interface
+// (quem LE: o DbContext). Sao a MESMA instancia — se fossem duas, o que o
+// middleware definisse nunca chegaria ao filtro do banco.
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+builder.Services.AddScoped<TenantResolver>();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditoria, AuditoriaService>();
 
 // ── TODA EXCEÇÃO VIRA OCORRÊNCIA ─────────────────────────────────────────
 //
@@ -253,6 +276,11 @@ if (app.Environment.IsDevelopment())
 
         try
         {
+            // O seed nao e uma requisicao: nao ha token nem link de loja. Ele grava na
+            // empresa padrao, a mesma que a migracao criou para os dados que ja existiam.
+            scope.ServiceProvider.GetRequiredService<TenantContext>()
+                .DefinirEmpresa(Tenant.IdDaEmpresaPadrao);
+
             await SeedData.SeedIfEmptyAsync(scope.ServiceProvider);
             app.Logger.LogInformation("Seed de exemplo concluído.");
         }
@@ -274,6 +302,11 @@ app.UseExceptionHandler();
 app.UseCors(ClientAppCorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();
+
+// DEPOIS da autenticacao (le a empresa do token) e ANTES da autorizacao e dos
+// controllers (que ja consultam o banco, e o banco filtra pela empresa daqui).
+app.UseMiddleware<TenantMiddleware>();
+
 app.UseAuthorization();
 app.MapControllers();
 

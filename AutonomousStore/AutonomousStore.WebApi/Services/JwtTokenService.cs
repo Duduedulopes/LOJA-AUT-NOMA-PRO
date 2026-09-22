@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using AutonomousStore.Domain.Common;
 using AutonomousStore.Domain.Entities;
 using Microsoft.IdentityModel.Tokens;
 
@@ -11,6 +12,7 @@ public interface IJwtTokenService
     string GenerateToken(Customer customer);
     string GenerateAdminToken(AdminUser admin);
     string GenerateSuporteToken(SuporteUser suporte);
+    string GenerateCriadorToken(CriadorUser criador);
 }
 
 public class JwtTokenService : IJwtTokenService
@@ -29,6 +31,8 @@ public class JwtTokenService : IJwtTokenService
             new Claim(JwtRegisteredClaimNames.Sub, customer.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, customer.Email),
             new Claim(ClaimTypes.Name, customer.Name),
+            new Claim(ClaimTypes.Role, Papeis.Comprador),
+            new Claim(Papeis.ClaimEmpresa, EmpresaDe(customer).ToString()),
         };
 
         return BuildToken(claims);
@@ -45,7 +49,8 @@ public class JwtTokenService : IJwtTokenService
             new Claim(JwtRegisteredClaimNames.Sub, admin.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, admin.Email),
             new Claim(ClaimTypes.Name, admin.Name),
-            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(ClaimTypes.Role, Papeis.Admin),
+            new Claim(Papeis.ClaimEmpresa, EmpresaDe(admin).ToString()),
         };
 
         return BuildToken(claims);
@@ -63,13 +68,38 @@ public class JwtTokenService : IJwtTokenService
             new Claim(JwtRegisteredClaimNames.Sub, suporte.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, suporte.Email),
             new Claim(ClaimTypes.Name, suporte.Name),
-            new Claim(ClaimTypes.Role, "Suporte"),
+            new Claim(ClaimTypes.Role, Papeis.Suporte),
         };
 
         return BuildToken(claims);
     }
 
-    private string BuildToken(IEnumerable<Claim> claims)
+    /// <summary>
+    /// Sem a claim de empresa, de propósito: o Criador não pertence a nenhuma, ele
+    /// enxerga todas. Validade curta — é o papel mais poderoso do sistema, e um
+    /// token perdido por 7 dias seria o pior lugar para a chave estar.
+    /// </summary>
+    public string GenerateCriadorToken(CriadorUser criador)
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, criador.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, criador.Email),
+            new Claim(ClaimTypes.Name, criador.Name),
+            new Claim(ClaimTypes.Role, Papeis.Criador),
+        };
+
+        return BuildToken(claims, validade: TimeSpan.FromHours(8));
+    }
+
+    // Um token de empresa sem empresa e um token que abre todas as portas ou
+    // nenhuma, conforme quem o le. Melhor nem emitir.
+    private static Guid EmpresaDe(TenantEntity registro)
+        => registro.TenantId
+           ?? throw new InvalidOperationException(
+               "Este usuário não tem empresa; não dá para emitir um token para ele.");
+
+    private string BuildToken(IEnumerable<Claim> claims, TimeSpan? validade = null)
     {
         var jwtSection = _configuration.GetSection("Jwt");
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!));
@@ -79,7 +109,7 @@ public class JwtTokenService : IJwtTokenService
             issuer: jwtSection["Issuer"],
             audience: jwtSection["Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(7),
+            expires: DateTime.UtcNow.Add(validade ?? TimeSpan.FromDays(7)),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);

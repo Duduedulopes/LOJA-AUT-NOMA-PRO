@@ -100,7 +100,13 @@ public record OcorrenciaResponse(
     /// Com valor padrao de proposito: assim nenhuma outra construcao deste
     /// contrato precisa ser tocada para continuar compilando.
     /// </remarks>
-    string? AbertoPor = null);
+    string? AbertoPor = null,
+
+    /// <summary>
+    /// A empresa de onde veio, como o suporte a vê ("0042 · Rede Sabor"). Só vem preenchida para
+    /// quem opera a plataforma; o Admin de uma empresa só enxerga a própria, e não precisa do rótulo.
+    /// </summary>
+    string? Empresa = null);
 
 /// <summary>O que o sino pergunta a cada 20 segundos.</summary>
 public record NaoVistasResponse(int Total, int Criticas, DateTime? MaisRecente);

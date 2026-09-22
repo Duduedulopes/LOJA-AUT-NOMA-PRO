@@ -2,6 +2,7 @@ using System.Security.Claims;
 using AutonomousStore.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using AutonomousStore.Domain.Common;
 
 namespace AutonomousStore.WebApi.Hubs;
 
@@ -114,8 +115,9 @@ public class ChamadoHub : Hub
     // (HTTP e WebSocket) e cada um le o seu proprio `User`. O que NAO pode se
     // repetir e a regra de quem ve o que — essa mora na entidade.
 
-    private bool EhDaCasa() => Context.User?.IsInRole("Admin") == true
-                            || Context.User?.IsInRole("Suporte") == true;
+    // Mesma regra do ChamadosController: a casa e quem atende (tecnico e Criador). O Admin so entra no chat do que ELE abriu.
+    private bool EhDaCasa() => Context.User?.IsInRole(Papeis.Suporte) == true
+                            || Context.User?.IsInRole(Papeis.Criador) == true;
 
     /// <remarks>
     /// Duas chaves porque o JwtBearer mapeia os nomes curtos do token para as
@@ -132,7 +134,7 @@ public class ChamadoHub : Hub
            ?? "alguém";
 
     private string Papel()
-        => Context.User?.IsInRole("Suporte") == true ? "Suporte"
-         : Context.User?.IsInRole("Admin") == true ? "Admin"
+        => Context.User?.IsInRole(Papeis.Criador) == true || Context.User?.IsInRole(Papeis.Suporte) == true ? "Suporte"
+         : Context.User?.IsInRole(Papeis.Admin) == true ? "Admin"
          : "Cliente";
 }

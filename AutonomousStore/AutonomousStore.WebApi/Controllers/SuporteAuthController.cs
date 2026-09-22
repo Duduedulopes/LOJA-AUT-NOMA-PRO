@@ -1,3 +1,4 @@
+using AutonomousStore.Domain.Common;
 using AutonomousStore.Domain.Entities;
 using AutonomousStore.Domain.Repositories;
 using AutonomousStore.WebApi.Contracts.SuporteAuth;
@@ -10,17 +11,20 @@ namespace AutonomousStore.WebApi.Controllers;
 
 /// <summary>
 /// Autenticação do técnico de suporte. Separada do admin de propósito:
-/// suporte atende VÁRIAS lojas, não é uma pessoa da loja, e o dono da loja
+/// suporte atende VÁRIAS empresas, não é uma pessoa da loja, e o dono da loja
 /// não pode criar um usuário de suporte pela tela dele.
 /// </summary>
 /// <remarks>
-/// POR QUE O REGISTER ESTÁ ABERTO — E POR QUE ISTO É OK AGORA.
+/// O TÉCNICO É UM SERVIÇO DO CRIADOR.
 ///
-/// Num cenário de produção este endpoint seria interno, atrás de aprovação
-/// da equipe que administra a plataforma. Enquanto o projeto está em
-/// desenvolvimento, o register aberto serve para criar o PRIMEIRO usuário
-/// sem precisar de SQL nem de credencial hardcoded. Fecharemos isto antes
-/// de ir para produção — e o primeiro usuário não é hardcoded.
+/// Ele vem com a assinatura, não pertence a nenhuma empresa e responde ao
+/// Criador da plataforma. Por isso quem cadastra técnico é só o Criador
+/// (<see cref="Papeis.Criador"/>).
+///
+/// Antes, este cadastro era aberto até existir o primeiro técnico — uma
+/// conveniência de desenvolvimento, anotada como "vamos fechar antes de
+/// produção". Foi fechada agora: o primeiro Criador nasce com o código de
+/// instalação (<c>POST /api/criador-auth/register</c>) e ele cadastra a equipe.
 /// </remarks>
 [ApiController]
 [Route("api/suporte-auth")]
@@ -28,44 +32,33 @@ public class SuporteAuthController : ControllerBase
 {
     private readonly ISuporteUserRepository _suporteRepository;
     private readonly IJwtTokenService _jwtTokenService;
+    private readonly IAuditoria _auditoria;
     private readonly PasswordHasher<SuporteUser> _passwordHasher = new();
 
-    public SuporteAuthController(ISuporteUserRepository suporteRepository, IJwtTokenService jwtTokenService)
+    public SuporteAuthController(
+        ISuporteUserRepository suporteRepository,
+        IJwtTokenService jwtTokenService,
+        IAuditoria auditoria)
     {
         _suporteRepository = suporteRepository;
         _jwtTokenService = jwtTokenService;
+        _auditoria = auditoria;
     }
 
-    /// <summary>Cria um tecnico de suporte.</summary>
+    /// <summary>Cria um técnico de suporte. Só o Criador.</summary>
     /// <remarks>
-    /// A PORTA SO FICA ABERTA ATE O PRIMEIRO ENTRAR.
-    ///
-    /// Este cadastro estava aberto para qualquer um, com um comentario
-    /// dizendo que seria fechado antes de producao. Porta aberta com
-    /// bilhete continua sendo porta aberta — e esta da acesso a ocorrencia
-    /// de TODAS as lojas: tag de RFID lida na porta, registro de saida sem
-    /// pagamento, pilha de excecao. Quem chegasse na API criava uma conta e
-    /// lia tudo.
-    ///
-    /// A regra agora: enquanto NAO HOUVER nenhum tecnico, o cadastro e
-    /// aberto — nao ha o que proteger, e e assim que o primeiro usuario
-    /// nasce sem senha no codigo e sem SQL na mao. A partir do segundo, so
-    /// quem ja e do suporte cria outro.
-    ///
-    /// Isso resolve o problema do "primeiro usuario" sem deixar divida: nao
-    /// existe um dia futuro em que alguem precise lembrar de fechar isto.
+    /// A resposta NÃO traz token: quem chamou foi o Criador, que já está logado, e
+    /// o token do técnico novo não é dele. Entregá-lo permitiria agir como o
+    /// técnico sem que o login dele aparecesse na auditoria.
     /// </remarks>
     [AllowAnonymous]
     [HttpPost("register")]
     public async Task<ActionResult<SuporteAuthResponse>> Register(SuporteRegisterRequest request, CancellationToken cancellationToken)
     {
-        var jaTemTecnico = await _suporteRepository.ExisteAlgumAsync(cancellationToken);
-        if (jaTemTecnico && !User.IsInRole("Suporte"))
-        {
-            // Nao diz "ja existe tecnico": isso confirmaria, para quem esta
-            // sondando, que a instalacao tem suporte configurado.
-            return Unauthorized(new { error = "Só um técnico de suporte pode cadastrar outro." });
-        }
+        // Anonimo e nao-Criador recebem a mesma recusa: dizer "so o Criador" a quem
+        // nao esta logado confirmaria, a quem esta sondando, quem manda aqui.
+        if (!User.IsInRole(Papeis.Criador))
+            return Unauthorized(new { error = "Só o Criador da plataforma pode cadastrar técnicos de suporte." });
 
         if (!PasswordPolicy.IsValid(request.Password))
             return BadRequest(new { error = PasswordPolicy.Description });
@@ -96,9 +89,11 @@ public class SuporteAuthController : ControllerBase
         await _suporteRepository.AddAsync(suporte, cancellationToken);
         await _suporteRepository.SaveChangesAsync(cancellationToken);
 
-        var token = _jwtTokenService.GenerateSuporteToken(suporte);
+        await _auditoria.RegistrarAsync(
+            "suporte.cadastrado", nameof(SuporteUser), suporte.Id.ToString(),
+            cancellationToken: cancellationToken);
 
-        return Ok(new SuporteAuthResponse(token, suporte.Id, suporte.Name, suporte.Email));
+        return Ok(new SuporteAuthResponse(string.Empty, suporte.Id, suporte.Name, suporte.Email));
     }
 
     [AllowAnonymous]
@@ -114,6 +109,11 @@ public class SuporteAuthController : ControllerBase
 
         if (result == PasswordVerificationResult.Failed)
             return Unauthorized(new { error = "E-mail ou senha inválidos." });
+
+        // O login do tecnico e o primeiro rastro do que ele faz depois.
+        await _auditoria.RegistrarComoAsync(
+            suporte.Id, Papeis.Suporte, suporte.Name, "login.suporte", nameof(SuporteUser),
+            recursoId: suporte.Id.ToString(), cancellationToken: cancellationToken);
 
         var token = _jwtTokenService.GenerateSuporteToken(suporte);
 

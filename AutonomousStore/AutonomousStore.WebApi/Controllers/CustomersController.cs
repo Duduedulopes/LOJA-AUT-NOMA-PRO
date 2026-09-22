@@ -1,4 +1,6 @@
-﻿using AutonomousStore.Domain.Entities;
+﻿using AutonomousStore.Domain.Common;
+using System.Security.Claims;
+using AutonomousStore.Domain.Entities;
 using AutonomousStore.Domain.Repositories;
 using AutonomousStore.WebApi.Contracts.Customers;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +26,11 @@ public class CustomersController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CustomerResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
+        // Quem pode LER: o proprio comprador, o Admin (da mesma empresa: o filtro do banco
+        // ja garante) e o Criador. Para os outros, 404 — um 403 confirmaria que o id existe.
+        if (!PodeVer(id))
+            return NotFound();
+
         var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
 
         if (customer is null)
@@ -38,6 +45,11 @@ public class CustomersController : ControllerBase
         AddPaymentMethodRequest request,
         CancellationToken cancellationToken)
     {
+        // So o PROPRIO comprador altera o cadastro dele. Antes, qualquer usuario logado trocava
+        // o e-mail de qualquer outro pelo id — e, com o "esqueci minha senha", tomava a conta.
+        if (!PodeMexer(id))
+            return NotFound();
+
         var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
 
         if (customer is null)
@@ -63,6 +75,11 @@ public class CustomersController : ControllerBase
         Guid paymentMethodId,
         CancellationToken cancellationToken)
     {
+        // So o PROPRIO comprador altera o cadastro dele. Antes, qualquer usuario logado trocava
+        // o e-mail de qualquer outro pelo id — e, com o "esqueci minha senha", tomava a conta.
+        if (!PodeMexer(id))
+            return NotFound();
+
         var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
 
         if (customer is null)
@@ -80,6 +97,11 @@ public class CustomersController : ControllerBase
         Guid paymentMethodId,
         CancellationToken cancellationToken)
     {
+        // So o PROPRIO comprador altera o cadastro dele. Antes, qualquer usuario logado trocava
+        // o e-mail de qualquer outro pelo id — e, com o "esqueci minha senha", tomava a conta.
+        if (!PodeMexer(id))
+            return NotFound();
+
         var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
 
         if (customer is null)
@@ -106,6 +128,11 @@ public class CustomersController : ControllerBase
         UpdateProfileRequest request,
         CancellationToken cancellationToken)
     {
+        // So o PROPRIO comprador altera o cadastro dele. Antes, qualquer usuario logado trocava
+        // o e-mail de qualquer outro pelo id — e, com o "esqueci minha senha", tomava a conta.
+        if (!PodeMexer(id))
+            return NotFound();
+
         var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
 
         if (customer is null)
@@ -132,6 +159,11 @@ public class CustomersController : ControllerBase
         ChangeEmailRequest request,
         CancellationToken cancellationToken)
     {
+        // So o PROPRIO comprador altera o cadastro dele. Antes, qualquer usuario logado trocava
+        // o e-mail de qualquer outro pelo id — e, com o "esqueci minha senha", tomava a conta.
+        if (!PodeMexer(id))
+            return NotFound();
+
         var customer = await _customerRepository.GetByIdAsync(id, cancellationToken);
 
         if (customer is null)
@@ -155,6 +187,24 @@ public class CustomersController : ControllerBase
 
         return Ok(ToResponse(customer));
     }
+
+    // ── quem pode o quê sobre um cadastro ────────────────────────────────
+
+    /// <summary>O id do comprador logado, lido do token.</summary>
+    private Guid? EuMesmo()
+    {
+        var meu = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return Guid.TryParse(meu, out var eu) ? eu : null;
+    }
+
+    private bool EhOProprio(Guid id) => EuMesmo() == id;
+
+    private bool PodeVer(Guid id)
+        => EhOProprio(id) || User.IsInRole(Papeis.Admin) || User.IsInRole(Papeis.Criador);
+
+    // O Admin ve os compradores da empresa dele, mas nao mexe no cadastro pessoal deles.
+    // O tecnico usa /api/suporte/compradores, que devolve o dado mascarado.
+    private bool PodeMexer(Guid id) => EhOProprio(id);
 
     private static CustomerResponse ToResponse(Customer customer) => new(
         customer.Id,

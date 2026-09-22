@@ -5,6 +5,7 @@ using AutonomousStore.WebApi.Contracts.Sessions;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using AutonomousStore.Domain.Common;
 
 namespace AutonomousStore.WebApi.Controllers;
 
@@ -537,7 +538,7 @@ public class SessionsController : ControllerBase
     /// </remarks>
     private bool PodeVerSessaoDe(Guid customerId)
     {
-        if (User.IsInRole("Admin") || User.IsInRole("Suporte")) return true;
+        if (User.IsInRole(Papeis.Admin) || User.IsInRole(Papeis.Suporte) || User.IsInRole(Papeis.Criador)) return true;
 
         var meu = User.FindFirstValue(ClaimTypes.NameIdentifier)
                ?? User.FindFirstValue("sub");

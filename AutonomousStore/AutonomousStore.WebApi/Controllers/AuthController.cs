@@ -7,11 +7,15 @@ using AutonomousStore.WebApi.Services;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using AutonomousStore.WebApi.Filters;
 
 namespace AutonomousStore.WebApi.Controllers;
 
+// O comprador pertence a UMA empresa. Cadastro, login e "esqueci a senha" so
+// fazem sentido sabendo qual — o app diz pelo link/QR da loja (X-Empresa).
 [ApiController]
 [Route("api/auth")]
+[ExigeEmpresa]
 public class AuthController : ControllerBase
 {
     private readonly ICustomerRepository _customerRepository;

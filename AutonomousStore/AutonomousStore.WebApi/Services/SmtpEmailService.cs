@@ -9,16 +9,39 @@ public interface IEmailService
     Task SendPasswordResetEmailAsync(string toEmail, string customerName, string resetLink, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Envia os e-mails do sistema (boas-vindas e redefinição de senha) pelo SMTP configurado.
+///
+/// O INTERRUPTOR <c>Email:Habilitado</c>. Em <c>Development</c> o padrão é DESLIGADO; em qualquer outro ambiente, LIGADO.
+/// Existe porque o <c>appsettings.Development.json</c> guarda a senha SMTP de verdade: sem ele, rodar a API para testar e
+/// cadastrar um comprador de mentira mandava um "Bem-vindo(a)" real, pela conta do dono, para o endereço digitado — inclusive
+/// endereços de terceiros. Quem quiser receber e-mail em desenvolvimento liga de propósito, no
+/// <c>appsettings.Development.json</c>: <c>"Email": { "Habilitado": true }</c>.
+///
+/// O valor NÃO fica no <c>appsettings.json</c> versionado: lá, "true" valeria também para o <c>Development</c> e desfaria o padrão seguro.
+/// </summary>
 public class SmtpEmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment _ambiente;
     private readonly ILogger<SmtpEmailService> _logger;
 
-    public SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailService> logger)
+    public SmtpEmailService(IConfiguration configuration, IHostEnvironment ambiente, ILogger<SmtpEmailService> logger)
     {
         _configuration = configuration;
+        _ambiente = ambiente;
         _logger = logger;
     }
+
+    /// <summary>
+    /// O e-mail está ligado neste ambiente? <c>Email:Habilitado</c> manda quando existe e é um booleano válido; sem ele,
+    /// liga em qualquer ambiente menos no <c>Development</c>. Valor ilegível ("talvez") cai no padrão do ambiente: na
+    /// dúvida, o que é seguro para aquele ambiente.
+    /// </summary>
+    public static bool EstaHabilitado(IConfiguration configuracao, IHostEnvironment ambiente)
+        => bool.TryParse(configuracao.GetSection("Email")["Habilitado"], out var escolhido)
+            ? escolhido
+            : !ambiente.IsDevelopment();
 
     public async Task SendWelcomeEmailAsync(string toEmail, string customerName, CancellationToken cancellationToken = default)
     {
@@ -36,6 +59,12 @@ public class SmtpEmailService : IEmailService
 
     public async Task SendPasswordResetEmailAsync(string toEmail, string customerName, string resetLink, CancellationToken cancellationToken = default)
     {
+        // Com o e-mail desligado em desenvolvimento, "esqueci minha senha" ficaria impossível de testar: o link só existia
+        // dentro do e-mail. Aqui ele vai para o log — SÓ em Development e SÓ com o envio desligado, porque o link é uma
+        // credencial de uma hora e nenhum log de produção deve tê-la.
+        if (!EstaHabilitado(_configuration, _ambiente) && _ambiente.IsDevelopment())
+            _logger.LogInformation("Link de redefinição de senha de {Email} (só em Development, com o e-mail desligado): {Link}", toEmail, resetLink);
+
         await SendAsync(
             toEmail,
             "Redefinição de senha — AutonomousStore 🔒",
@@ -46,6 +75,16 @@ public class SmtpEmailService : IEmailService
 
     private async Task SendAsync(string toEmail, string subject, string bodyHtml, string logDescription, CancellationToken cancellationToken)
     {
+        // ANTES de olhar as credenciais: desligado e desligado, mesmo com a senha preenchida.
+        if (!EstaHabilitado(_configuration, _ambiente))
+        {
+            _logger.LogWarning(
+                "{Description} NÃO enviado para {Email}: o envio de e-mail está desligado no ambiente {Ambiente} (Email:Habilitado). "
+                + "Para ligar, defina \"Email\": {{ \"Habilitado\": true }} no appsettings do ambiente.",
+                logDescription, toEmail, _ambiente.EnvironmentName);
+            return;
+        }
+
         var section = _configuration.GetSection("Email");
         var senderEmail = section["SenderEmail"];
         var senderPassword = section["SenderPassword"];

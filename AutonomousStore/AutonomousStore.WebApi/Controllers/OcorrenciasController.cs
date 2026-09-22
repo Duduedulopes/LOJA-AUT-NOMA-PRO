@@ -1,10 +1,13 @@
+using System.Security.Claims;
 using AutonomousStore.Domain.Entities;
 using AutonomousStore.Domain.Enums;
 using AutonomousStore.Domain.Repositories;
 using AutonomousStore.WebApi.Contracts.Ocorrencias;
+using AutonomousStore.WebApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using AutonomousStore.Domain.Common;
 
 namespace AutonomousStore.WebApi.Controllers;
 
@@ -30,7 +33,7 @@ namespace AutonomousStore.WebApi.Controllers;
 /// </remarks>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin,Suporte")]
+[Authorize(Roles = Papeis.Admin + "," + Papeis.DaPlataforma)]
 public class OcorrenciasController : ControllerBase
 {
     /// <summary>O nome do freio da rota anônima. Configurado no Program.cs.</summary>
@@ -38,12 +41,14 @@ public class OcorrenciasController : ControllerBase
 
     private readonly IOcorrenciaRepository _ocorrencias;
     private readonly IRegistradorDeOcorrencia _registrador;
+    private readonly ITenantRepository _empresas;
 
     public OcorrenciasController(
-        IOcorrenciaRepository ocorrencias, IRegistradorDeOcorrencia registrador)
+        IOcorrenciaRepository ocorrencias, IRegistradorDeOcorrencia registrador, ITenantRepository empresas)
     {
         _ocorrencias = ocorrencias;
         _registrador = registrador;
+        _empresas = empresas;
     }
 
     [HttpGet]
@@ -64,17 +69,19 @@ public class OcorrenciasController : ControllerBase
             SeveridadeMinima: severidade,
             Estado: estado,
             CorrelationId: correlationId,
-            Limite: limite <= 0 ? 200 : limite);
+            Limite: limite <= 0 ? 200 : limite,
+            EmailDoAdmin: EmailSeForAdmin);
 
         var achadas = await _ocorrencias.BuscarAsync(filtro, cancellationToken);
-        return Ok(achadas.Select(ToResponse).ToList());
+        var rotulos = await RotulosAsync(achadas, cancellationToken);
+        return Ok(achadas.Select(o => ToResponse(o, rotulos)).ToList());
     }
 
     /// <summary>O contador do sino.</summary>
     [HttpGet("nao-vistas")]
     public async Task<ActionResult<NaoVistasResponse>> NaoVistas(CancellationToken cancellationToken)
     {
-        var (total, criticas, maisRecente) = await _ocorrencias.NaoVistasAsync(cancellationToken);
+        var (total, criticas, maisRecente) = await _ocorrencias.NaoVistasAsync(EmailSeForAdmin, cancellationToken);
         return Ok(new NaoVistasResponse(total, criticas, maisRecente));
     }
 
@@ -82,18 +89,18 @@ public class OcorrenciasController : ControllerBase
     public async Task<ActionResult<OcorrenciaResponse>> PorId(Guid id, CancellationToken cancellationToken)
     {
         var o = await _ocorrencias.GetByIdAsync(id, cancellationToken);
-        return o is null ? NotFound() : Ok(ToResponse(o));
+        return o is null || !Enxerga(o) ? NotFound() : Ok(ToResponse(o, await RotulosAsync([o], cancellationToken)));
     }
 
     [HttpPost("{id:guid}/vista")]
     public async Task<ActionResult<OcorrenciaResponse>> Vista(Guid id, CancellationToken cancellationToken)
     {
         var o = await _ocorrencias.GetByIdAsync(id, cancellationToken);
-        if (o is null) return NotFound();
+        if (o is null || !Enxerga(o)) return NotFound();
 
         o.MarcarVista();
         await _ocorrencias.SaveChangesAsync(cancellationToken);
-        return Ok(ToResponse(o));
+        return Ok(ToResponse(o, await RotulosAsync([o], cancellationToken)));
     }
 
     [HttpPost("{id:guid}/resolver")]
@@ -101,7 +108,7 @@ public class OcorrenciasController : ControllerBase
         Guid id, ResolverRequest request, CancellationToken cancellationToken)
     {
         var o = await _ocorrencias.GetByIdAsync(id, cancellationToken);
-        if (o is null) return NotFound();
+        if (o is null || !Enxerga(o)) return NotFound();
 
         // QUEM RESOLVEU vem do token, nao do corpo do pedido. Deixar o
         // cliente dizer quem foi e deixar o cliente assinar em nome de
@@ -110,7 +117,7 @@ public class OcorrenciasController : ControllerBase
 
         o.Resolver(quem, request.Nota);
         await _ocorrencias.SaveChangesAsync(cancellationToken);
-        return Ok(ToResponse(o));
+        return Ok(ToResponse(o, await RotulosAsync([o], cancellationToken)));
     }
 
     [HttpPost("{id:guid}/suporte")]
@@ -118,11 +125,27 @@ public class OcorrenciasController : ControllerBase
         Guid id, SuporteRequest request, CancellationToken cancellationToken)
     {
         var o = await _ocorrencias.GetByIdAsync(id, cancellationToken);
-        if (o is null) return NotFound();
+        if (o is null || !Enxerga(o)) return NotFound();
 
         o.EnviarAoSuporte(request.DescricaoDoAdmin);
+
+        // O Admin CHAMA o suporte: daqui em diante ele é a outra ponta da conversa. Sem isto, o tecnico veria o erro na fila
+        // e nao teria com quem falar — a ocorrencia que um detector achou nao tem dono, e o chat so abre quando ha alguem do
+        // outro lado. Como dono, ela tambem passa a aparecer em "Suporte" no menu do Admin, onde ele le a resposta.
+        if (User.IsInRole(Papeis.Admin) && Email() is { Length: > 0 } email)
+        {
+            if (string.IsNullOrWhiteSpace(o.AbertoPor))
+                o.AbertoPorAlguem(email);
+
+            // O que ele escreveu ao chamar vira a primeira fala da conversa, para o tecnico nao chegar sem contexto.
+            if (!string.IsNullOrWhiteSpace(request.DescricaoDoAdmin)
+                && string.Equals(o.AbertoPor, email, StringComparison.OrdinalIgnoreCase))
+            {
+                o.AdicionarMensagem(AutorDaMensagem.Admin, Nome(), email, request.DescricaoDoAdmin, DateTime.UtcNow);
+            }
+        }
         await _ocorrencias.SaveChangesAsync(cancellationToken);
-        return Ok(ToResponse(o));
+        return Ok(ToResponse(o, await RotulosAsync([o], cancellationToken)));
     }
 
     [HttpGet("resumo")]
@@ -134,7 +157,7 @@ public class OcorrenciasController : ControllerBase
         var fim = ate ?? DateTime.UtcNow;
         var ini = desde ?? fim.AddDays(-30);
 
-        var linhas = await _ocorrencias.ResumoAsync(ini, fim, cancellationToken);
+        var linhas = await _ocorrencias.ResumoAsync(ini, fim, EmailSeForAdmin, cancellationToken);
 
         return Ok(new ResumoResponse(
             ini, fim,
@@ -221,30 +244,75 @@ public class OcorrenciasController : ControllerBase
 
     private static string Curto(string s, int limite) => s.Length <= limite ? s : s[..limite];
 
-    private static OcorrenciaResponse ToResponse(Ocorrencia o) => new(
-        o.Id,
-        o.QuandoUtc,
-        o.Sistema,
-        o.Modulo,
-        o.Operacao,
-        o.Tipo.ToString(),
-        o.Severidade.ToString(),
-        o.Descricao,
-        o.DadosEnvolvidosJson,
-        o.SequenciaJson,
-        o.CausaProvavel,
-        o.CausaRaiz,
-        o.Impacto,
-        o.Recomendacao.ToString(),
-        o.AcaoExecutada,
-        o.Resultado,
-        o.Estado.ToString(),
-        o.CorrelationId,
-        o.VistaEm,
-        o.ResolvidaEm,
-        o.ResolvidaPor,
-        o.NotaDoAdmin,
-        o.VezesVistas,
-        o.UltimaVezUtc,
-        o.AbertoPor);
+    // ── quem esta do outro lado do token ─────────────────────────────────
+
+    /// <summary>O técnico enxerga os dados de pessoas MASCARADOS; Admin e Criador, não.</summary>
+    private bool Mascarar => User.IsInRole(Papeis.Suporte);
+
+    private bool EhDaPlataforma => User.IsInRole(Papeis.Suporte) || User.IsInRole(Papeis.Criador);
+
+    private string? Email() => User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
+
+    private string Nome() => User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("name") ?? Email() ?? "sem nome";
+
+    /// <summary>
+    /// Para o Admin, o e-mail dele — que liga o filtro "só o que é meu". Para o suporte, nulo: enxerga tudo. Um Admin sem
+    /// e-mail no token recebe um texto que não casa com ninguém: o filtro continua ligado, e ele não enxerga pedido nenhum
+    /// (falha fechada), em vez de voltar a enxergar os dos compradores.
+    /// </summary>
+    private string? EmailSeForAdmin => User.IsInRole(Papeis.Admin) ? Email() ?? "sem-email" : null;
+
+    /// <summary>
+    /// O Admin enxerga o que os detectores acharam e os pedidos que ELE escreveu. O pedido de um comprador é do suporte:
+    /// para o Admin, é como se não existisse (404, e não 403 — um 403 confirmaria que o id existe).
+    /// </summary>
+    private bool Enxerga(Ocorrencia o) => !User.IsInRole(Papeis.Admin) || !o.EhPedidoDeOutraPessoa(Email());
+
+    /// <summary>
+    /// Os rótulos ("0042 · Rede Sabor") das empresas de onde vieram estas ocorrências. Só para
+    /// quem opera a plataforma: um Admin só enxerga a própria empresa, e o rótulo não lhe diz nada.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, string>> RotulosAsync(
+        IEnumerable<Ocorrencia> ocorrencias, CancellationToken cancellationToken)
+    {
+        if (!EhDaPlataforma) return new Dictionary<Guid, string>();
+
+        var empresas = await _empresas.GetByIdsAsync(
+            ocorrencias.Select(o => o.TenantId).OfType<Guid>(), cancellationToken);
+
+        return empresas.ToDictionary(e => e.Id, e => e.Rotulo);
+    }
+
+    private OcorrenciaResponse ToResponse(Ocorrencia o, IReadOnlyDictionary<Guid, string> rotulos)
+    {
+        var mascarar = Mascarar;
+
+        return new(
+            o.Id,
+            o.QuandoUtc,
+            o.Sistema,
+            o.Modulo,
+            o.Operacao,
+            o.Tipo.ToString(),
+            o.Severidade.ToString(),
+            o.Descricao,
+            mascarar ? MascaraParaSuporte.DadosEnvolvidos(o.DadosEnvolvidosJson) : o.DadosEnvolvidosJson,
+            o.SequenciaJson,
+            o.CausaProvavel,
+            o.CausaRaiz,
+            o.Impacto,
+            o.Recomendacao.ToString(),
+            o.AcaoExecutada,
+            o.Resultado,
+            o.Estado.ToString(),
+            o.CorrelationId,
+            o.VistaEm,
+            o.ResolvidaEm,
+            o.ResolvidaPor,
+            o.NotaDoAdmin,
+            o.VezesVistas,
+            o.UltimaVezUtc,
+            mascarar ? MascaraParaSuporte.Email(o.AbertoPor) : o.AbertoPor,
+            o.TenantId is { } t && rotulos.TryGetValue(t, out var rotulo) ? rotulo : null);
+    }
 }

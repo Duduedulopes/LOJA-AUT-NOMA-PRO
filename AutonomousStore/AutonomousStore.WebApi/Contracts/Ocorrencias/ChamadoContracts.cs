@@ -13,7 +13,10 @@ public record AbrirChamadoRequest(
     string Assunto,
     string Texto,
     bool EhMudanca = false,
-    string? Pagina = null);
+    string? Pagina = null,
+    // Só vale para quem opera a plataforma (técnico e Criador): abrir um chamado preventivo
+    // ou interno EM NOME de uma empresa. Para os demais e ignorado — a empresa deles vem do token.
+    Guid? EmpresaId = null);
 
 /// <summary>Uma resposta dentro de um chamado.</summary>
 public record ResponderRequest(string Texto);
@@ -37,4 +40,6 @@ public record ChamadoResponse(
     Guid CorrelationId,
     DateTime? UltimaMensagemUtc,
     int Mensagens,
-    IReadOnlyList<MensagemResponse> Conversa);
+    IReadOnlyList<MensagemResponse> Conversa,
+    // A empresa de onde veio, para quem opera a plataforma (código + nome fantasia).
+    string? Empresa = null);
