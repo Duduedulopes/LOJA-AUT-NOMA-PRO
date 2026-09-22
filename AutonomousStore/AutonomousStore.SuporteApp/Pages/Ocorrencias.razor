@@ -128,6 +128,33 @@
             </div>
 
             <table class="tabela-ocorrencias">
+                @if (_correlationId is not null)
+                {
+                    <colgroup>
+                        <col style="width: 4%" />
+                        <col style="width: 11%" />
+                        <col style="width: 12%" />
+                        <col style="width: 12%" />
+                        <col style="width: 8%" />
+                        <col style="width: 8%" />
+                        <col style="width: 25%" />
+                        <col style="width: 8%" />
+                        <col style="width: 12%" />
+                    </colgroup>
+                }
+                else
+                {
+                    <colgroup>
+                        <col style="width: 12%" />
+                        <col style="width: 13%" />
+                        <col style="width: 13%" />
+                        <col style="width: 9%" />
+                        <col style="width: 8%" />
+                        <col style="width: 27%" />
+                        <col style="width: 8%" />
+                        <col style="width: 10%" />
+                    </colgroup>
+                }
                 <thead>
                     <tr>
                         @if (_correlationId is not null)

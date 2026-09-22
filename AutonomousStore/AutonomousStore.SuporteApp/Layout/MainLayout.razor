@@ -56,7 +56,7 @@
            ocorrências. Isso não aparece para quem ainda não entrou. *@
         @if (AppState.IsAuthenticated)
         {
-            <GerenteChat Perfil="PerfilDeQuemFala.Chefe" />
+            <GerenteChat Perfil="PerfilDeQuemFala.Tecnico(AppState.SuporteName)" />
         }
     </main>
 

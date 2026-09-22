@@ -1250,13 +1250,20 @@ input::placeholder {
         margin-right: 6px;
     }
 
-    .tabela-ocorrencias { width: 100%; border-collapse: collapse; }
+    /* Revisão: a barra de rolagem lateral resolvia o vazamento, mas o Eduardo prefere a tabela caber inteira. Com
+       largura FIXA por coluna (o <colgroup> de cada página) o navegador para de alargar a tabela pelo conteúdo —
+       um token sem espaço (nome de classe, caminho de API) agora QUEBRA dentro da própria coluna, em vez de
+       empurrar a tabela pra fora. `.lista` mantém overflow-x como rede de segurança, não como plano principal. */
+    .lista { overflow-x: auto; }
+
+    .tabela-ocorrencias { width: 100%; table-layout: fixed; border-collapse: collapse; }
     .tabela-ocorrencias th, .tabela-ocorrencias td {
         text-align: left;
         padding: 12px 14px;
         border-bottom: 1px solid var(--line);
         font-size: 14px;
         vertical-align: top;
+        overflow-wrap: anywhere;
     }
     .tabela-ocorrencias th {
         color: var(--ink-3);
@@ -1267,8 +1274,8 @@ input::placeholder {
     }
     .tabela-ocorrencias tbody tr { cursor: pointer; transition: background .1s; }
     .tabela-ocorrencias tbody tr:hover { background: var(--surface-alto, var(--tint-violeta)); }
-    .tabela-ocorrencias .quando { white-space: nowrap; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-    .tabela-ocorrencias .descricao { color: var(--ink-2); max-width: 420px; }
+    .tabela-ocorrencias .quando { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+    .tabela-ocorrencias .descricao { color: var(--ink-2); }
     .tabela-ocorrencias .acao-col { text-align: right; }
     .tabela-ocorrencias tr.severidade-critica { background: oklch(0.99 0.015 25); }
     [data-tema="escuro"] .tabela-ocorrencias tr.severidade-critica { background: oklch(0.35 0.05 25); }
@@ -1487,10 +1494,9 @@ input::placeholder {
     outline-offset: 1px;
 }
 
-/* O numero do passo no rastro. Tabular para os digitos nao dancarem
-   quando a lista passa de 9. */
+/* O numero do passo no rastro. Tabular para os digitos nao dancarem quando a lista passa de 9. A largura vem do
+   <colgroup> da página agora (table-layout: fixed) — repeti-la aqui não faz mal, mas o dono da largura é lá. */
 .tabela-ocorrencias .passo-col {
-    width: 34px;
     text-align: right;
     color: var(--ink-3);
     font-variant-numeric: tabular-nums;
