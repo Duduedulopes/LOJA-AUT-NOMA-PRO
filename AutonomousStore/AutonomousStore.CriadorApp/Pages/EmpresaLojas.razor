@@ -1,0 +1,245 @@
+@page "/empresas/{EmpresaId:guid}/lojas"
+@inject IPlatformApiService PlatformApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<p class="hint"><a href="/empresas">← Empresas</a></p>
+<h1>Lojas @(_empresa is null ? "" : $"— {_empresa.Nome}")</h1>
+<p class="hint">Abrir, renomear, desativar e reativar lojas é feito aqui, pelo Criador ou pelo suporte — não pelo Admin da empresa.</p>
+
+@if (!string.IsNullOrEmpty(_erro))
+{
+    <div class="error-message">@_erro</div>
+}
+
+@if (!string.IsNullOrEmpty(_sucesso))
+{
+    <div class="notification-bar"><span class="notification-pill pill-ok">
+        <span class="pill-dot"></span> @_sucesso</span></div>
+}
+
+@if (_carregando)
+{
+    <p class="hint">Carregando...</p>
+}
+else if (_dados is not null)
+{
+    <div class="card">
+        <h3 class="category-heading">Plano desta empresa</h3>
+        <span class="badge @(NoLimite ? "badge-low" : "badge-ok")">@_dados.Ativas de @_dados.Limite loja(s) ativa(s)</span>
+        @if (NoLimite)
+        {
+            <p class="hint" style="margin-top: 12px;">
+                No limite. Para abrir outra loja, desative uma das atuais ou <a href="/empresas">amplie o limite</a> desta empresa.
+            </p>
+        }
+    </div>
+
+    <div class="card">
+        <h3 class="category-heading">Nova loja</h3>
+
+        <EditForm Model="_nova" OnValidSubmit="CriarAsync">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <InputText @bind-Value="_nova.Nome" maxlength="200" disabled="@NoLimite" />
+                </div>
+                <div class="form-group">
+                    <label>Segmento (opcional)</label>
+                    <InputText @bind-Value="_nova.Segmento" maxlength="100" placeholder="ex: Comida, Roupa" disabled="@NoLimite" />
+                </div>
+            </div>
+            <button class="btn-primary btn-auto" type="submit" disabled="@(NoLimite || _ocupado)">
+                @(_ocupado ? "Salvando..." : "Cadastrar loja")
+            </button>
+        </EditForm>
+    </div>
+
+    <div class="card">
+        <h3 class="category-heading">Lojas (@_dados.Lojas.Count)</h3>
+
+        @if (_dados.Lojas.Count == 0)
+        {
+            <p class="hint">Nenhuma loja cadastrada ainda. Use o formulário acima.</p>
+        }
+        else
+        {
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Segmento</th>
+                            <th>Situação</th>
+                            <th>Criada em</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loja in _dados.Lojas)
+                        {
+                            <tr>
+                                @if (_editandoId == loja.Id)
+                                {
+                                    <td><div class="inline-form"><input type="text" @bind="_editNome" @bind:event="oninput" maxlength="200" /></div></td>
+                                    <td><div class="inline-form"><input type="text" @bind="_editSegmento" @bind:event="oninput" maxlength="100" /></div></td>
+                                }
+                                else
+                                {
+                                    <td>@loja.Nome</td>
+                                    <td>@(loja.Segmento ?? "—")</td>
+                                }
+                                <td><span class="badge @(loja.Ativa ? "badge-ok" : "")">@(loja.Ativa ? "Ativa" : "Desativada")</span></td>
+                                <td>@loja.CriadaEm.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <div class="inline-form">
+                                        @if (_editandoId == loja.Id)
+                                        {
+                                            <button class="btn-primary btn-small" disabled="@_ocupado" @onclick="() => SalvarEdicaoAsync(loja)">Salvar</button>
+                                            <button class="btn-primary btn-small btn-ghost" disabled="@_ocupado" @onclick="CancelarEdicao">Cancelar</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-primary btn-small btn-outline" disabled="@_ocupado" @onclick="() => Editar(loja)">Renomear</button>
+                                            @if (loja.Ativa)
+                                            {
+                                                <button class="btn-primary btn-small btn-suave" disabled="@_ocupado" @onclick="() => DesativarAsync(loja)">Desativar</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn-primary btn-small btn-outline"
+                                                        disabled="@(_ocupado || NoLimite)"
+                                                        title="@(NoLimite ? "O plano está no limite: desative outra loja antes." : null)"
+                                                        @onclick="() => AtivarAsync(loja)">Reativar</button>
+                                            }
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid EmpresaId { get; set; }
+
+    private EmpresaDto? _empresa;
+    private LojasDaEmpresaDto? _dados;
+    private NovaLojaModel _nova = new();
+    private Guid? _editandoId;
+    private string _editNome = "";
+    private string? _editSegmento;
+    private bool _carregando = true;
+    private bool _ocupado;
+    private string? _erro;
+    private string? _sucesso;
+
+    private bool NoLimite => _dados is not null && _dados.Ativas >= _dados.Limite;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var (okEmpresas, empresas, _) = await PlatformApi.EmpresasAsync();
+        _empresa = empresas?.FirstOrDefault(e => e.Id == EmpresaId);
+
+        await CarregarAsync();
+    }
+
+    private async Task CarregarAsync()
+    {
+        var (ok, dados, erro) = await PlatformApi.LojasDaEmpresaAsync(EmpresaId);
+
+        if (ok)
+            _dados = dados;
+        else
+            _erro = erro ?? "Não foi possível carregar as lojas.";
+
+        _carregando = false;
+    }
+
+    private async Task<bool> ExecutarAsync(
+        Func<Task<(bool Success, LojaDaEmpresaDto? Data, string? Error)>> acao, string sucesso, string falhaPadrao)
+    {
+        _erro = null;
+        _sucesso = null;
+        _ocupado = true;
+
+        var (ok, _, erro) = await acao();
+
+        if (ok) _sucesso = sucesso;
+        else _erro = erro ?? falhaPadrao;
+
+        await CarregarAsync();
+        _ocupado = false;
+
+        return ok;
+    }
+
+    private async Task CriarAsync()
+    {
+        var nome = _nova.Nome?.Trim() ?? "";
+        if (nome.Length == 0)
+        {
+            _sucesso = null;
+            _erro = "Informe o nome da loja.";
+            return;
+        }
+
+        var ok = await ExecutarAsync(
+            () => PlatformApi.CriarLojaAsync(EmpresaId, nome, _nova.Segmento),
+            $"Loja \"{nome}\" cadastrada.", "Não foi possível cadastrar a loja.");
+
+        if (ok) _nova = new NovaLojaModel();
+    }
+
+    private void Editar(LojaDaEmpresaDto loja)
+    {
+        _erro = null;
+        _sucesso = null;
+        _editandoId = loja.Id;
+        _editNome = loja.Nome;
+        _editSegmento = loja.Segmento;
+    }
+
+    private void CancelarEdicao() => _editandoId = null;
+
+    private async Task SalvarEdicaoAsync(LojaDaEmpresaDto loja)
+    {
+        var nome = _editNome?.Trim() ?? "";
+        if (nome.Length == 0)
+        {
+            _sucesso = null;
+            _erro = "Informe o nome da loja.";
+            return;
+        }
+
+        var ok = await ExecutarAsync(
+            () => PlatformApi.AtualizarLojaAsync(EmpresaId, loja.Id, nome, _editSegmento),
+            $"Loja \"{nome}\" atualizada.", "Não foi possível atualizar a loja.");
+
+        if (ok) _editandoId = null;
+    }
+
+    private Task DesativarAsync(LojaDaEmpresaDto loja) => ExecutarAsync(
+        () => PlatformApi.DesativarLojaAsync(EmpresaId, loja.Id),
+        $"Loja \"{loja.Nome}\" desativada.", "Não foi possível desativar a loja.");
+
+    private Task AtivarAsync(LojaDaEmpresaDto loja) => ExecutarAsync(
+        () => PlatformApi.AtivarLojaAsync(EmpresaId, loja.Id),
+        $"Loja \"{loja.Nome}\" reativada.", "Não foi possível reativar a loja.");
+
+    private class NovaLojaModel
+    {
+        public string Nome { get; set; } = "";
+        public string? Segmento { get; set; }
+    }
+}

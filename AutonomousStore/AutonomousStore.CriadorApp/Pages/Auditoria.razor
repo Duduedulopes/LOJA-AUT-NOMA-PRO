@@ -1,0 +1,170 @@
+@page "/auditoria"
+@using System.Globalization
+@inject IPlatformApiService PlatformApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Auditoria</h1>
+<p class="hint">Tudo que mexeu numa empresa, desde o começo. Este registro só acrescenta — nada aqui é apagado ou alterado.</p>
+
+@if (!string.IsNullOrEmpty(_erro))
+{
+    <div class="error-message">@_erro</div>
+}
+
+<div class="card">
+    <div class="form-grid">
+        <div class="form-group">
+            <label>Empresa</label>
+            <select @bind="_empresaId" @bind:after="Recarregar">
+                <option value="">todas</option>
+                @foreach (var e in _empresas)
+                {
+                    <option value="@e.Id">@Rotulo(e)</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Ação</label>
+            <select @bind="_acao" @bind:after="Recarregar">
+                <option value="">todas</option>
+                @foreach (var a in Acoes)
+                {
+                    <option value="@a">@a</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Período</label>
+            <select @bind="_dias" @bind:after="Recarregar">
+                <option value="1">hoje</option>
+                <option value="7">últimos 7 dias</option>
+                <option value="30">últimos 30 dias</option>
+                <option value="90">últimos 90 dias</option>
+                <option value="0">tudo</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 class="category-heading">Registros (@_lista.Count)</h3>
+
+    @if (_carregando)
+    {
+        <p class="hint">Carregando...</p>
+    }
+    else if (_lista.Count == 0)
+    {
+        <p class="hint">Nada com esses filtros.</p>
+    }
+    else
+    {
+        <div class="data-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Quando</th>
+                        <th>Quem</th>
+                        <th>Ação</th>
+                        <th>Recurso</th>
+                        <th>Empresa</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _lista)
+                    {
+                        <tr>
+                            <td>@a.QuandoUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", PtBr)</td>
+                            <td>
+                                @a.AtorNome
+                                <div class="hint">@a.AtorPapel</div>
+                            </td>
+                            <td><span class="badge">@a.Acao</span></td>
+                            <td>
+                                @a.Recurso
+                                @if (!string.IsNullOrEmpty(a.RecursoId))
+                                {
+                                    <div class="hint">@Curto(a.RecursoId)</div>
+                                }
+                            </td>
+                            <td>@(a.TenantAlvoId is { } id ? RotuloDaEmpresa(id) : "—")</td>
+                            <td>@(a.Motivo ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
+
+    // As mesmas strings que os controllers gravam (loja.*, empresa.*, criador.*, comprador.*, login.*, suporte.cadastrado).
+    private static readonly string[] Acoes =
+    {
+        "criador.criado", "login.criador",
+        "empresa.criada", "empresa.suspensa", "empresa.reativada", "empresa.limite-de-lojas",
+        "loja.criada", "loja.desativada", "loja.reativada",
+        "suporte.cadastrado", "login.suporte",
+        "comprador.cadastrado", "comprador.revelado",
+    };
+
+    private List<AuditoriaDto> _lista = new();
+    private List<EmpresaDto> _empresas = new();
+    private string _empresaId = "";
+    private string _acao = "";
+    private string _dias = "30";
+    private bool _carregando = true;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var (ok, dados, _) = await PlatformApi.EmpresasAsync();
+        if (ok) _empresas = (dados ?? new()).OrderBy(e => e.Codigo).ToList();
+
+        await Recarregar();
+    }
+
+    private async Task Recarregar()
+    {
+        _carregando = true;
+        _erro = null;
+        StateHasChanged();
+
+        DateTime? desde = null;
+        if (int.TryParse(_dias, NumberStyles.Integer, CultureInfo.InvariantCulture, out var d) && d > 0)
+            desde = DateTime.UtcNow.Date.AddDays(-(d - 1));
+
+        var (ok, dados, erro) = await PlatformApi.AuditoriaAsync(
+            desde: desde,
+            empresaId: string.IsNullOrEmpty(_empresaId) ? null : Guid.Parse(_empresaId),
+            acao: string.IsNullOrEmpty(_acao) ? null : _acao,
+            limite: 500);
+
+        if (ok)
+            _lista = dados ?? new();
+        else
+            _erro = erro ?? "Não foi possível carregar a auditoria.";
+
+        _carregando = false;
+    }
+
+    private string RotuloDaEmpresa(Guid id)
+    {
+        var empresa = _empresas.FirstOrDefault(e => e.Id == id);
+        return empresa is null ? Curto(id.ToString()) : Rotulo(empresa);
+    }
+
+    private static string Rotulo(EmpresaDto e) => $"{e.Codigo:D4} · {e.Nome}";
+
+    private static string Curto(string texto) => texto.Length > 8 ? texto[..8] + "…" : texto;
+}

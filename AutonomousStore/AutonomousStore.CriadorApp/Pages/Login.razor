@@ -1,0 +1,140 @@
+@page "/login"
+@inject ICriadorAuthApiService AuthApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-icon">
+            <img src="img/logo-mark-alpha.png" alt="" width="40" height="40" />
+        </div>
+        <h1 class="auth-title">Painel do Criador</h1>
+        <p class="auth-subtitle">Acesso restrito ao dono da plataforma — vê e controla todas as empresas.</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="error-message">@_errorMessage</div>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="HandleLogin">
+            <div class="form-group">
+                <label>E-mail</label>
+                <InputText @bind-Value="_model.Email" type="email" />
+            </div>
+
+            <div class="form-group">
+                <label>Senha</label>
+                <InputText @bind-Value="_model.Password" type="password" />
+            </div>
+
+            <button type="submit" class="btn-primary" disabled="@_isLoading">
+                @(_isLoading ? "Entrando..." : "Entrar")
+            </button>
+
+            @* Sem "criar conta": o primeiro Criador nasce pelo código de instalação (Swagger), e
+               ele mesmo cadastra empresas e técnicos depois de logado — nunca por esta tela. *@
+        </EditForm>
+    </div>
+</div>
+
+<style>
+    .auth-wrapper {
+        min-height: calc(100vh - 84px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+    .auth-card {
+        width: 100%;
+        max-width: 420px;
+        padding: 32px 28px;
+        border-radius: 20px;
+        background: var(--surface-solid);
+        border: 1px solid var(--line);
+        box-shadow: var(--sombra-card);
+    }
+    .auth-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        background: var(--marca);
+        display: grid;
+        place-items: center;
+        margin-bottom: 20px;
+    }
+    .auth-title { margin: 0 0 4px; font-size: 24px; }
+    .auth-subtitle { margin: 0 0 22px; color: var(--ink-3); font-size: 14px; }
+    .error-message {
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: oklch(0.96 0.04 25);
+        color: var(--danger);
+        font-size: 14px;
+        margin-bottom: 16px;
+    }
+    .form-group { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+    .form-group input, .form-group .form-group input {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: var(--surface-solid);
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 14px;
+    }
+    .form-group input:focus {
+        outline: 2px solid var(--acao-violeta);
+        outline-offset: 1px;
+        border-color: transparent;
+    }
+    .btn-primary {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        border: 0;
+        border-radius: 12px;
+        background: var(--marca);
+        color: var(--sobre-acao);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: filter .15s;
+    }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.05); }
+    .btn-primary:disabled { opacity: .55; cursor: progress; }
+</style>
+
+@code {
+    private bool _isLoading;
+    private string? _errorMessage;
+
+    private readonly LoginModel _model = new();
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        var (success, response, error) = await AuthApi.LoginAsync(_model.Email, _model.Password);
+
+        _isLoading = false;
+
+        if (!success || response is null)
+        {
+            _errorMessage = error;
+            return;
+        }
+
+        AppState.Login(response.Token, response.Name, response.Email);
+        Nav.NavigateTo("/");
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
+}

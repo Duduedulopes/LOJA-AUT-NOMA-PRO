@@ -1,0 +1,248 @@
+@page "/empresas"
+@inject IPlatformApiService PlatformApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Empresas</h1>
+<p class="hint">As assinantes da plataforma. Suspender corta o acesso em até 30 segundos e não apaga nada.</p>
+
+@if (!string.IsNullOrEmpty(_erro))
+{
+    <div class="error-message">@_erro</div>
+}
+
+@if (!string.IsNullOrEmpty(_sucesso))
+{
+    <div class="notification-bar"><span class="notification-pill pill-ok">
+        <span class="pill-dot"></span> @_sucesso</span></div>
+}
+
+<div class="card">
+    <h3 class="category-heading">Cadastrar nova empresa</h3>
+    <p class="hint">Cria a empresa e o primeiro Admin dela, juntos.</p>
+
+    <EditForm Model="_nova" OnValidSubmit="CriarAsync">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nome da empresa</label>
+                <InputText @bind-Value="_nova.Nome" />
+            </div>
+            <div class="form-group">
+                <label>Identificador (slug)</label>
+                <InputText @bind-Value="_nova.Slug" placeholder="ex: rede-sabor" />
+                <span class="hint" style="margin:4px 0 0;">3 a 40 caracteres: letras minúsculas, números e hífen. Vai no link da loja.</span>
+            </div>
+            <div class="form-group">
+                <label>Limite de lojas</label>
+                <InputNumber @bind-Value="_nova.LimiteDeLojas" min="1" />
+            </div>
+        </div>
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Nome do Admin</label>
+                <InputText @bind-Value="_nova.AdminNome" />
+            </div>
+            <div class="form-group">
+                <label>E-mail do Admin</label>
+                <InputText @bind-Value="_nova.AdminEmail" type="email" />
+            </div>
+            <div class="form-group">
+                <label>Senha do Admin</label>
+                <InputText @bind-Value="_nova.AdminSenha" type="password" />
+                <span class="hint" style="margin:4px 0 0;">Mínimo 8 caracteres, com maiúscula, minúscula, número e caractere especial.</span>
+            </div>
+        </div>
+        <button class="btn-primary btn-auto" type="submit" disabled="@_ocupado">
+            @(_ocupado ? "Salvando..." : "Cadastrar empresa")
+        </button>
+    </EditForm>
+</div>
+
+<div class="card">
+    <h3 class="category-heading">Empresas cadastradas (@_empresas.Count)</h3>
+
+    @if (_carregando)
+    {
+        <p class="hint">Carregando empresas...</p>
+    }
+    else if (_empresas.Count == 0)
+    {
+        <p class="hint">Nenhuma empresa cadastrada ainda. Use o formulário acima.</p>
+    }
+    else
+    {
+        <div class="data-table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Identificador</th>
+                        <th>Situação</th>
+                        <th>Limite de lojas</th>
+                        <th>Criada em</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var empresa in _empresas)
+                    {
+                        var estado = _linha[empresa.Id];
+                        <tr>
+                            <td>@($"{empresa.Codigo:D4} · {empresa.Nome}")</td>
+                            <td style="font-family: var(--mono); font-size: 13px;">@empresa.Slug</td>
+                            <td><span class="badge @(empresa.Status == "Ativa" ? "badge-ok" : "badge-out")">@empresa.Status</span></td>
+                            <td>
+                                <div class="inline-form">
+                                    <input type="number" min="1" @bind="estado.Limite" />
+                                    <button class="btn-primary btn-small btn-outline" disabled="@_ocupado"
+                                            @onclick="() => DefinirLimiteAsync(empresa, estado)">Salvar</button>
+                                </div>
+                            </td>
+                            <td>@empresa.CriadaEm.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td>
+                                <div class="inline-form">
+                                    <a class="btn-primary btn-small btn-outline" href="@($"/empresas/{empresa.Id}/lojas")">Lojas</a>
+                                    @if (empresa.Status == "Ativa")
+                                    {
+                                        <button class="btn-primary btn-small btn-suave" disabled="@_ocupado"
+                                                @onclick="() => SuspenderAsync(empresa)">Suspender</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-primary btn-small btn-outline" disabled="@_ocupado"
+                                                @onclick="() => ReativarAsync(empresa)">Reativar</button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<EmpresaDto> _empresas = new();
+    private Dictionary<Guid, LinhaState> _linha = new();
+    private NovaEmpresaModel _nova = new();
+    private bool _carregando = true;
+    private bool _ocupado;
+    private string? _erro;
+    private string? _sucesso;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        await CarregarAsync();
+    }
+
+    private async Task CarregarAsync()
+    {
+        _carregando = true;
+        var (ok, dados, erro) = await PlatformApi.EmpresasAsync();
+
+        if (ok)
+        {
+            _empresas = (dados ?? new()).OrderBy(e => e.Codigo).ToList();
+            _linha = _empresas.ToDictionary(e => e.Id, e => new LinhaState { Limite = e.LimiteDeLojas });
+        }
+        else
+        {
+            _erro = erro ?? "Não foi possível carregar as empresas.";
+        }
+
+        _carregando = false;
+    }
+
+    private async Task CriarAsync()
+    {
+        _erro = null;
+        _sucesso = null;
+        _ocupado = true;
+
+        var (ok, criada, erro) = await PlatformApi.CriarEmpresaAsync(new CriarEmpresaRequest(
+            _nova.Nome, _nova.Slug, _nova.LimiteDeLojas, _nova.AdminNome, _nova.AdminEmail, _nova.AdminSenha));
+
+        _ocupado = false;
+
+        if (!ok || criada is null)
+        {
+            _erro = erro ?? "Não foi possível cadastrar a empresa.";
+            return;
+        }
+
+        _sucesso = $"Empresa \"{criada.Nome}\" cadastrada, com o Admin \"{_nova.AdminNome}\".";
+        _nova = new NovaEmpresaModel();
+        await CarregarAsync();
+    }
+
+    private async Task DefinirLimiteAsync(EmpresaDto empresa, LinhaState estado)
+    {
+        _erro = null;
+        _sucesso = null;
+        _ocupado = true;
+
+        var (ok, _, erro) = await PlatformApi.DefinirLimiteDeLojasAsync(empresa.Id, estado.Limite);
+
+        _ocupado = false;
+
+        if (!ok)
+        {
+            _erro = erro ?? "Não foi possível mudar o limite.";
+            return;
+        }
+
+        _sucesso = $"Limite de \"{empresa.Nome}\" agora é {estado.Limite}.";
+        await CarregarAsync();
+    }
+
+    private Task SuspenderAsync(EmpresaDto empresa) => AlterarAsync(
+        () => PlatformApi.SuspenderAsync(empresa.Id), $"Empresa \"{empresa.Nome}\" suspensa.",
+        "Não foi possível suspender a empresa.");
+
+    private Task ReativarAsync(EmpresaDto empresa) => AlterarAsync(
+        () => PlatformApi.ReativarAsync(empresa.Id), $"Empresa \"{empresa.Nome}\" reativada.",
+        "Não foi possível reativar a empresa.");
+
+    private async Task AlterarAsync(
+        Func<Task<(bool Success, EmpresaDto? Data, string? Error)>> acao, string sucesso, string falhaPadrao)
+    {
+        _erro = null;
+        _sucesso = null;
+        _ocupado = true;
+
+        var (ok, _, erro) = await acao();
+
+        _ocupado = false;
+
+        if (!ok)
+        {
+            _erro = erro ?? falhaPadrao;
+            return;
+        }
+
+        _sucesso = sucesso;
+        await CarregarAsync();
+    }
+
+    private class NovaEmpresaModel
+    {
+        public string Nome { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public int LimiteDeLojas { get; set; } = 1;
+        public string AdminNome { get; set; } = "";
+        public string AdminEmail { get; set; } = "";
+        public string AdminSenha { get; set; } = "";
+    }
+
+    private class LinhaState
+    {
+        public int Limite { get; set; }
+    }
+}

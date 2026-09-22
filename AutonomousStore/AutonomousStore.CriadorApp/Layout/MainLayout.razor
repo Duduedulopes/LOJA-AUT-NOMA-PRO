@@ -1,0 +1,91 @@
+@inherits LayoutComponentBase
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<div class="page">
+    <main>
+        <div class="top-row px-4">
+            <a class="marca" href="/">
+                <img src="img/logo-mark-alpha.png" alt="AutonomousStore" />
+                <span class="marca-texto">
+                    <span class="marca-nome"><b>Autonomous</b><i>Store</i></span>
+                </span>
+            </a>
+
+            <span class="selo-admin selo-criador">Criador</span>
+
+            @if (AppState.IsAuthenticated)
+            {
+                <nav class="admin-nav">
+                    <NavLink href="/" Match="NavLinkMatch.All">Painel</NavLink>
+                    <NavLink href="/empresas">Empresas</NavLink>
+                    <NavLink href="/tecnicos">Técnicos</NavLink>
+                    <NavLink href="/fila">Fila</NavLink>
+                    <NavLink href="/historico">Histórico</NavLink>
+                    <NavLink href="/auditoria">Auditoria</NavLink>
+                </nav>
+            }
+
+            @* SEMPRE VISIVEL, inclusive antes de entrar — mesma razão dos outros apps: a tela de
+               login é a primeira que a pessoa encara, e preferência de leitura não depende de credencial. *@
+            <SeletorDeTema />
+
+            @if (AppState.IsAuthenticated)
+            {
+                <span class="chip-operador">
+                    <span class="chip-operador-avatar">@Inicial()</span>
+                    <span class="chip-operador-nome">@AppState.CriadorName</span>
+                </span>
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+
+        @* O MESMO gerente dos outros três apps — mesma biblioteca, mesmo modelo treinado. Aqui ele
+           atende quem sou eu, o Criador: PerfilDeQuemFala.Criador chama pelo nome, como todo mundo. *@
+        @if (AppState.IsAuthenticated)
+        {
+            <GerenteChat Perfil="PerfilDeQuemFala.Criador(AppState.CriadorName)" />
+        }
+    </main>
+
+    <footer class="rodape">
+        <div class="rodape-marca">
+            <img src="img/logo-mark-alpha.png" alt="" />
+            <span class="rodape-linha">AutonomousStore · Painel do Criador</span>
+        </div>
+        @if (AppState.IsAuthenticated)
+        {
+            <a class="rodape-sair" @onclick="Sair">Sair</a>
+        }
+    </footer>
+</div>
+
+@code {
+    private string Inicial()
+    {
+        var nome = AppState.CriadorName;
+        return string.IsNullOrWhiteSpace(nome) ? "?" : nome.Trim()[0].ToString().ToUpperInvariant();
+    }
+
+    private void Sair()
+    {
+        AppState.Logout();
+        Nav.NavigateTo("/login");
+    }
+
+    protected override void OnInitialized()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            var uri = new Uri(Nav.Uri);
+            if (!uri.AbsolutePath.Contains("/login", StringComparison.OrdinalIgnoreCase))
+            {
+                Nav.NavigateTo("/login");
+            }
+        }
+        AppState.OnChange += StateHasChanged;
+    }
+}

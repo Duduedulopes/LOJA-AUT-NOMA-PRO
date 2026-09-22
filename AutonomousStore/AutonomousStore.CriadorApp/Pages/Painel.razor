@@ -1,0 +1,467 @@
+@page "/"
+@using System.Globalization
+@inject IPlatformApiService PlatformApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Painel</h1>
+<p class="hint">Tudo o que você controla, numa tela só: empresas, lojas, equipe, compradores e o suporte.</p>
+
+@if (!string.IsNullOrEmpty(_erro))
+{
+    <div class="error-message">@_erro</div>
+}
+
+@if (_carregando)
+{
+    <p class="hint">Carregando o painel...</p>
+}
+else if (_painel is not null)
+{
+    @* ═══════════════════════════════════════════════════════════════════════════════════
+       O MAPA DA REDE.
+
+       Não é um gráfico de biblioteca — é a própria hierarquia do produto desenhada: você no
+       centro, cada empresa numa órbita. O raio do nó cresce com o quanto ela usa a plataforma
+       (lojas + compradores); o pulso rosa avisa quem está com o suporte esperando. Nenhum
+       número aqui é decorativo: cada um vem do mesmo /api/platform/painel que alimenta as
+       tabelas logo abaixo — o mapa é outra leitura dos MESMOS dados, não um segundo sistema.
+       ═══════════════════════════════════════════════════════════════════════════════════ *@
+    <div class="card mapa-card">
+        <h3 class="category-heading">Mapa da rede</h3>
+
+        @if (_mapa is null || _mapa.Count == 0)
+        {
+            <p class="hint">Nenhuma empresa cadastrada ainda. Cadastre em <a href="/empresas">Empresas</a>.</p>
+        }
+        else
+        {
+            <svg viewBox="0 0 620 460" class="mapa-svg" role="img" aria-label="Mapa das empresas na plataforma, orbitando o Criador">
+                <defs>
+                    <linearGradient id="marcaGradiente" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="var(--ciano)" />
+                        <stop offset="54%" stop-color="var(--violeta)" />
+                        <stop offset="100%" stop-color="var(--rosa)" />
+                    </linearGradient>
+                    <radialGradient id="marcaHalo" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--violeta)" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="var(--violeta)" stop-opacity="0" />
+                    </radialGradient>
+                    <filter id="marcaBorrao" x="-60%" y="-60%" width="220%" height="220%">
+                        <feGaussianBlur stdDeviation="9" />
+                    </filter>
+                </defs>
+
+                @* o halo por trás de tudo — o mesmo brilho suave que o resto do app usa no fundo, aqui contido no centro *@
+                <circle cx="@Hub.X" cy="@Hub.Y" r="120" fill="url(#marcaHalo)" filter="url(#marcaBorrao)" />
+
+                @* a orbita-guia: mostra que as empresas vivem num raio comum em volta de voce *@
+                <circle cx="@Hub.X" cy="@Hub.Y" r="@N(_orbita)" class="mapa-orbita-guia" />
+
+                @* os fios — curvos, e nao raios retos: um leve giro alternado, como orbitas de verdade *@
+                @foreach (var no in _mapa)
+                {
+                    <path d="@no.Caminho" class="mapa-fio" />
+                }
+
+                @* o hub: voce. Ganha um anel pulsando quando ha chamado grave esperando. *@
+                <circle cx="@Hub.X" cy="@Hub.Y" r="38" fill="url(#marcaGradiente)" class="mapa-hub" />
+                @if (_painel.Suporte.Graves > 0)
+                {
+                    <circle cx="@Hub.X" cy="@Hub.Y" r="38" class="mapa-hub-alerta" />
+                }
+                <image href="img/logo-mark-alpha.png" x="@N(Hub.X - 15)" y="@N(Hub.Y - 15)" width="30" height="30" />
+
+                @foreach (var no in _mapa)
+                {
+                    <g class="mapa-no @(no.Ativa ? "" : "mapa-no-suspensa") @(no.Id == _selecionadoId ? "mapa-no-selecionado" : "")"
+                       @onclick="() => Selecionar(no.Id)">
+                        <title>@no.Tooltip</title>
+                        <circle cx="@no.Cx" cy="@no.Cy" r="@no.Raio" class="mapa-no-corpo" />
+                        @if (no.NaFila > 0)
+                        {
+                            <circle cx="@no.PulsoX" cy="@no.PulsoY" r="5.5" class="mapa-no-pulso" />
+                        }
+                        <text x="@no.Cx" y="@no.RotuloY" text-anchor="middle" class="mapa-no-rotulo">@no.Codigo</text>
+                    </g>
+                }
+            </svg>
+
+            <div class="mapa-legenda">
+                <span class="mapa-legenda-item"><i class="mapa-swatch mapa-swatch-ativa"></i>ativa</span>
+                <span class="mapa-legenda-item"><i class="mapa-swatch mapa-swatch-suspensa"></i>suspensa</span>
+                <span class="mapa-legenda-item"><i class="mapa-swatch mapa-swatch-pulso"></i>com chamado esperando</span>
+                <span class="mapa-legenda-item">tamanho do círculo = lojas + compradores</span>
+            </div>
+        }
+    </div>
+
+    <div class="totais-grid">
+        <div class="card-total">
+            <svg class="stat-icone" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="10" cy="4" r="2.1" /><circle cx="4" cy="16.5" r="1.9" /><circle cx="10" cy="16.5" r="1.9" /><circle cx="16" cy="16.5" r="1.9" />
+                <path d="M10 6.1V10M10 10 4 14.6M10 10v4.6M10 10l6 4.6" />
+            </svg>
+            <span class="card-total-etiqueta">Empresas</span>
+            <span class="valor-destaque">@_painel.Empresas.Ativas de @_painel.Empresas.Total</span>
+            <p class="hint" style="margin:6px 0 0;">@_painel.Empresas.Suspensas suspensa(s)</p>
+        </div>
+        <div class="card-total">
+            <svg class="stat-icone" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 8.5 10 3l7 5.5M4 8.5v8.5h12V8.5M8 17v-5h4v5" />
+            </svg>
+            <span class="card-total-etiqueta">Lojas ativas</span>
+            <span class="valor-destaque">@_painel.Lojas.Ativas de @_painel.Lojas.Limite</span>
+            <p class="hint" style="margin:6px 0 0;">soma das empresas ativas</p>
+        </div>
+        <div class="card-total">
+            <svg class="stat-icone" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M13.6 3.4a4.1 4.1 0 0 0-5.5 4.8L3 13.3V17h3.7l5.1-5.2a4.1 4.1 0 0 0 4.8-5.5l-2.7 2.7-2.1-2.1 2.8-2.5Z" />
+            </svg>
+            <span class="card-total-etiqueta">Técnicos ativos</span>
+            <span class="valor-destaque">@_painel.Tecnicos</span>
+        </div>
+        <div class="card-total">
+            <svg class="stat-icone" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="7" cy="6.3" r="2.6" /><path d="M2.3 17c0-3 2.1-5.1 4.7-5.1s4.7 2.1 4.7 5.1" />
+                <circle cx="14.7" cy="7.3" r="2.1" /><path d="M12.2 12.4c.7-.3 1.5-.5 2.5-.5 2.3 0 4.1 1.9 4.1 4.4" />
+            </svg>
+            <span class="card-total-etiqueta">Compradores</span>
+            <span class="valor-destaque">@_painel.Compradores</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 class="category-heading">Suporte</h3>
+
+        <div class="totais-grid">
+            <div>
+                <span class="card-total-etiqueta">Na fila</span>
+                <span class="valor-destaque">@_painel.Suporte.NaFila</span>
+                @if (_painel.Suporte.Graves > 0)
+                {
+                    <p class="hint" style="margin:6px 0 0;"><span class="badge badge-low">@_painel.Suporte.Graves grave(s)</span></p>
+                }
+            </div>
+            <div>
+                <span class="card-total-etiqueta">Mais antigo na fila</span>
+                <span class="valor-destaque">@(_painel.Suporte.HorasDoMaisAntigo is { } h ? $"{h:0.#} h" : "—")</span>
+            </div>
+            <div>
+                <span class="card-total-etiqueta">Resolvidas (30 dias)</span>
+                <span class="valor-destaque">@_painel.Suporte.Resolvidas30Dias</span>
+            </div>
+            <div>
+                <span class="card-total-etiqueta">Tempo médio de resolução</span>
+                <span class="valor-destaque">@(_painel.Suporte.HorasMediasParaResolver is { } m ? $"{m:0.#} h" : "—")</span>
+            </div>
+        </div>
+
+        @if (_painel.Suporte.PorQuemResolveu.Count > 0)
+        {
+            <h4 class="subcategory-heading">Quem resolveu (30 dias)</h4>
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Técnico</th>
+                            <th class="numero">Resolvidas</th>
+                            <th class="numero">Tempo médio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in _painel.Suporte.PorQuemResolveu)
+                        {
+                            <tr>
+                                <td>@p.Nome</td>
+                                <td class="numero">@p.Quantidade</td>
+                                <td class="numero">@p.HorasMedias.ToString("0.#") h</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <h3 class="category-heading">Empresas (@_painel.PorEmpresa.Count)</h3>
+
+        @if (_painel.PorEmpresa.Count == 0)
+        {
+            <p class="hint">Nenhuma empresa cadastrada ainda. Cadastre em <a href="/empresas">Empresas</a>.</p>
+        }
+        else
+        {
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Empresa</th>
+                            <th>Situação</th>
+                            <th class="numero">Lojas</th>
+                            <th class="numero">Compradores</th>
+                            <th class="numero">Na fila</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var e in _painel.PorEmpresa)
+                        {
+                            <tr id="@LinhaId(e.Id)" class="@(e.Id == _selecionadoId ? "linha-selecionada" : "")" @onclick="() => Selecionar(e.Id)">
+                                <td>@e.Rotulo</td>
+                                <td><span class="badge @(e.Status == "Ativa" ? "badge-ok" : "badge-out")">@e.Status</span></td>
+                                <td class="numero">@e.LojasAtivas de @e.LimiteDeLojas</td>
+                                <td class="numero">@e.Compradores</td>
+                                <td class="numero">
+                                    @if (e.NaFila > 0)
+                                    {
+                                        <span class="badge badge-low">@e.NaFila</span>
+                                    }
+                                    else
+                                    {
+                                        @:—
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+<style>
+    .totais-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    .subcategory-heading {
+        margin: 18px 0 10px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--ink-2);
+    }
+    .stat-icone {
+        width: 22px;
+        height: 22px;
+        color: var(--texto-rosa);
+        margin-bottom: 8px;
+    }
+    .data-table tbody tr[id^="empresa-"] { cursor: pointer; }
+    .linha-selecionada td {
+        background: var(--tint-violeta);
+        transition: background .5s ease;
+    }
+
+    /* ── o mapa da rede ──────────────────────────────────────────────────────────────── */
+
+    .mapa-card { overflow: hidden; }
+    .mapa-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 460px;
+        margin: 4px auto 0;
+    }
+    .mapa-orbita-guia {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 1;
+        stroke-dasharray: 1 7;
+        stroke-linecap: round;
+    }
+    .mapa-fio {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 1.4;
+        stroke-dasharray: 3 7;
+        animation: mapa-fluxo 9s linear infinite;
+    }
+    @@keyframes mapa-fluxo {
+        to { stroke-dashoffset: -100; }
+    }
+    .mapa-hub {
+        filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.18));
+    }
+    .mapa-hub-alerta {
+        fill: none;
+        stroke: var(--rosa);
+        stroke-width: 2.5;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: mapa-anel 1.9s ease-out infinite;
+    }
+    @@keyframes mapa-anel {
+        0%   { opacity: .85; transform: scale(1); }
+        100% { opacity: 0;   transform: scale(1.6); }
+    }
+    .mapa-no { cursor: pointer; }
+    .mapa-no-corpo {
+        fill: var(--tint-ciano);
+        stroke: var(--acao-azul);
+        stroke-width: 2;
+        transition: transform .18s ease, filter .18s ease;
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+    .mapa-no:hover .mapa-no-corpo {
+        transform: scale(1.08);
+        filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
+    }
+    .mapa-no-selecionado .mapa-no-corpo {
+        stroke-width: 3.5;
+        filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.22));
+    }
+    .mapa-no-suspensa .mapa-no-corpo {
+        fill: var(--tint-rosa);
+        stroke: var(--rosa);
+        stroke-dasharray: 4 3;
+    }
+    .mapa-no-rotulo {
+        font-family: var(--mono);
+        font-size: 11.5px;
+        font-weight: 500;
+        fill: var(--ink-3);
+        letter-spacing: .04em;
+        user-select: none;
+    }
+    .mapa-no-pulso {
+        fill: var(--rosa);
+        animation: mapa-pulso 1.6s ease-in-out infinite;
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+    @@keyframes mapa-pulso {
+        0%, 100% { opacity: 1;   transform: scale(1); }
+        50%      { opacity: .35; transform: scale(1.25); }
+    }
+    @@media (prefers-reduced-motion: reduce) {
+        .mapa-fio, .mapa-hub-alerta, .mapa-no-pulso, .mapa-no-corpo { animation: none; transition: none; }
+    }
+
+    .mapa-legenda {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        margin-top: 6px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+        font-size: 12.5px;
+        color: var(--ink-3);
+    }
+    .mapa-legenda-item { display: inline-flex; align-items: center; gap: 7px; }
+    .mapa-swatch { width: 11px; height: 11px; border-radius: 50%; display: inline-block; flex: none; }
+    .mapa-swatch-ativa { background: var(--tint-ciano); border: 1.5px solid var(--acao-azul); }
+    .mapa-swatch-suspensa { background: var(--tint-rosa); border: 1.5px dashed var(--rosa); }
+    .mapa-swatch-pulso { background: var(--rosa); }
+</style>
+
+@code {
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    private PainelDto? _painel;
+    private List<NoDoMapa>? _mapa;
+    private Guid? _selecionadoId;
+    private double _orbita = 160;
+    private bool _carregando = true;
+    private string? _erro;
+
+    private static readonly (double X, double Y) Hub = (310, 220);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var (ok, dados, erro) = await PlatformApi.PainelAsync();
+
+        if (ok)
+        {
+            _painel = dados;
+            MontarMapa();
+        }
+        else
+        {
+            _erro = erro ?? "Não foi possível carregar o painel.";
+        }
+
+        _carregando = false;
+    }
+
+    private void Selecionar(Guid id) => _selecionadoId = _selecionadoId == id ? null : id;
+
+    private static string LinhaId(Guid id) => "empresa-" + id;
+
+    private static string N(double valor) => valor.ToString("0.##", Inv);
+
+    /// <summary>
+    /// A geometria do mapa: cada empresa ganha um ângulo (dividindo o círculo em partes iguais), um raio de órbita
+    /// (cresce um pouco com o número de empresas, para não amontoar) e um fio curvo até o centro (um leve giro
+    /// alternado — pra ponta par, pro outro lado na ímpar — que faz o traço parecer órbita, e não raio de roda).
+    /// </summary>
+    private void MontarMapa()
+    {
+        if (_painel is null) { _mapa = null; return; }
+
+        var empresas = _painel.PorEmpresa;
+        var n = empresas.Count;
+        if (n == 0) { _mapa = new(); return; }
+
+        _orbita = n switch { <= 4 => 145, <= 8 => 165, _ => 180 };
+
+        var lista = new List<NoDoMapa>(n);
+        for (var i = 0; i < n; i++)
+        {
+            var e = empresas[i];
+            var anguloGraus = -90.0 + (360.0 / n) * i;
+            var anguloRad = anguloGraus * Math.PI / 180.0;
+
+            var cx = Hub.X + _orbita * Math.Cos(anguloRad);
+            var cy = Hub.Y + _orbita * Math.Sin(anguloRad);
+
+            var peso = e.LojasAtivas + e.Compradores * 0.4;
+            var raio = Math.Clamp(15 + peso * 1.7, 15, 30);
+
+            // ponto de controle da curva: o meio do caminho, empurrado para o lado — pra fora numa
+            // ponta da orbita, pra dentro na seguinte, alternando.
+            var mx = (Hub.X + cx) / 2;
+            var my = (Hub.Y + cy) / 2;
+            var dx = cx - Hub.X;
+            var dy = cy - Hub.Y;
+            var comprimento = Math.Max(1, Math.Sqrt(dx * dx + dy * dy));
+            var nx = -dy / comprimento;
+            var ny = dx / comprimento;
+            var sinal = i % 2 == 0 ? 1 : -1;
+            var deslocamento = 22 * sinal;
+            var qx = mx + nx * deslocamento;
+            var qy = my + ny * deslocamento;
+
+            var caminho = $"M {N(Hub.X)} {N(Hub.Y)} Q {N(qx)} {N(qy)} {N(cx)} {N(cy)}";
+
+            var pulsoAngulo = anguloRad; // o ponto do pulso fica na borda do circulo, na mesma direcao do centro
+            var pulsoX = cx - Math.Cos(anguloRad) * raio * 0.72;
+            var pulsoY = cy - Math.Sin(anguloRad) * raio * 0.72;
+
+            var ativa = e.Status == "Ativa";
+            var tooltip = $"{e.Rotulo} — {e.LojasAtivas} de {e.LimiteDeLojas} loja(s) ativa(s), {e.Compradores} comprador(es)"
+                + (ativa ? "" : " · suspensa")
+                + (e.NaFila > 0 ? $", {e.NaFila} chamado(s) esperando o suporte" : "");
+
+            lista.Add(new NoDoMapa(
+                e.Id, $"{e.Codigo:D4}", N(cx), N(cy), N(raio), N(cy + raio + 15), N(pulsoX), N(pulsoY),
+                caminho, ativa, e.NaFila, tooltip));
+        }
+
+        _mapa = lista;
+    }
+
+    private sealed record NoDoMapa(
+        Guid Id, string Codigo, string Cx, string Cy, string Raio, string RotuloY, string PulsoX, string PulsoY,
+        string Caminho, bool Ativa, int NaFila, string Tooltip);
+}
