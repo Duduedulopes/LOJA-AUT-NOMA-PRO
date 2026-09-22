@@ -98,11 +98,66 @@ espalhada pelos controllers. O `Domain` concentra as regras de negócio nas
 entidades e não conhece a infraestrutura; a persistência entra por interfaces
 de repositório.
 
+São dois desenhos, e eles respondem perguntas diferentes. O primeiro é
+**autoridade**: quem cadastra quem, quem enxerga o quê. O segundo é
+**execução**: como as peças se ligam em tempo de máquina.
+
+### Autoridade
+
+```
+                                ┌───────────────────────────────┐
+                                │            CRIADOR            │
+                                │      CriadorApp · :7293       │
+                                │  dono da plataforma — cadastra│
+                                │  e suspende empresas, abre e  │
+                                │  desativa lojas, cadastra     │
+                                │  técnicos, vê a fila e o      │
+                                │  histórico de TODA a rede     │
+                                └───────────────┬───────────────┘
+                 ┌──────────────────────────────┴──────────────────────────────┐
+                 │ cadastra o técnico                        cadastra e suspende│
+   ┌─────────────▼─────────────┐                               ┌───────────────▼───────────────┐
+   │          SUPORTE          │                               │       EMPRESA (Tenant)        │
+   │    SuporteApp · :7291     │· · · atende chamados e · · · ▶│   a assinante — isolada por   │
+   │  serviço DO CRIADOR,      │      ocorrências de TODAS     │   um filtro global no         │
+   │  não da empresa           │      as empresas              │   DbContext                   │
+   └───────────────────────────┘                               └───────────────┬───────────────┘
+                                                                               │
+                                                               ┌───────────────▼───────────────┐
+                                                               │             ADMIN             │
+                                                               │       AdminApp · :7290        │
+                                                               │  dono da empresa — só consulta│
+                                                               │  as próprias lojas; abrir e   │
+                                                               │  desativar é da assinatura    │
+                                                               └───────────────┬───────────────┘
+                                              ┌────────────────────────────────┴──────────────┐
+                              ┌───────────────▼───────────────┐              ┌────────────────▼──────────────┐
+                              │         LOJA (Store)          │              │          COMPRADOR            │
+                              │   até o limite do plano —     │              │      ClientApp · :7280        │
+                              │   EdgeDesktop (WPF) e o       │              │  pertence a uma única empresa │
+                              │   ESP32 · RC522 na porta      │              │                               │
+                              └───────────────────────────────┘              └───────────────────────────────┘
+```
+
+A linha pontilhada é o que o desenho de camadas não mostra: o Suporte
+**atravessa** o isolamento do Tenant. Ele não está dentro de nenhuma empresa e
+alcança todas — e é por isso que ele, e só ele, precisa de mascaramento.
+
+| papel | alcança | limite |
+|---|---|---|
+| **Criador** | toda a plataforma: empresas, lojas, técnicos, fila e histórico de chamados, auditoria | nenhum — é o topo |
+| **Suporte** | chamados e ocorrências de **todas** as empresas | vê a empresa como código + nome fantasia; dado de comprador só ao "revelar com motivo", e a revelação vira auditoria |
+| **Admin** | só a própria empresa: suas lojas, produtos, estoque e sessões | não abre nem desativa loja — isso é assinatura, e mora num controller separado do painel do Criador |
+| **Comprador** | a própria sessão de compra e o próprio histórico | pertence a uma única empresa |
+| **Loja** | o EdgeDesktop e o ESP32 na porta | até o limite de lojas **ativas** do plano |
+
+### Execução
+
 ```
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    ┌──────────────┐
-│  ClientApp   │  │   AdminApp   │  │  SuporteApp  │  │  CriadorApp  │    │ EdgeDesktop  │
+│  CriadorApp  │  │  SuporteApp  │  │   AdminApp   │  │  ClientApp   │    │ EdgeDesktop  │
 │ Blazor WASM  │  │ Blazor WASM  │  │ Blazor WASM  │  │ Blazor WASM  │    │     WPF      │
-│    :7280     │  │    :7290     │  │    :7291     │  │    :7293     │    │              │
+│    :7293     │  │    :7291     │  │    :7290     │  │    :7280     │    │              │
 └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    └──────┬───────┘
        │                 │                 │                 │                   │
        └───── AutonomousStore.Gerente (o mesmo cérebro) ─────┘                   │
@@ -115,22 +170,32 @@ de repositório.
                    │       :7167         │        └──────────────┘
                    └──────────┬──────────┘
                               │
-       ┌──────────────────────┼──────────────────────┐
-┌──────▼──────┐  ┌────────────▼─────────┐  ┌─────────▼────┐
-│ Application │  │   Infrastructure     │  │   Hardware   │
-│  casos de   │  │   EF Core 8 · SQL    │  │ RFID · relé  │
-│    uso      │  │      Server          │  │ serial · TCP │
-└──────┬──────┘  └──────────┬───────────┘  └──────────────┘
-       └────────────────────┤
-                     ┌──────▼──────┐
-                     │   Domain    │  entidades e regras — não depende de nada
-                     └─────────────┘
+                   ┌──────────▼──────────┐
+                   │    Infrastructure   │  EF Core 8 · SQL Server
+                   └──────────┬──────────┘
+                              │
+                        ┌─────▼─────┐
+                        │   Domain  │  entidades e regras — não depende de nada
+                        └───────────┘
 ```
+
+A hierarquia do primeiro desenho **não vira projeto separado**: ela vira papel
+no JWT e filtro global de consulta. Os cinco clientes falam com a mesma API.
+
+O `WebApi` só depende de `Domain` e `Infrastructure` — nada mais. Dois projetos do
+solution ficam **de fora** desta cadeia, de propósito:
+
+- `Application` está no solution e não tem uma linha de código: os controllers
+  do `WebApi` falam direto com `Infrastructure`, sem uma camada de casos de uso
+  no meio. Existe reservado, não em uso.
+- `Hardware` (hoje só a leitura RFID, `IRfidReader`) é dependência só do
+  `EdgeDesktop` — o `WebApi` nunca importa esse projeto; ele conversa com o
+  ESP32 por HTTP, não por uma abstração de hardware compartilhada.
 
 | projeto | papel |
 |---|---|
 | `Domain` | entidades e regras de negócio |
-| `Application` | casos de uso |
+| `Application` | reservado — sem código ainda, `WebApi` não depende dele |
 | `Infrastructure` | EF Core 8, repositórios, SQL Server |
 | `WebApi` | ASP.NET Core, REST, JWT, Swagger |
 | `Gerente` | a rede neural, o chat e o aprendizado — biblioteca Razor |
@@ -140,7 +205,7 @@ de repositório.
 | `SuporteApp` | o atendimento (Blazor WebAssembly) |
 | `CriadorApp` | o painel do dono da plataforma — empresas, lojas, técnicos (Blazor WebAssembly) |
 | `EdgeDesktop` | a máquina que fica na loja (WPF) |
-| `Hardware` | abstrações dos dispositivos — RFID, relé, serial, TCP |
+| `Hardware` | leitura RFID (`IRfidReader`) — usado só pelo `EdgeDesktop` |
 | `firmware/` | as soluções do ESP32 (.NET nanoFramework) |
 
 **`AutonomousStore.Gerente` é uma biblioteca de componentes Razor**, e é o que faz
