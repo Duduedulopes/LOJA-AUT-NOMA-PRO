@@ -29,7 +29,7 @@ namespace AutonomousStore.Domain.Entities;
 ///
 /// TUDO EM UTC. Guardar hora local e como guardar preco sem moeda.
 /// </remarks>
-public class Ocorrencia : Entity
+public class Ocorrencia : TenantEntity
 {
     /// <summary>Quando o FATO aconteceu (nao quando a linha foi criada).</summary>
     public DateTime QuandoUtc { get; private set; }
@@ -301,6 +301,15 @@ public class Ocorrencia : Entity
            || (AbertoPor is { Length: > 0 } dono
                && email is { Length: > 0 }
                && string.Equals(dono, email.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Este pedido de ajuda foi escrito por OUTRA pessoa que não <paramref name="email"/>? É o que separa, no painel do
+    /// Admin, o que é dele (o que os detectores acharam e os pedidos que ELE escreveu) do que é do suporte (os pedidos
+    /// dos compradores). Ocorrência sem dono — a que um detector achou — nunca é "de outra pessoa".
+    /// </summary>
+    public bool EhPedidoDeOutraPessoa(string? email)
+        => AbertoPor is { Length: > 0 } dono
+           && !string.Equals(dono, email?.Trim(), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>O mesmo fato aconteceu de novo: soma em vez de virar linha nova.</summary>
     /// <remarks>

@@ -14,6 +14,9 @@ public interface ISuporteUserRepository
     /// partir do segundo, so quem ja e do suporte cria.
     /// </remarks>
     Task<bool> ExisteAlgumAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>A equipe inteira, por nome (inclusive quem foi desativado). Só o Criador lista os técnicos.</summary>
+    Task<IReadOnlyList<SuporteUser>> ListarAsync(CancellationToken cancellationToken = default);
     Task<SuporteUser?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
     Task<SuporteUser?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

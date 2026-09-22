@@ -7,7 +7,7 @@ namespace AutonomousStore.Domain.Entities;
 /// Representa uma visita do cliente à loja: geração do QR code que abre a porta,
 /// os itens escaneados durante a compra, o fechamento (checkout) e a confirmação do pagamento.
 /// </summary>
-public class StoreSession : Entity
+public class StoreSession : TenantEntity
 {
     private readonly List<SessionItem> _items = [];
 

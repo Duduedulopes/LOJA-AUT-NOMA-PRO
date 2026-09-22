@@ -7,7 +7,7 @@ namespace AutonomousStore.Domain.Entities;
 /// padronizado — qualquer empresa que use a plataforma vira um registro aqui, em vez do catálogo
 /// ser "hardcoded" para uma única loja.
 /// </summary>
-public class Company : Entity
+public class Company : TenantEntity
 {
     public string Name { get; private set; }
     public string? Description { get; private set; }

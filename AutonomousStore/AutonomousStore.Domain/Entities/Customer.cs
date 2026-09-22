@@ -3,7 +3,7 @@ using AutonomousStore.Domain.Enums;
 
 namespace AutonomousStore.Domain.Entities;
 
-public class Customer : Entity
+public class Customer : TenantEntity
 {
     private readonly List<PaymentMethod> _paymentMethods = [];
 

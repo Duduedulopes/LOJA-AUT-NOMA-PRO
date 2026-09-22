@@ -36,7 +36,7 @@ public static class Deteccoes
     /// Lista fechada porque a rota que recebe isto e ANONIMA: sem ela,
     /// qualquer um escreveria "Sistema: Banco Central" no seu historico.
     /// </remarks>
-    public static readonly string[] AppsQueReportam = { "ClientApp", "AdminApp", "SuporteApp" };
+    public static readonly string[] AppsQueReportam = { "ClientApp", "AdminApp", "SuporteApp", "CriadorApp" };
 
     /// <summary>A mensagem sem os numeros que mudam a cada ocorrencia.</summary>
     /// <remarks>
@@ -401,7 +401,9 @@ public static class Deteccoes
             autor: app switch
             {
                 "ClientApp" => AutorDaMensagem.Cliente,
-                "SuporteApp" => AutorDaMensagem.Suporte,
+                // O Criador fala como "a casa", igual ao tecnico: para quem pediu ajuda,
+                // quem responde e o suporte. (Igual ao ChamadosController.AutorDeQuemEsta.)
+                "SuporteApp" or "CriadorApp" => AutorDaMensagem.Suporte,
                 _ => AutorDaMensagem.Admin,
             },
             quemNome: quemNome,

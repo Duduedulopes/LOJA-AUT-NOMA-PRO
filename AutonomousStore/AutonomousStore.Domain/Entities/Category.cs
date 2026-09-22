@@ -2,7 +2,7 @@
 
 namespace AutonomousStore.Domain.Entities;
 
-public class Category : Entity
+public class Category : TenantEntity
 {
     public Guid CompanyId { get; private set; }
     public string Name { get; private set; }

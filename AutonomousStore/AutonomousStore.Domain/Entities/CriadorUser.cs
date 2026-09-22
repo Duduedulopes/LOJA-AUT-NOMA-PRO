@@ -1,21 +1,22 @@
-﻿using AutonomousStore.Domain.Common;
+using AutonomousStore.Domain.Common;
 
 namespace AutonomousStore.Domain.Entities;
 
 /// <summary>
-/// Usuário da equipe da loja, com acesso ao app admin. Separado do Customer de propósito —
-/// um admin não é um cliente, tem outro tipo de acesso e outras responsabilidades.
+/// O dono da plataforma. Tabela própria, e não um "AdminUser sem empresa", de
+/// propósito: se poder total fosse "empresa nula", esquecer de preencher a
+/// empresa de um Admin comum o transformaria em Criador sem ninguém perceber.
 /// </summary>
-public class AdminUser : TenantEntity
+public class CriadorUser : Entity
 {
-    public string Name { get; private set; }
-    public string Email { get; private set; }
-    public string PasswordHash { get; private set; }
+    public string Name { get; private set; } = "";
+    public string Email { get; private set; } = "";
+    public string PasswordHash { get; private set; } = "";
     public bool IsActive { get; private set; }
 
-    protected AdminUser() { }
+    protected CriadorUser() { }
 
-    public AdminUser(string name, string email, string passwordHash)
+    public CriadorUser(string name, string email, string passwordHash)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("O nome não pode ser vazio.", nameof(name));
@@ -33,5 +34,6 @@ public class AdminUser : TenantEntity
     }
 
     public void Deactivate() => IsActive = false;
+
     public void Activate() => IsActive = true;
 }

@@ -16,7 +16,10 @@ public record FiltroDeOcorrencia(
     Severidade? SeveridadeMinima = null,
     EstadoDaOcorrencia? Estado = null,
     Guid? CorrelationId = null,
-    int Limite = 200);
+    int Limite = 200,
+    // Quando informado (mesmo vazio), a busca traz só o que é DO ADMIN: o que os detectores acharam e os pedidos que ele mesmo escreveu.
+    // Os pedidos escritos pelos compradores são do suporte, e o Admin não os enxerga.
+    string? EmailDoAdmin = null);
 
 public interface IOcorrenciaRepository
 {
@@ -33,11 +36,15 @@ public interface IOcorrenciaRepository
     /// <summary>Mais recente primeiro.</summary>
     Task<IReadOnlyList<Ocorrencia>> BuscarAsync(FiltroDeOcorrencia filtro, CancellationToken cancellationToken = default);
 
-    /// <summary>Quantas ainda estao em <see cref="EstadoDaOcorrencia.Nova"/>, e quantas dessas sao criticas.</summary>
-    Task<(int Total, int Criticas, DateTime? MaisRecente)> NaoVistasAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Quantas ainda estao em <see cref="EstadoDaOcorrencia.Nova"/>, e quantas dessas sao criticas. Mesma regra da lista e do
+    /// resumo: passar <paramref name="emailDoAdmin"/> conta so o que ele enxerga (o vazio LIGA o filtro).
+    /// </summary>
+    Task<(int Total, int Criticas, DateTime? MaisRecente)> NaoVistasAsync(
+        string? emailDoAdmin = null, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<(TipoDeOcorrencia Tipo, Severidade Severidade, int Quantidade)>>
-        ResumoAsync(DateTime desde, DateTime ate, CancellationToken cancellationToken = default);
+        ResumoAsync(DateTime desde, DateTime ate, string? emailDoAdmin = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Ja existe ocorrencia deste tipo para esta chave?
@@ -78,6 +85,17 @@ public interface IOcorrenciaRepository
 
     /// <summary>Os chamados que ESTA pessoa abriu, do mais recente para o mais antigo.</summary>
     Task<IReadOnlyList<Ocorrencia>> ChamadosDeAsync(string email, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// O que espera o suporte agora: de qual empresa (nulo = fato da plataforma), quão grave e desde quando. Sem os textos: quem
+    /// chama só conta e mede.
+    /// </summary>
+    Task<IReadOnlyList<(Guid? TenantId, Severidade Severidade, DateTime QuandoUtc)>> NaFilaDoSuporteAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>O que foi RESOLVIDO desde uma data (as ignoradas não contam): quem resolveu, e quando nasceu e foi resolvida.</summary>
+    Task<IReadOnlyList<(string? ResolvidaPor, DateTime QuandoUtc, DateTime ResolvidaEm)>> ResolvidasDesdeAsync(
+        DateTime desde, CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

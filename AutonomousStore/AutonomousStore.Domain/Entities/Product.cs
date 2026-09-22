@@ -2,7 +2,7 @@
 
 namespace AutonomousStore.Domain.Entities;
 
-public class Product : Entity
+public class Product : TenantEntity
 {
     public string Name { get; private set; }
     public string Barcode { get; private set; }
