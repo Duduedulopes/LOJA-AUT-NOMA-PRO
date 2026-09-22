@@ -237,7 +237,7 @@ public class GerenteService : IGerenteService
     /// sugestão nova de intenção proibida nasce escondida do cliente, sem
     /// ninguém precisar lembrar.
     /// </remarks>
-    public enum Publico { Cliente, Admin, Ambos }
+    public enum Publico { Cliente, Admin, Ambos, Plataforma }
 
     public readonly record struct Sugestao(string Texto, string Intencao, Publico Para);
 
@@ -270,6 +270,14 @@ public class GerenteService : IGerenteService
         // a loja responde, o cliente porque quer saber mesmo.
         new("como funciona o rfid?",      "duvida_sistema",  Publico.Ambos),
 
+        // ── do suporte técnico e do Criador ───────────────────────────
+        // SO as que a rede acerta (medido em 21/09/2026: "teve algum furo de sistema?" 100%,
+        // "status da api" 89% — a mesma que o painel do Chefe já usa). "onde ficam os logs?" a
+        // rede classifica errado (cai em `configurar_camera`), então NAO vira botao: um chip que
+        // leva ao lugar errado e pior que nenhum. A lacuna e do corpus, no Rede-Neural.
+        new("teve algum furo de sistema?", "furo_sistema", Publico.Plataforma),
+        new("status da api",               "status_api",   Publico.Plataforma),
+
         // ── da administração ──────────────────────────────────────────
         new("quantas pessoas estão na loja agora?", "pessoas_na_loja",     Publico.Admin),
         new("o que está acabando?",                 "estoque_baixo",       Publico.Admin),
@@ -290,11 +298,21 @@ public class GerenteService : IGerenteService
         new("configurar sistema",        "configurar_sistema", Publico.Admin),
     };
 
+    /// <summary>
+    /// Para que plateia este perfil pergunta. Vem do TIPO do perfil, e nao de "pode escrever?": o
+    /// tecnico e o comprador nao escrevem, e nem por isso querem as mesmas sugestoes.
+    /// </summary>
+    private Publico PlateiaDoPerfil => Perfil.Tipo switch
+    {
+        TipoDePerfil.Cliente => Publico.Cliente,
+        TipoDePerfil.Tecnico or TipoDePerfil.Criador => Publico.Plataforma,
+        _ => Publico.Admin,
+    };
+
     /// <summary>As que ESTA pessoa vê.</summary>
     public IReadOnlyList<string> Sugestoes =>
         TodasAsSugestoes
-            .Where(s => s.Para == Publico.Ambos
-                     || s.Para == (Perfil.PodeEscrever ? Publico.Admin : Publico.Cliente))
+            .Where(s => s.Para == Publico.Ambos || s.Para == PlateiaDoPerfil)
             .Where(s => Perfil.Pode(s.Intencao))   // a permissão manda por cima
             .Select(s => s.Texto)
             .ToList();
@@ -456,7 +474,7 @@ public class GerenteService : IGerenteService
     /// PODE esquecer de definir, porque o `GerenteChat` exige o perfil como
     /// parâmetro obrigatório. Quem esquecer não compila.
     /// </remarks>
-    public PerfilDeQuemFala Perfil { get; set; } = PerfilDeQuemFala.Chefe;
+    public PerfilDeQuemFala Perfil { get; set; } = PerfilDeQuemFala.Chefe(null);
 
     private string Tratando(string resposta, bool momentoBom = false)
     {
@@ -1482,7 +1500,9 @@ public class GerenteService : IGerenteService
     /// </remarks>
     private async Task<string> CarrinhoAsync()
     {
-        var meu = !Perfil.PodeEscrever;
+        // "Meu carrinho" e do COMPRADOR. Antes isto era "quem nao escreve", que servia enquanto so existiam
+        // dois perfis — o tecnico tambem nao escreve, e nem por isso tem carrinho.
+        var meu = Perfil.EhCliente;
 
         // Sem o Id não dá para saber qual sessão é dele, e chutar aqui é
         // exatamente o erro que este método está corrigindo. Prefere não
@@ -2243,14 +2263,25 @@ public class GerenteService : IGerenteService
     /// clientes no salão, câmeras" é a lista do painel dita a quem só queria
     /// comprar uma água.
     /// </remarks>
-    private string ForaDeEscopo() => Perfil.PodeEscrever
-        ? "Essa não é comigo — eu só sei da loja. Estoque, vendas, clientes no salão, "
-        + "câmeras e como o sistema funciona.\n\nSe você acha que deveria ser comigo, "
-        + "pergunte de novo de outro jeito: eu guardo o que não entendo, e é assim que "
-        + "o meu treino cresce."
-        : "Essa não é comigo — eu só sei desta loja: os produtos, o preço deles e como "
-        + "a compra funciona.\n\nSe for sobre uma compra sua ou algum problema no app, "
-        + "o suporte responde: é só abrir um chamado em **Suporte**, no menu de cima.";
+    private string ForaDeEscopo() => Perfil.Tipo switch
+    {
+        TipoDePerfil.Cliente =>
+            "Essa não é comigo — eu só sei desta loja: os produtos, o preço deles e como "
+            + "a compra funciona.\n\nSe for sobre uma compra sua ou algum problema no app, "
+            + "o suporte responde: é só abrir um chamado em **Suporte**, no menu de cima.",
+
+        TipoDePerfil.Tecnico or TipoDePerfil.Criador =>
+            "Essa não é comigo — eu só sei do lado técnico do sistema: o estado da API, as "
+            + "ocorrências e como as peças funcionam.\n\nSe você acha que deveria ser comigo, "
+            + "pergunte de novo de outro jeito: eu guardo o que não entendo, e é assim que "
+            + "o meu treino cresce.",
+
+        _ =>
+            "Essa não é comigo — eu só sei da loja. Estoque, vendas, clientes no salão, "
+            + "câmeras e como o sistema funciona.\n\nSe você acha que deveria ser comigo, "
+            + "pergunte de novo de outro jeito: eu guardo o que não entendo, e é assim que "
+            + "o meu treino cresce.",
+    };
 
     /// <summary>`alterar_preco` -> `alterar preço`, para o Chefe ler.</summary>
     private static string Legivel(string intencao) => intencao switch
@@ -2307,7 +2338,24 @@ public class GerenteService : IGerenteService
     /// de toda intenção sem tratamento: "obrigado", "não sei o que perguntar"
     /// e qualquer intenção nova caíam aqui. Uma porta que ninguém tinha visto.
     /// </remarks>
-    private string Ajuda() => Perfil.PodeEscrever ? AjudaDoChefe() : AjudaDoCliente();
+    private string Ajuda() => Perfil.Tipo switch
+    {
+        TipoDePerfil.Cliente => AjudaDoCliente(),
+        TipoDePerfil.Tecnico or TipoDePerfil.Criador => AjudaDoSuporte(),
+        _ => AjudaDoChefe(),
+    };
+
+    private static string AjudaDoSuporte() =>
+        "Posso ajudar com o lado técnico:\n\n" +
+        "**O estado do sistema**\n" +
+        "- se a API está respondendo\n" +
+        "- onde ficam os logs\n\n" +
+        "**Ocorrências**\n" +
+        "- se teve furo de sistema ou de cobertura, e quando\n\n" +
+        "**Como o sistema funciona**\n" +
+        "- o RFID, as câmeras da prateleira, a saída sem fila\n\n" +
+        "Vendas, estoque e cadastro de pessoas não são daqui: isso eu não mostro.\n\n" +
+        "Pode falar do seu jeito, abreviado ou com pressa — eu me viro.";
 
     private static string AjudaDoCliente() =>
         "Posso te ajudar com:\n\n" +

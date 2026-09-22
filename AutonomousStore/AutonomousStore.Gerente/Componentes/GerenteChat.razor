@@ -549,7 +549,7 @@
     /// descobrir com o faturamento na tela de um comprador.
     /// </remarks>
     [Parameter, EditorRequired]
-    public PerfilDeQuemFala Perfil { get; set; } = PerfilDeQuemFala.Chefe;
+    public PerfilDeQuemFala Perfil { get; set; } = PerfilDeQuemFala.Chefe(null);
 
     private bool _aberto;
     private bool _pensando;
