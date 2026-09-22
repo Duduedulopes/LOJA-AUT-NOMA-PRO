@@ -403,6 +403,16 @@ com ele desligado** — o passo de gradiente acontece no navegador, e o envio é
 tentativa que pode falhar em silêncio. Um monitor fora do ar não pode custar uma
 tarde de correções.
 
+**O ciclo ainda não fecha, e o número diz onde.** As correções chegam: são seis
+no `correcoes.jsonl`, três aceitas, e uma delas levou o acerto na guarda de
+99,4764% para 99,6073%. Mas o último modelo que a loja devolveu
+(`aprendido_na_loja.json`) tem **0 de 84.002 parâmetros** diferentes da base —
+foi enviado antes das correções daquela sessão, e o que se aprende no navegador
+morre no F5. E quem carrega o aprendizado de verdade é o `treinado_ao_vivo.json`,
+com 2.675 parâmetros mudados (3,18%), que o `GET /api/modelo` **não serve**: a
+rota devolve sempre o `intencao.json` de origem. Fechar essas duas pontas é o
+primeiro item do roadmap.
+
 ### O mesmo cérebro, quatro conversas
 
 O gerente atende quatro perfis — dono da loja, comprador, técnico de suporte e
@@ -534,6 +544,8 @@ voltou, a afirmação estava errada.
 | autenticação | JWT, login com Google |
 | rede neural | C# e NumPy, escritas do zero |
 | visão (câmera de estoque) | Google Gemini Vision |
+| tempo real | SignalR (`ChamadoHub`, a conversa do suporte) |
+| testes | xUnit — 245 em cinco projetos |
 | firmware | C# sobre .NET nanoFramework |
 | hardware | ESP32, RC522 (SPI), OLED SSD1306 (I²C) |
 
@@ -622,8 +634,9 @@ levou, de qual prateleira, nem como interpretar uma pergunta em português torto
 | [SO-Espacial](https://github.com/Duduedulopes/SO-Espacial) | a percepção espacial por câmeras — quem pegou, e de qual prateleira |
 | **este** | a loja em .NET 8 — API multiempresa, apps Blazor (loja, dono, suporte e plataforma), firmware ESP32, e o gerente em execução |
 
-O gerente e a rede neural já trocam dados nos dois sentidos: a loja treina no
-navegador e devolve ao Python o que aprendeu. **Cruzar a leitura do RFID com a da
+O gerente e a rede neural já trocam dados nos dois sentidos, e a loja treina no
+navegador — mas o que ela aprende ainda não sobrevive à volta: ver "A ponte com
+o Python". **Cruzar a leitura do RFID com a da
 câmera ainda não acontece automaticamente** — os dois sistemas se falam, e a
 reconciliação entre eles é a próxima decisão de arquitetura, não um trabalho de
 encanamento pendente.
