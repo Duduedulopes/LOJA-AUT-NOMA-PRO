@@ -423,8 +423,8 @@ foi passar a chamar todo mundo pelo nome, sem título.
 |  | Chefe (AdminApp) | Cliente (ClientApp) | Técnico (SuporteApp) | Criador (CriadorApp) |
 |---|---|---|---|---|
 | intenções | as 42 | 12 | 8 | 8 — por enquanto, a mesma lista do técnico |
-| pode mandar o gerente alterar | sim, sempre confirmando | **não** | **não** | **não** |
-| enxerga várias empresas | não | não (é de uma só) | **sim** | **sim** |
+| pode mandar o gerente alterar | sim, sempre confirmando | **não** | **sim** | **sim** |
+| enxerga várias empresas | não | não  | **sim** | **sim** |
 
 A linha do meio mede o **gerente**, não a API. `PerfilDeQuemFala` dá
 `PodeEscrever: true` só ao Chefe: pelo chat, nem o Técnico nem o Criador mudam
