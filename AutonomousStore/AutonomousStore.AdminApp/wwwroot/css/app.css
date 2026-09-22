@@ -467,6 +467,7 @@ button.card-acao:hover {
 
 /* 44px de altura minima nao e arredondamento de gosto: e o alvo de toque
    abaixo do qual o erro de clique deixa de ser raro. O painel tambem e usado
+   em tablet, com o dedo, e nao so com mouse. */
 .btn-primary {
     display: inline-flex;
     align-items: center;

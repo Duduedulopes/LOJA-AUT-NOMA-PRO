@@ -1,0 +1,98 @@
+@page "/lojas"
+@inject ILojaApiService LojaApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Lojas</h1>
+<p class="hint">
+    As lojas da sua empresa. Aqui você só consulta — quem cadastra, renomeia ou desativa uma loja é o suporte
+    (veja <a href="/plano">Plano</a> para ampliar o número de lojas da sua assinatura).
+</p>
+
+@if (!string.IsNullOrEmpty(_erro))
+{
+    <div class="error-message">@_erro</div>
+}
+
+<div class="card">
+    @if (_carregando)
+    {
+        <p class="hint">Carregando lojas...</p>
+    }
+    else if (_dados is not null)
+    {
+        <div class="form-group" style="max-width: 360px;">
+            <label>Pesquisar</label>
+            <input type="text" placeholder="Nome ou segmento..." @bind="_busca" @bind:event="oninput" />
+        </div>
+
+        <h3 class="category-heading">Suas lojas (@Filtradas.Count de @_dados.Lojas.Count)</h3>
+
+        @if (_dados.Lojas.Count == 0)
+        {
+            <p class="hint">Nenhuma loja cadastrada ainda. Fale com o suporte para abrir a primeira.</p>
+        }
+        else if (Filtradas.Count == 0)
+        {
+            <p class="hint">Nenhuma loja encontrada para "@_busca".</p>
+        }
+        else
+        {
+            <div class="data-table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Segmento</th>
+                            <th>Situação</th>
+                            <th>Criada em</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loja in Filtradas)
+                        {
+                            <tr>
+                                <td>@loja.Nome</td>
+                                <td>@(loja.Segmento ?? "—")</td>
+                                <td><span class="badge @(loja.Ativa ? "badge-ok" : "")">@(loja.Ativa ? "Ativa" : "Desativada")</span></td>
+                                <td>@loja.CriadaEm.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private LojasDto? _dados;
+    private string _busca = "";
+    private bool _carregando = true;
+    private string? _erro;
+
+    private List<LojaDto> Filtradas =>
+        (_dados?.Lojas ?? new())
+            .Where(l => string.IsNullOrWhiteSpace(_busca)
+                || l.Nome.Contains(_busca, StringComparison.OrdinalIgnoreCase)
+                || (l.Segmento?.Contains(_busca, StringComparison.OrdinalIgnoreCase) ?? false))
+            .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var (ok, dados, erro) = await LojaApi.ListarAsync();
+
+        if (ok)
+            _dados = dados;
+        else
+            _erro = erro ?? "Não foi possível carregar as lojas.";
+
+        _carregando = false;
+    }
+}

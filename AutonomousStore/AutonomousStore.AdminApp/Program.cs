@@ -24,6 +24,7 @@ builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().Cre
 builder.Services.AddScoped<IAdminAuthApiService, AdminAuthApiService>();
 builder.Services.AddScoped<IVisionApiService, VisionApiService>();
 builder.Services.AddScoped<ICatalogApiService, CatalogApiService>();
+builder.Services.AddScoped<ILojaApiService, LojaApiService>();
 
 // SCOPED, e nao Transient: o servico guarda a planta depois da primeira
 // leitura. Transient jogaria fora o cache a cada injecao, e a planta voltaria

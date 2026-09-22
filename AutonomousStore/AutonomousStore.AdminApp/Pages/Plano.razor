@@ -1,0 +1,140 @@
+@page "/plano"
+@inject ILojaApiService LojaApi
+@inject AppState AppState
+@inject NavigationManager Nav
+
+<h1>Plano</h1>
+<p class="hint">Sua assinatura e o que ela inclui. Para mudar de plano ou abrir uma loja nova, fale com o suporte.</p>
+
+@if (!string.IsNullOrEmpty(_erro))
+{
+    <div class="error-message">@_erro</div>
+}
+
+<div class="card">
+    <h3 class="category-heading">Seu plano atual</h3>
+
+    @if (_carregando)
+    {
+        <p class="hint">Carregando...</p>
+    }
+    else if (_dados is not null)
+    {
+        <span class="badge @(NoLimite ? "badge-low" : "badge-ok")">@_dados.Ativas de @_dados.Limite loja(s) ativa(s)</span>
+
+        @if (NoLimite)
+        {
+            <p class="hint" style="margin-top: 12px;">
+                Seu plano está no limite de lojas. Para abrir mais uma, fale com o suporte sobre ampliar o plano.
+            </p>
+        }
+    }
+
+    <a class="btn-primary btn-auto" href="/suporte" style="margin-top: 16px; display: inline-flex;">Falar com o suporte</a>
+</div>
+
+<div class="card">
+    <h3 class="category-heading">Outros planos</h3>
+    <p class="hint">
+        Exemplo de como os planos deverão se organizar — <strong>valores e limites ainda não foram definidos</strong>.
+        Fale com o suporte para saber as condições reais do seu contrato.
+    </p>
+
+    <div class="planos-grid">
+        @foreach (var plano in _planosFicticios)
+        {
+            <div class="plano-card @(plano == PlanoParecido ? "plano-atual" : "")">
+                @if (plano == PlanoParecido)
+                {
+                    <span class="badge badge-ok">seu plano</span>
+                }
+                <h4>@plano.Nome</h4>
+                <p class="plano-preco">@plano.Preco</p>
+                <ul class="plano-lista">
+                    @foreach (var item in plano.Itens)
+                    {
+                        <li>@item</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .planos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-top: 8px;
+    }
+    .plano-card {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: var(--raio-card);
+        background: var(--surface-solid);
+    }
+    .plano-card.plano-atual {
+        border-color: var(--acao-violeta);
+        box-shadow: 0 0 0 1px var(--acao-violeta);
+    }
+    .plano-card h4 {
+        margin: 10px 0 4px;
+        font-size: 17px;
+    }
+    .plano-preco {
+        margin: 0 0 14px;
+        color: var(--ink-3);
+        font-size: 13.5px;
+    }
+    .plano-lista {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 14px;
+        color: var(--ink-2);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+</style>
+
+@code {
+    private LojasDto? _dados;
+    private bool _carregando = true;
+    private string? _erro;
+
+    private bool NoLimite => _dados is not null && _dados.Ativas >= _dados.Limite;
+
+    // ILUSTRATIVO. Sem preço real de propósito — o Eduardo ainda não decidiu valores. Serve só para mostrar como a
+    // tela vai se organizar quando os planos existirem de verdade.
+    private readonly List<PlanoFicticio> _planosFicticios = new()
+    {
+        new("Piloto", "gratuito, para demonstração", new() { "1 loja ativa", "Suporte por chamado" }, AteQuantasLojas: 1),
+        new("Crescimento", "a definir", new() { "até 5 lojas ativas", "Suporte por chamado", "Relatórios de vendas" }, AteQuantasLojas: 5),
+        new("Rede", "a definir", new() { "lojas ilimitadas", "Suporte prioritário", "Relatórios de vendas" }, AteQuantasLojas: int.MaxValue),
+    };
+
+    // So um paralelo visual com o limite REAL da empresa — nao e o plano dela de verdade, que esses tres ainda nao sao.
+    private PlanoFicticio? PlanoParecido =>
+        _dados is null ? null : _planosFicticios.FirstOrDefault(p => _dados.Limite <= p.AteQuantasLojas);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AppState.IsAuthenticated)
+        {
+            Nav.NavigateTo("/login");
+            return;
+        }
+
+        var (ok, dados, erro) = await LojaApi.ListarAsync();
+
+        if (ok)
+            _dados = dados;
+        else
+            _erro = erro ?? "Não foi possível carregar o seu plano.";
+
+        _carregando = false;
+    }
+
+    private record PlanoFicticio(string Nome, string Preco, List<string> Itens, int AteQuantasLojas);
+}

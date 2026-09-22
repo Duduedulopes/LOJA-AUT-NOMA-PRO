@@ -79,6 +79,15 @@
     {
         <div class="lista card">
             <table class="tabela-ocorrencias">
+                <colgroup>
+                    <col style="width: 13%" />
+                    <col style="width: 13%" />
+                    <col style="width: 10%" />
+                    <col style="width: 9%" />
+                    <col style="width: 9%" />
+                    <col style="width: 34%" />
+                    <col style="width: 12%" />
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Quando</th>
@@ -253,6 +262,7 @@
                     else
                     {
                         <span class="chip chip-estado chip-nosuporte">Aguardando suporte</span>
+                        <span style="font-size:13px;color:var(--ink-3, #6b7280);">A conversa com o suporte fica em <strong>Suporte</strong>, no menu.</span>
                     }
                 </div>
                 <button class="btn secundario" @onclick="FecharDetalhe">Fechar</button>
@@ -370,13 +380,20 @@
     .estado.erro { display: flex; flex-direction: column; gap: 12px; align-items: center; color: var(--danger); }
     .estado.ok { color: var(--texto-ciano); }
 
-    .tabela-ocorrencias { width: 100%; border-collapse: collapse; }
+    /* Revisão: a barra de rolagem lateral resolvia o vazamento, mas o Eduardo prefere a tabela caber inteira. Com
+       largura FIXA por coluna (o colgroup logo abaixo, na marcação) o navegador para de alargar a tabela pelo
+       conteúdo — um token sem espaço (nome de classe, caminho de API) agora QUEBRA dentro da própria coluna, em
+       vez de empurrar a tabela pra fora. `.lista` mantém overflow-x como rede de segurança, não como plano principal. */
+    .lista { overflow-x: auto; }
+
+    .tabela-ocorrencias { width: 100%; table-layout: fixed; border-collapse: collapse; }
     .tabela-ocorrencias th, .tabela-ocorrencias td {
         text-align: left;
         padding: 12px 14px;
         border-bottom: 1px solid var(--line);
         font-size: 14px;
         vertical-align: top;
+        overflow-wrap: anywhere;
     }
     .tabela-ocorrencias th {
         color: var(--ink-3);
@@ -387,8 +404,8 @@
     }
     .tabela-ocorrencias tbody tr { cursor: pointer; transition: background .1s; }
     .tabela-ocorrencias tbody tr:hover { background: var(--surface-alto, var(--tint-violeta)); }
-    .tabela-ocorrencias .quando { white-space: nowrap; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-    .tabela-ocorrencias .descricao { color: var(--ink-2); max-width: 420px; }
+    .tabela-ocorrencias .quando { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+    .tabela-ocorrencias .descricao { color: var(--ink-2); }
     .tabela-ocorrencias .acao-col { text-align: right; }
     .tabela-ocorrencias tr.severidade-critica { background: oklch(0.99 0.015 25); }
     [data-tema="escuro"] .tabela-ocorrencias tr.severidade-critica { background: oklch(0.35 0.05 25); }
@@ -587,10 +604,34 @@
     private bool _mostrarSuporte;
     private string _descricaoSuporte = "";
 
+    /// <summary>
+    /// De onde o sino manda ("Alertas", no topo): o mesmo estado que ele conta (sempre "Nova"), e SEM data — o sino não
+    /// tem janela de tempo, então é isto ou o "1" dele nunca bater com o que a lista mostra por padrão (últimos 7 dias).
+    /// </summary>
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "estado")]
+    public string? EstadoInicial { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "todoPeriodo")]
+    public bool? TodoPeriodoInicial { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        _filtroDesde = DateTime.Today.AddDays(-7);
-        _filtroAte = DateTime.Today.AddDays(1);
+        if (TodoPeriodoInicial == true)
+        {
+            _filtroDesde = null;
+            _filtroAte = null;
+        }
+        else
+        {
+            _filtroDesde = DateTime.Today.AddDays(-7);
+            _filtroAte = DateTime.Today.AddDays(1);
+        }
+
+        if (!string.IsNullOrWhiteSpace(EstadoInicial))
+            _filtroEstado = EstadoInicial;
+
         await AplicarFiltro();
     }
 

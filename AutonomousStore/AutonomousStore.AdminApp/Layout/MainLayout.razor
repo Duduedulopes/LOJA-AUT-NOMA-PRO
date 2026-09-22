@@ -22,12 +22,14 @@
                    aqui dentro: quem sabe a pagina aberta e o roteador. *@
                 <nav class="admin-nav">
                     <NavLink href="/" Match="NavLinkMatch.All">Início</NavLink>
+                    <NavLink href="/lojas">Lojas</NavLink>
                     <NavLink href="/produtos">Produtos</NavLink>
                     <NavLink href="/monitor-prateleira">Prateleira</NavLink>
                     <NavLink href="/vendas">Vendas</NavLink>
                     <NavLink href="/gemeo-digital">Gêmeo Digital</NavLink>
                     <NavLink href="/ocorrencias">Ocorrências</NavLink>
                     <NavLink href="/suporte">Suporte</NavLink>
+                    <NavLink href="/plano">Plano</NavLink>
                 </nav>
 
             }
@@ -66,7 +68,7 @@
            outra coisa, e ter que sair da tela faz a pergunta nao ser feita. *@
         @if (AppState.IsAuthenticated)
         {
-            <GerenteChat Perfil="PerfilDeQuemFala.Chefe" />
+            <GerenteChat Perfil="PerfilDeQuemFala.Chefe(AppState.AdminName)" />
         }
     </main>
 
