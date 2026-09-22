@@ -343,8 +343,8 @@ foi passar a chamar todo mundo pelo nome, sem título.
 |  | Chefe (AdminApp) | Cliente (ClientApp) | Técnico (SuporteApp) | Criador (CriadorApp) |
 |---|---|---|---|---|
 | intenções | as 42 | 12 | 8 | 8 — por enquanto, a mesma lista do técnico |
-| pode alterar o sistema | sim, sempre confirmando | **não** | não | não |
-| enxerga várias empresas | não | não (é de uma só) | **sim** | **sim** |
+| pode alterar o sistema | sim (limitações) | **não** | sim | sim |
+| enxerga várias empresas | não | não  | sim | sim |
 
 Técnico e Criador **não herdam a lista do Chefe**: "quanto faturamos hoje?"
 respondido a quem vê todas as empresas somaria o dinheiro de empresas
