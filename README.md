@@ -91,7 +91,7 @@ Três repositórios, três problemas diferentes, um sistema só.
 
 ## Arquitetura
 
-Solução .NET 8 em camadas, 14 projetos. É uma plataforma multiempresa (SaaS):
+Solução .NET 8 em camadas, 17 projetos (cinco deles de teste). É uma plataforma multiempresa (SaaS):
 uma instalação atende várias empresas assinantes, cada uma isolada por um
 `Tenant` — o filtro fica no `AutonomousDbContext` e é global, não uma checagem
 espalhada pelos controllers. O `Domain` concentra as regras de negócio nas
@@ -145,11 +145,16 @@ alcança todas — e é por isso que ele, e só ele, precisa de mascaramento.
 
 | papel | alcança | limite |
 |---|---|---|
-| **Criador** | toda a plataforma: empresas, lojas, técnicos, fila e histórico de chamados, auditoria | nenhum — é o topo |
-| **Suporte** | chamados e ocorrências de **todas** as empresas | vê a empresa como código + nome fantasia; dado de comprador só ao "revelar com motivo", e a revelação vira auditoria |
-| **Admin** | só a própria empresa: suas lojas, produtos, estoque e sessões | não abre nem desativa loja — isso é assinatura, e mora num controller separado do painel do Criador |
-| **Comprador** | a própria sessão de compra e o próprio histórico | pertence a uma única empresa |
-| **Loja** | o EdgeDesktop e o ESP32 na porta | até o limite de lojas **ativas** do plano |
+| **Criador** | `PlatformController` inteiro: criar, suspender e reativar empresa, mudar o limite de lojas do plano, listar técnicos, ler a auditoria e o painel da rede — mais lojas e ocorrências de qualquer empresa | nenhum: é o único papel com acesso ao `PlatformController` |
+| **Suporte** | chamados e ocorrências de todas as empresas · lista de empresas · compradores de qualquer empresa · **criar loja, editar, desativar e reativar** (`LojasDaPlataformaController`, papel `DaPlataforma`) · **cadastrar comprador** | vê o comprador mascarado; o dado completo só por `POST /suporte/compradores/{id}/revelar`, que **exige motivo** e grava na auditoria. Não entra no `PlatformController`: não cria nem suspende empresa, não lê a auditoria |
+| **Admin** | a própria empresa: produtos (preço, detalhes, categoria, etiqueta RFID, estoque e limite), categorias, histórico de sessões e as ocorrências da empresa | `LojasController` só tem `GET` — abrir e desativar loja é do papel `DaPlataforma`, não dele |
+| **Comprador** | a própria sessão, o carrinho, os meios de pagamento e o próprio perfil | pertence a uma única empresa |
+| **ESP32 / leitora** | `by-rfid`, `confirm-entry` e `verify-exit`, que são `[AllowAnonymous]` porque a placa não carrega JWT | grava ocorrência a cada passagem |
+
+O `Suporte` e o `Criador` compartilham o papel `DaPlataforma`, e é por isso que
+abrir e desativar loja mora num controller à parte: em ASP.NET Core o
+`[Authorize]` de método **soma** ao da classe e nunca o afrouxa, então dar essa
+rota ao Suporte dentro do painel do Criador teria aberto o painel inteiro junto.
 
 ### Execução
 
@@ -339,7 +344,7 @@ agrupamento a acurácia sobe 27 pontos sem o modelo ter melhorado em nada.
 |---|---|
 | acerto no 1º palpite | 58,2% |
 | resposta certa entre os 3 primeiros | 76,2% |
-| precisão acima do limiar (0,95) | 79,0% |
+| precisão acima do limiar (0,90) | 79,0% |
 | cobertura acima do limiar | 47,1% |
 | termina certo depois do clique | 72,3% |
 | erro silencioso | 9,9% |
@@ -408,8 +413,15 @@ foi passar a chamar todo mundo pelo nome, sem título.
 |  | Chefe (AdminApp) | Cliente (ClientApp) | Técnico (SuporteApp) | Criador (CriadorApp) |
 |---|---|---|---|---|
 | intenções | as 42 | 12 | 8 | 8 — por enquanto, a mesma lista do técnico |
-| pode alterar o sistema | sim (limitações) | **não** | sim | sim |
-| enxerga várias empresas | não | não  | sim | sim |
+| pode mandar o gerente alterar | sim, sempre confirmando | **não** | **não** | **não** |
+| enxerga várias empresas | não | não (é de uma só) | **sim** | **sim** |
+
+A linha do meio mede o **gerente**, não a API. `PerfilDeQuemFala` dá
+`PodeEscrever: true` só ao Chefe: pelo chat, nem o Técnico nem o Criador mudam
+nada. Fora do chat os dois escrevem, e bastante — criam e desativam loja,
+cadastram comprador, suspendem empresa — mas por rota própria, com
+`[Authorize(Roles=...)]` e auditoria, que é onde essa permissão deve morar. Ver
+a tabela de alcance na seção Arquitetura.
 
 Técnico e Criador **não herdam a lista do Chefe**: "quanto faturamos hoje?"
 respondido a quem vê todas as empresas somaria o dinheiro de empresas
@@ -530,13 +542,14 @@ voltou, a afirmação estava errada.
 ```
 AutonomousStore/
 ├─ AutonomousStore.Domain/          entidades e regras — não depende de nada
-├─ AutonomousStore.Application/     casos de uso
+├─ AutonomousStore.Application/     reservado — sem código ainda
 ├─ AutonomousStore.Infrastructure/  EF Core 8, SQL Server, repositórios
 ├─ AutonomousStore.WebApi/          ASP.NET Core 8, JWT, Gemini (visão)
 ├─ AutonomousStore.Gerente/          a rede neural, o chat e o aprendizado
 │  ├─ Services/ClassificadorDeIntencao.cs
 │  ├─ Services/Aprendizado/         retropropagação, trava, ponte com o Python
-│  ├─ Services/Agente/              conversa, permissões, leitura de valores
+│  ├─ Services/Agente/              conversa e leitura de valores (o resto
+│  │                               da pasta é caminho antigo, sem uso)
 │  ├─ Componentes/GerenteChat.razor
 │  ├─ PerfilDeQuemFala.cs           quem fala, e o que pode ouvir
 │  └─ wwwroot/modelos/              intencao.json · guarda.json
@@ -546,12 +559,13 @@ AutonomousStore/
 ├─ AutonomousStore.SuporteApp/      Blazor WASM — o suporte
 ├─ AutonomousStore.CriadorApp/      Blazor WASM — o Criador (multiempresa)
 ├─ AutonomousStore.EdgeDesktop/     WPF — a máquina da loja
-├─ AutonomousStore.Hardware/        RFID, relé, serial, TCP
+├─ AutonomousStore.Hardware/        leitura RFID (IRfidReader) + mock
 ├─ Smart-store-PWA/                 protótipo anterior, HTML puro
 └─ *.Tests/                         xUnit
 firmware/                           ESP32 + RC522, .NET nanoFramework
-├─ Etapa2Pisca/  Etapa3Rfid2/  Etapa4Oled/
-└─ Etapa6Wifi/   Etapa7Api/    Etapa8Saida/
+├─ Etapa1Referencia/  Etapa2Pisca/  Etapa3Rfid2/
+├─ Etapa4Oled/        Etapa6Wifi/   Etapa7Api/
+└─ Etapa8Saida/
 ```
 
 
@@ -559,25 +573,28 @@ firmware/                           ESP32 + RC522, .NET nanoFramework
 
 **MVP funcional**, com o caminho crítico rodando em hardware real.
 
-Pronto: cadastro e login (senha e Google) · QR code de entrada com validade ·
-confirmação de entrada por token · catálogo com estoque · vinculação de etiqueta
-RFID a produto · leitor de saída em ESP32 · painel administrativo · atendimento e
-chamados de suporte · assistente e visão com Gemini · expiração de sessão
-abandonada · plataforma multiempresa com isolamento por `Tenant`, quatro papéis
-(Criador, Suporte, Admin, Comprador) e limite de lojas por plano · painel central
-do Criador com o Mapa da Rede · o gerente virtual atendendo os quatro perfis com
-barreiras separadas · a rede neural treinando dentro do navegador.
+Pronto: cadastro e login (senha e Google) · entrada autônoma pelo QR code —
+o cliente abre a loja sozinho, sem depender de liberação do admin · catálogo com estoque · vinculação de etiqueta
+RFID a produto · leitor de saída em ESP32 · fechamento da compra pelo ClientApp
+(`checkout` e `confirm-payment`) · painel administrativo · atendimento e chamados
+de suporte · ocorrências detectadas, classificadas e gravadas · assistente e
+visão com Gemini · expiração de sessão abandonada · plataforma multiempresa com
+isolamento por `Tenant`, quatro papéis (Criador, Suporte, Admin, Comprador) e
+limite de lojas por plano · painel central do Criador com o Mapa da Rede ·
+auditoria que só se acrescenta · mascaramento do dado de comprador para o
+Suporte, com "revelar com motivo" · o gerente virtual atendendo os quatro perfis
+com barreiras separadas · a rede neural treinando dentro do navegador.
+
+**245 testes automatizados**: 116 no `Domain`, 64 no `Infrastructure`, 33 no
+`WebApi` e 32 no `Gerente`.
 
 ## Roadmap
 
-- [ ] **Persistir o que a loja aprendeu** — hoje o modelo treinado vive na memória
-      da aba e morre no F5; enviar ao Python salva, mas só com o monitor ligado
+- [ ] **Persistir o que a loja aprendeu** — hoje o modelo treinado vive na
+      memória da aba e morre no F5; enviar ao Python salva, mas só com o monitor
+      ligado
 - [ ] **Reconciliação RFID × câmera** — os dois sistemas já se falam; cruzar as
       duas leituras do mesmo gesto é a próxima decisão de arquitetura
-- [ ] **Entrada autônoma** — hoje a liberação depende de ação do admin; o cliente
-      deve poder abrir a loja sozinho
-- [ ] **Fechamento da compra** — `checkout` e `confirm-payment` acionados pelo
-      ClientApp
 - [ ] **Texto no OLED** com produto e preço a cada leitura
 - [ ] **Sensor de presença** na zona de entrada
 - [ ] **Gateway de pagamento real**
