@@ -178,7 +178,16 @@
 
                 return fetch(API + 'api/ocorrencias/navegador', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: (function () {
+                        var h = { 'Content-Type': 'application/json' };
+                        // De qual EMPRESA e a loja (o app grava isto ao abrir o link/QR da loja). Sem isto, o
+                        // erro de um comprador de QUALQUER empresa cairia na empresa padrao.
+                        try {
+                            var e = localStorage.getItem('empresa');
+                            if (e) h['X-Empresa'] = e;
+                        } catch (x) { /* localStorage bloqueado: reporta sem empresa */ }
+                        return h;
+                    })(),
                     body: JSON.stringify({
                         app: APP,
                         pagina: location.pathname + location.search,

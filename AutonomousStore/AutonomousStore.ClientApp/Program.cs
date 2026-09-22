@@ -2,6 +2,8 @@ using AutonomousStore.Comum;
 using AutonomousStore.Gerente;
 using AutonomousStore.ClientApp;
 using AutonomousStore.ClientApp.Services;
+using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -31,6 +33,8 @@ var apiBaseAddress = apiBaseAddressOverride
     ?? $"http://{new Uri(builder.HostEnvironment.BaseAddress).Host}:5071/";
 
 builder.Services.AddSingleton<AppState>();
+// De qual empresa e a loja em que o comprador esta (vem do link/QR da loja). Vai em todo pedido a API.
+builder.Services.AddSingleton<EmpresaDaLoja>();
 builder.Services.AddTransient<AuthHeaderHandler>();
 
 builder.Services.AddHttpClient("AutonomousStoreApi", client =>
@@ -63,4 +67,43 @@ builder.Services.AdicionarChamados(sp => sp.GetRequiredService<AppState>().Token
 // é o PerfilDeQuemFala passado ao <GerenteChat /> no MainLayout.
 builder.Services.AdicionarGerente(builder.HostEnvironment.BaseAddress);
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+IdentificarEmpresaDaLoja(host);
+await host.RunAsync();
+
+// ── de qual empresa e esta loja? ─────────────────────────────────────────────
+//
+// O link ou o QR code da loja traz a empresa: https://.../?empresa=redesabor. O app a guarda no
+// navegador, para que recarregar a pagina (ou voltar amanha por um link sem o parametro) nao faca o
+// comprador cair, sem perceber, na empresa errada.
+//
+// Isto so IDENTIFICA a empresa antes do login. Quem autoriza continua sendo o token: o servidor ignora
+// este valor quando ha um token com empresa.
+static void IdentificarEmpresaDaLoja(WebAssemblyHost host)
+{
+    var empresa = host.Services.GetRequiredService<EmpresaDaLoja>();
+    var navegacao = host.Services.GetRequiredService<NavigationManager>();
+    var js = (IJSInProcessRuntime)host.Services.GetRequiredService<IJSRuntime>();
+
+    string? doLink = null;
+    foreach (var par in new Uri(navegacao.Uri).Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var partes = par.Split('=', 2);
+        if (partes.Length == 2 && partes[0] == "empresa")
+            doLink = Uri.UnescapeDataString(partes[1]);
+    }
+
+    try
+    {
+        // O link manda: e o que o QR code da loja diz. Sem ele, vale o que o navegador lembra.
+        if (empresa.Definir(doLink))
+            js.InvokeVoid("localStorage.setItem", EmpresaDaLoja.ChaveNoNavegador, empresa.Slug);
+        else
+            empresa.Definir(js.Invoke<string?>("localStorage.getItem", EmpresaDaLoja.ChaveNoNavegador));
+    }
+    catch (JSException)
+    {
+        // localStorage bloqueado (janela privada, politica do navegador): o app funciona do mesmo
+        // jeito, so nao lembra da empresa entre uma visita e outra.
+    }
+}
