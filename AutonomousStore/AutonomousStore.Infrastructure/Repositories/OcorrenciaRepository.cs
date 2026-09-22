@@ -78,6 +78,7 @@ public class OcorrenciaRepository : IOcorrenciaRepository
         if (filtro.Tipo is { } tipo) q = q.Where(o => o.Tipo == tipo);
         if (filtro.Estado is { } estado) q = q.Where(o => o.Estado == estado);
         if (filtro.CorrelationId is { } cid) q = q.Where(o => o.CorrelationId == cid);
+        if (filtro.EmailDoAdmin is { } admin) q = SoOQueEDoAdmin(q, admin);   // vazio LIGA o filtro: so o que os detectores acharam
 
         // SeveridadeMinima e um PISO, nao uma igualdade. Quem pede "alta"
         // quer alta e critica: filtrar por igual esconderia justamente a
@@ -90,15 +91,47 @@ public class OcorrenciaRepository : IOcorrenciaRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<(int Total, int Criticas, DateTime? MaisRecente)> NaoVistasAsync(
+    public async Task<IReadOnlyList<(Guid? TenantId, Severidade Severidade, DateTime QuandoUtc)>> NaFilaDoSuporteAsync(
         CancellationToken cancellationToken = default)
+    {
+        // So as tres colunas que o painel usa: a fila pode ter centenas de linhas, e o texto de cada uma nao interessa a quem so conta.
+        var linhas = await _context.Ocorrencias
+            .AsNoTracking()
+            .Where(o => o.Estado == EstadoDaOcorrencia.NoSuporte)
+            .Select(o => new { o.TenantId, o.Severidade, o.QuandoUtc })
+            .ToListAsync(cancellationToken);
+
+        return linhas.Select(l => (l.TenantId, l.Severidade, l.QuandoUtc)).ToList();
+    }
+
+    public async Task<IReadOnlyList<(string? ResolvidaPor, DateTime QuandoUtc, DateTime ResolvidaEm)>> ResolvidasDesdeAsync(
+        DateTime desde, CancellationToken cancellationToken = default)
+    {
+        // "Ignorada" tambem grava ResolvidaEm, mas ignorar nao e resolver: contar as duas inflaria o desempenho de quem so descartou.
+        var linhas = await _context.Ocorrencias
+            .AsNoTracking()
+            .Where(o => o.Estado == EstadoDaOcorrencia.Resolvida && o.ResolvidaEm != null && o.ResolvidaEm >= desde)
+            .Select(o => new { o.ResolvidaPor, o.QuandoUtc, o.ResolvidaEm })
+            .ToListAsync(cancellationToken);
+
+        return linhas.Select(l => (l.ResolvidaPor, l.QuandoUtc, l.ResolvidaEm!.Value)).ToList();
+    }
+
+    public async Task<(int Total, int Criticas, DateTime? MaisRecente)> NaoVistasAsync(
+        string? emailDoAdmin = null, CancellationToken cancellationToken = default)
     {
         // UMA IDA AO BANCO, NAO TRES. Isto roda a cada 20 segundos em toda
         // tela de admin aberta; tres consultas viram tres por tela por
         // vinte segundos.
-        var r = await _context.Ocorrencias
+        var q = _context.Ocorrencias
             .AsNoTracking()
-            .Where(o => o.Estado == EstadoDaOcorrencia.Nova)
+            .Where(o => o.Estado == EstadoDaOcorrencia.Nova);
+
+        // O sino conta so o que o Admin enxerga: sem isto, o pedido de um comprador (que a lista e o resumo ja escondem
+        // dele) acendia o sino mesmo assim — um numero que promete uma ocorrencia que a tela, logo depois, diz nao existir.
+        if (emailDoAdmin is { } admin) q = SoOQueEDoAdmin(q, admin);
+
+        var r = await q
             .GroupBy(o => 1)
             .Select(g => new
             {
@@ -112,11 +145,17 @@ public class OcorrenciaRepository : IOcorrenciaRepository
     }
 
     public async Task<IReadOnlyList<(TipoDeOcorrencia Tipo, Severidade Severidade, int Quantidade)>>
-        ResumoAsync(DateTime desde, DateTime ate, CancellationToken cancellationToken = default)
+        ResumoAsync(DateTime desde, DateTime ate, string? emailDoAdmin = null, CancellationToken cancellationToken = default)
     {
-        var linhas = await _context.Ocorrencias
+        var q = _context.Ocorrencias
             .AsNoTracking()
-            .Where(o => o.QuandoUtc >= desde && o.QuandoUtc < ate)
+            .Where(o => o.QuandoUtc >= desde && o.QuandoUtc < ate);
+
+        // O resumo do Admin tem de contar so o que ele enxerga: um numero que inclui pedidos de compradores que ele nao
+        // pode abrir seria um vazamento por contagem.
+        if (emailDoAdmin is { } admin) q = SoOQueEDoAdmin(q, admin);          // vazio LIGA o filtro: so o que os detectores acharam
+
+        var linhas = await q
             .GroupBy(o => new { o.Tipo, o.Severidade })
             .Select(g => new { g.Key.Tipo, g.Key.Severidade, Quantidade = g.Count() })
             .ToListAsync(cancellationToken);
@@ -125,6 +164,17 @@ public class OcorrenciaRepository : IOcorrenciaRepository
             .Select(l => (l.Tipo, l.Severidade, l.Quantidade))
             .OrderByDescending(l => l.Quantidade)
             .ToList();
+    }
+
+    /// <summary>
+    /// O que é do ADMIN: o que os detectores acharam (sem dono) e os pedidos que ELE escreveu. O pedido escrito por
+    /// outra pessoa — um comprador — é do suporte.
+    /// </summary>
+    private static IQueryable<Ocorrencia> SoOQueEDoAdmin(IQueryable<Ocorrencia> consulta, string emailDoAdmin)
+    {
+        var alvo = emailDoAdmin.Trim().ToLower();
+
+        return consulta.Where(o => o.AbertoPor == null || o.AbertoPor.ToLower() == alvo);
     }
 
     public async Task<bool> JaExisteAsync(

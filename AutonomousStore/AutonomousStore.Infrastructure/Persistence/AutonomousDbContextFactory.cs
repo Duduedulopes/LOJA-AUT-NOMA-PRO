@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutonomousStore.Infrastructure.Tenancy;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace AutonomousStore.Infrastructure.Persistence;
@@ -37,6 +38,8 @@ public class AutonomousDbContextFactory : IDesignTimeDbContextFactory<Autonomous
             connectionString,
             sqlOptions => sqlOptions.MigrationsHistoryTable("MigrationHistory"));
 
-        return new AutonomousDbContext(optionsBuilder.Options);
+        // Design-time nao tem requisicao. As migracoes descrevem o SCHEMA, que nao
+        // depende de empresa nenhuma — por isso o contexto sem empresa serve.
+        return new AutonomousDbContext(optionsBuilder.Options, new TenantContext());
     }
 }

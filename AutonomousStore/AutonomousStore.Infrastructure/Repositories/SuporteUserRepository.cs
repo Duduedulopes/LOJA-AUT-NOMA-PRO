@@ -32,6 +32,14 @@ public class SuporteUserRepository : ISuporteUserRepository
             .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<SuporteUser>> ListarAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Set<SuporteUser>()
+            .AsNoTracking()
+            .OrderBy(s => s.Name)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);
